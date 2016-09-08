@@ -1,0 +1,16 @@
+[Unit]
+Description=Chargeapp
+
+[Install]
+WantedBy=multi-user.target charge.target
+
+[Service]
+Type=simple
+ExecStart=/FLIR/usr/bin/chargeapp
+ExecStop=/usr/bin/killall -HUP chargeapp
+KillMode=control-group
+TimeoutStopSec=10
+SuccessExitStatus=0 1
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
+Environment=QT_QPA_EGLFS_FB=/dev/fb0
+ExecStopPost=/bin/dd if=/dev/zero of=/dev/fb0 count=4800

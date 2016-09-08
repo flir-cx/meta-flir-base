@@ -1,0 +1,7 @@
+
+[Unit]
+Description=System put in low power charging state
+Requires=basic.target getty.target
+Conflicts=rescue.service rescue.target
+After=basic.target rescue.service rescue.target
+AllowIsolate=yes
