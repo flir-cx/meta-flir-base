@@ -1,9 +1,0 @@
-[Unit]
-Description=Simple script to load g_ether driver with dynamic parameters
-
-[Service]
-ExecStart=/sbin/getherload
-ExecReload=/bin/kill -HUP $MAINPID
-
-[Install]
-WantedBy=multi-user.target charge.target

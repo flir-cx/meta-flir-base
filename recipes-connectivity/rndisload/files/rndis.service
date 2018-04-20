@@ -1,0 +1,8 @@
+[Unit]
+Description=Initialize RNDIS on usb0
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/rndisload
+ExecStop=/sbin/rndisunload
+RemainAfterExit=yes
