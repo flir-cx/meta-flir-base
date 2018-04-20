@@ -1,0 +1,86 @@
+From 4f822410518cd5847f8621d66c3e3b2599145b9e Mon Sep 17 00:00:00 2001
+From: Ye Li <ye.li@nxp.com>
+Date: Fri, 15 Dec 2017 01:28:06 -0600
+Subject: [PATCH] MLK-17292 mx7ulp: Set A7 core frequency to 500Mhz for B0 chip
+
+The normal target frequency for ULP A7 core is 500Mhz, but now ROM
+set the core frequency to 413Mhz. So change it to 500Mhz in u-boot.
+
+Signed-off-by: Ye Li <ye.li@nxp.com>
+---
+ arch/arm/cpu/armv7/mx7ulp/clock.c      |  2 ++
+ arch/arm/cpu/armv7/mx7ulp/scg.c        | 36 ++++++++++++++++++++++++++++++++++
+ arch/arm/include/asm/arch-mx7ulp/scg.h |  1 +
+ 3 files changed, 39 insertions(+)
+
+diff --git a/arch/arm/cpu/armv7/mx7ulp/clock.c b/arch/arm/cpu/armv7/mx7ulp/clock.c
+index 4db35e7..98d40d6 100644
+--- a/arch/arm/cpu/armv7/mx7ulp/clock.c
++++ b/arch/arm/cpu/armv7/mx7ulp/clock.c
+@@ -302,6 +302,8 @@ void clock_init(void)
+ 
+ 	scg_a7_soscdiv_init();
+ 
++	scg_a7_init_core_clk();
++
+ 	/* APLL PFD1 = 270Mhz, PFD2=345.6Mhz, PFD3=800Mhz */
+ 	scg_enable_pll_pfd(SCG_APLL_PFD1_CLK, 35);
+ 	scg_enable_pll_pfd(SCG_APLL_PFD2_CLK, 28);
+diff --git a/arch/arm/cpu/armv7/mx7ulp/scg.c b/arch/arm/cpu/armv7/mx7ulp/scg.c
+index 6eadd48..ce731eb 100644
+--- a/arch/arm/cpu/armv7/mx7ulp/scg.c
++++ b/arch/arm/cpu/armv7/mx7ulp/scg.c
+@@ -1095,3 +1095,39 @@ void scg_a7_info(void)
+ 	debug("SCG RCCR Value: 0x%x\n", readl(&scg1_regs->rccr));
+ 	debug("SCG Clock Status: 0x%x\n", readl(&scg1_regs->csr));
+ }
++
++void scg_a7_init_core_clk(void)
++{
++	u32 val = 0;
++
++	/* The normal target frequency for ULP B0 is 500Mhz, but ROM set it to 413Mhz, need to change SPLL PFD0 FRAC */
++	if (soc_rev() >= CHIP_REV_2_0) {
++
++		/* Switch RCCR SCG to SOSC, firstly check the SOSC is valid */
++		if ((readl(&scg1_regs->sosccsr) & SCG_SOSC_CSR_SOSCVLD_MASK)) {
++			val = readl(&scg1_regs->rccr);
++			val &= (~SCG_CCR_SCS_MASK);
++			val |= ((SCG_SCS_SYS_OSC) << SCG_CCR_SCS_SHIFT);
++			writel(val, &scg1_regs->rccr);
++
++			/* Swith the PLLS to SPLL clk */
++			val = readl(&scg1_regs->spllcfg);
++			val &= ~SCG_PLL_CFG_PLLSEL_MASK;
++			writel(val, &scg1_regs->spllcfg);
++
++			/* Re-configure PFD0 to 19, A7 SPLL(528MHz) * 18 / 19 = 500MHz */
++			scg_enable_pll_pfd(SCG_SPLL_PFD0_CLK, 19);
++
++			/* Swith the PLLS to SPLL PFD0 */
++			val = readl(&scg1_regs->spllcfg);
++			val |= SCG_PLL_CFG_PLLSEL_MASK;
++			writel(val, &scg1_regs->spllcfg);
++
++			/* Set RCCR SCG to SPLL clk out */
++			val = readl(&scg1_regs->rccr);
++			val &= (~SCG_CCR_SCS_MASK);
++			val |= ((SCG_SCS_SYS_PLL) << SCG_CCR_SCS_SHIFT);
++			writel(val, &scg1_regs->rccr);
++		}
++	}
++}
+diff --git a/arch/arm/include/asm/arch-mx7ulp/scg.h b/arch/arm/include/asm/arch-mx7ulp/scg.h
+index 06a6e9f..f46e52b 100644
+--- a/arch/arm/include/asm/arch-mx7ulp/scg.h
++++ b/arch/arm/include/asm/arch-mx7ulp/scg.h
+@@ -338,5 +338,6 @@ void scg_a7_nicclk_init(void);
+ void scg_a7_sys_clk_sel(enum scg_sys_src clk);
+ void scg_a7_info(void);
+ void scg_a7_soscdiv_init(void);
++void scg_a7_init_core_clk(void);
+ 
+ #endif
+-- 
+2.9.2
+
