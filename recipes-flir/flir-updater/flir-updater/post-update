@@ -1,0 +1,10 @@
+#!/bin/sh
+# post-update script
+# Currently this one is only a placeholder.
+# Future uses: 
+#        * perform post update fw_setenv
+#        * selection of dtb file (at least for the initial update to dtb's)
+#        * ...
+
+echo No post-update to run
+exit 0
