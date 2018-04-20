@@ -10,6 +10,11 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 DEPENDS = "openssl"
 
+# Use one or the other... /ULPA 2018-04-13
+#INSANE_SKIP_${PN} = "ldflags"
+#INSANE_SKIP_${PN}-dev = "ldflags"
+TARGET_CC_ARCH += "${LDFLAGS}" 
+
 SRCREV = "${AUTOREV}"
 SRC_URI = "git://git-se.flir.net/scm/MISC/fulverify.git;protocol=https"
 

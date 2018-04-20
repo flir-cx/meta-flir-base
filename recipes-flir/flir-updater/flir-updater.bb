@@ -16,4 +16,4 @@ do_install_append () {
            install -m 0755 ${WORKDIR}/post-update ${D}${sbindir}
 }
 
-RDEPENDS_${PN} += "gpgv"
+# RDEPENDS_${PN} += "gpgv"
