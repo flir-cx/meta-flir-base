@@ -1,0 +1,24 @@
+From bc44ace11e9878cbcef1f1100f6fb0c10681300e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@flir.se>
+Date: Thu, 5 Apr 2018 08:07:03 +0200
+Subject: [PATCH 1/2] Prepare for MLK-17293-1 patch
+
+---
+ include/linux/imx_rpmsg.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/linux/imx_rpmsg.h b/include/linux/imx_rpmsg.h
+index 894ebaf..0cf531c 100644
+--- a/include/linux/imx_rpmsg.h
++++ b/include/linux/imx_rpmsg.h
+@@ -27,6 +27,7 @@
+ #define IMX_RPMSG_PMIC		2
+ #define IMX_RPMSG_AUDIO		3
+ #define IMX_RPMSG_KEY		4
++#define IMX_RPMSG_GPIO		5
+ /* rpmsg version */
+ #define IMX_RMPSG_MAJOR		1
+ #define IMX_RMPSG_MINOR		0
+-- 
+1.9.1
+
