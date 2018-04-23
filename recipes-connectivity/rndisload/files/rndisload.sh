@@ -31,10 +31,19 @@ then
     exit 1
 fi
 
+# modprobe configfs
 modprobe usb_f_rndis
-# Will implicitely mount configfs at /sys/kernel/config
+# The latter will implicitely mount configfs at /sys/kernel/config
 
 sleep 1
+
+ls /sys/kernel/config/usb_gadget
+if [ $? -ne 0 ]
+then
+    echo "no usb_gadget in configfs ???"
+    lsmod
+    mount | grep configfs
+fi
 
 mkdir /sys/kernel/config/usb_gadget/g1
 cd /sys/kernel/config/usb_gadget/g1
