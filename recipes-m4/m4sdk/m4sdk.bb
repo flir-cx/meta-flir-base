@@ -22,16 +22,12 @@ INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
 do_configure_prepend()  {
       (
           tar xf ${WORKDIR}/SDK/SDK_2.2_EVK-MCIMX7ULP.tar.gz
+          tar xf ${WORKDIR}/SDK/SDK_2.3_EVK-MCIMX7ULP.tar.gz
       )
 }
 
 do_compile()  {
 }
-
-#do_install() {
-#    install -d ${D}${bindir}
-#    install -m 0755 ${WORKDIR}/build/debug/imx7ulpm4.elf  ${D}${bindir}
-#}
 
 do_install() {
      install -d ${D}${datadir}
@@ -41,11 +37,19 @@ do_install() {
      cp -pr ${WORKDIR}/build/SDK_2.2_EVK-MCIMX7ULP_M4/CMSIS/Include ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/CMCIS
      install -d ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/middleware
      cp -pr ${WORKDIR}/build/SDK_2.2_EVK-MCIMX7ULP_M4/middleware/multicore_2.2.0/rpmsg_lite ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/middleware/multicore_2.2.0
+
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/devices
+     cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/devices/MCIMX7U5 ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/devices
+     cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/CMSIS/Include ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/CMCIS
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware
+     cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore/rpmsg_lite ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore
      chown -R root:root ${D}${datadir}
 }
 
 FILES_${PN} += "\
     ${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/ \
+    ${datadir}/SDK_2.3_EVK-MCIMX7ULP/ \
 "
 
 #FILES_${PN}-dbg += "/usr/src/debug/* \
