@@ -12,7 +12,7 @@ inherit autotools
 
 SRC_URI = "\
 	   git://git-se.flir.net/scm/im7/gcc-arm-none-eabi.git;protocol=https;rev=master;destsuffix=compiler \
-           git://bitbucketcommercial.flir.com/scm/im7/m4-power-mode-switch-application.git;protocol=https;rev=master \
+           git://bitbucketcommercial.flir.com/scm/im7/m4-power-mode-switch-application.git;protocol=https;branch=master-revb;rev=master-revb \
 "
 
 S = "${WORKDIR}/git"
