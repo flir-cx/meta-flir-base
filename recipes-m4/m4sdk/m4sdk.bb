@@ -34,15 +34,19 @@ do_install() {
      install -d ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4
      install -d ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/devices
      cp -pr ${WORKDIR}/build/SDK_2.2_EVK-MCIMX7ULP_M4/devices/MCIMX7U5_M4/ ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/devices
-     cp -pr ${WORKDIR}/build/SDK_2.2_EVK-MCIMX7ULP_M4/CMSIS/Include ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/CMCIS
+     install -d ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/CMSIS
+     cp -pr ${WORKDIR}/build/SDK_2.2_EVK-MCIMX7ULP_M4/CMSIS/Include ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/CMSIS
      install -d ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/middleware
+     install -d ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/middleware/multicore_2.2.0
      cp -pr ${WORKDIR}/build/SDK_2.2_EVK-MCIMX7ULP_M4/middleware/multicore_2.2.0/rpmsg_lite ${D}${datadir}/SDK_2.2_EVK-MCIMX7ULP_M4/middleware/multicore_2.2.0
 
      install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP
      install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/devices
      cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/devices/MCIMX7U5 ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/devices
-     cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/CMSIS/Include ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/CMCIS
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/CMSIS
+     cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/CMSIS/Include ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/CMSIS
      install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore
      cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore/rpmsg_lite ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore
      chown -R root:root ${D}${datadir}
 }
