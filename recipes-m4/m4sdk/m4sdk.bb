@@ -48,6 +48,11 @@ do_install() {
      install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware
      install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore
      cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore/rpmsg_lite ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/middleware/multicore
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/boards
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/boards/evkmcimx7ulp
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/boards/evkmcimx7ulp/demo_apps
+     install -d ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/boards/evkmcimx7ulp/demo_apps/power_mode_switch
+     cp -pr ${WORKDIR}/build/SDK_2.3_EVK-MCIMX7ULP/boards/evkmcimx7ulp/demo_apps/power_mode_switch/srtm ${D}${datadir}/SDK_2.3_EVK-MCIMX7ULP/boards/evkmcimx7ulp/demo_apps/power_mode_switch
      chown -R root:root ${D}${datadir}
 }
 
