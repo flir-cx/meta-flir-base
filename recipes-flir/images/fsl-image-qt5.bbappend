@@ -2,5 +2,4 @@
 
 IMAGE_INSTALL_append += " \
     rndisload \
-    u-boot-fw-utils \
 "
