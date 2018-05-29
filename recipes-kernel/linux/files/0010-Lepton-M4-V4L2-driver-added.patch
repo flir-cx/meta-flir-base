@@ -1,0 +1,2738 @@
+From 17efda9a4d30a24f0d2e32162ecfa8ce3892523b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@flir.se>
+Date: Mon, 28 May 2018 16:51:27 +0200
+Subject: [PATCH] Lepton M4 V4L2 driver added
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Ulf Palmér <ulf.palmer@flir.se>
+---
+ arch/arm/boot/dts/imx7ulp-evk.dts                  |   38 +-
+ drivers/media/platform/Kconfig                     |    1 +
+ drivers/media/platform/Makefile                    |    1 +
+ drivers/media/platform/mxc/rpmsg/Kconfig           |   24 +
+ drivers/media/platform/mxc/rpmsg/Makefile          |    5 +
+ drivers/media/platform/mxc/rpmsg/lepton_m4.c       |  395 ++++
+ drivers/media/platform/mxc/rpmsg/rpmsg_sw.h        |   30 +
+ .../media/platform/mxc/rpmsg/rpmsg_v4l2_capture.c  | 2009 ++++++++++++++++++++
+ .../media/platform/mxc/rpmsg/rpmsg_v4l2_capture.h  |  129 ++
+ 9 files changed, 2597 insertions(+), 35 deletions(-)
+ create mode 100644 drivers/media/platform/mxc/rpmsg/Kconfig
+ create mode 100644 drivers/media/platform/mxc/rpmsg/Makefile
+ create mode 100644 drivers/media/platform/mxc/rpmsg/lepton_m4.c
+ create mode 100644 drivers/media/platform/mxc/rpmsg/rpmsg_sw.h
+ create mode 100644 drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.c
+ create mode 100644 drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.h
+
+diff --git a/arch/arm/boot/dts/imx7ulp-evk.dts b/arch/arm/boot/dts/imx7ulp-evk.dts
+index 0be1684..4864f28 100644
+--- a/arch/arm/boot/dts/imx7ulp-evk.dts
++++ b/arch/arm/boot/dts/imx7ulp-evk.dts
+@@ -156,13 +156,6 @@
+ 		};
+ 	};
+ 
+-	rpmsg_i2s: rpmsg-i2s {
+-		compatible = "fsl,imx7ulp-rpmsg-i2s";
+-		/* the audio device index in m4 domain */
+-		fsl,audioindex = <0> ;
+-		status = "okay";
+-	};
+-
+ 	rpmsg_gpio0: rpmsg-gpio0 {
+ 		compatible = "fsl,imx-rpmsg-gpio";
+ 		port_idx = <0>;
+@@ -185,34 +178,9 @@
+ 		status = "okay";
+ 	};
+ 
+-	rpmsg_keys: rpmsg-keys {
+-		compatible = "fsl,rpmsg-keys";
+-
+-		volume-up {
+-			label = "Volume Up";
+-			linux,code = <KEY_VOLUMEUP>;
+-		};
+-
+-		volume-down {
+-			label = "Volume Down";
+-			linux,code = <KEY_VOLUMEDOWN>;
+-		};
+-
+-		power-on {
+-			label = "PowerOn";
+-			linux,code = <KEY_POWER>;
+-			rpmsg-key,wakeup;
+-		};
+-	};
+-
+-	rpmsg_sensor: rpmsg-sensor {
+-		compatible = "fsl,rpmsg-input";
+-	};
+-
+-	sound-rpmsg {
+-		compatible = "fsl,imx-audio-rpmsg";
+-		model = "rpmsg-audio";
+-		cpu-dai = <&rpmsg_i2s>;
++	v4l2_cap_0 {
++		compatible = "fsl,imx7-rpmsg-capture";
++ 		status = "okay";
+ 	};
+ };
+ 
+diff --git a/drivers/media/platform/Kconfig b/drivers/media/platform/Kconfig
+index fef1147..f095ba9 100644
+--- a/drivers/media/platform/Kconfig
++++ b/drivers/media/platform/Kconfig
+@@ -136,6 +136,7 @@ config VIDEO_MX8_CAPTURE
+ source "drivers/media/platform/imx8/Kconfig"
+ source "drivers/media/platform/mxc/capture/Kconfig"
+ source "drivers/media/platform/mxc/output/Kconfig"
++source "drivers/media/platform/mxc/rpmsg/Kconfig"
+ source "drivers/media/platform/soc_camera/Kconfig"
+ source "drivers/media/platform/exynos4-is/Kconfig"
+ source "drivers/media/platform/am437x/Kconfig"
+diff --git a/drivers/media/platform/Makefile b/drivers/media/platform/Makefile
+index ce35b45..da84d11 100644
+--- a/drivers/media/platform/Makefile
++++ b/drivers/media/platform/Makefile
+@@ -64,6 +64,7 @@ obj-$(CONFIG_VIDEO_ATMEL_ISC)		+= atmel/
+ obj-$(CONFIG_VIDEO_MXC_OUTPUT)		+= mxc/output/
+ 
+ obj-$(CONFIG_VIDEO_MXC_CAPTURE)	+= mxc/capture/
++obj-$(CONFIG_VIDEO_MXC_CAPTURE)	+= mxc/rpmsg/
+ obj-$(CONFIG_VIDEO_MXC_OUTPUT)  += mxc/output/
+ obj-$(CONFIG_VIDEO_MX8_CAPTURE)	+= imx8/
+ 
+diff --git a/drivers/media/platform/mxc/rpmsg/Kconfig b/drivers/media/platform/mxc/rpmsg/Kconfig
+new file mode 100644
+index 0000000..e12be44
+--- /dev/null
++++ b/drivers/media/platform/mxc/rpmsg/Kconfig
+@@ -0,0 +1,24 @@
++if VIDEO_MXC_CAPTURE
++config VIDEO_V4L2_MXC_INT_DEVICE
++       tristate
++
++menu "MXC Camera/V4L2 RPMSG Features support"
++config VIDEO_MXC_RPMSG_CAMERA
++	bool
++	depends on VIDEO_MXC_CAPTURE
++	default y
++
++config MXC_CAMERA_LEPTON_M4
++        tristate "Lepton-M4 camera support"
++	depends on VIDEO_MXC_RPMSG_CAMERA
++	default m
++        ---help---
++          If you plan to use the Lepton-M4 Camera with your MXC system, say Y here.
++
++config MXC_RPMSG_ENC
++	tristate "RPMSG Encoder library"
++	depends on VIDEO_MXC_RPMSG_CAMERA
++	default m
++endmenu
++
++endif
+diff --git a/drivers/media/platform/mxc/rpmsg/Makefile b/drivers/media/platform/mxc/rpmsg/Makefile
+new file mode 100644
+index 0000000..5a9604c
+--- /dev/null
++++ b/drivers/media/platform/mxc/rpmsg/Makefile
+@@ -0,0 +1,5 @@
++ifeq ($(CONFIG_VIDEO_MXC_RPMSG_CAMERA),y)
++	obj-$(CONFIG_VIDEO_MXC_CAPTURE) += rpmsg_v4l2_capture.o
++endif
++
++obj-$(CONFIG_MXC_CAMERA_LEPTON_M4) += lepton_m4.o
+diff --git a/drivers/media/platform/mxc/rpmsg/lepton_m4.c b/drivers/media/platform/mxc/rpmsg/lepton_m4.c
+new file mode 100644
+index 0000000..0e40569
+--- /dev/null
++++ b/drivers/media/platform/mxc/rpmsg/lepton_m4.c
+@@ -0,0 +1,395 @@
++/*
++ * Copyright (C) 2012-2015 Freescale Semiconductor, Inc. All Rights Reserved.
++ */
++
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ */
++
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/i2c.h>
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/of_gpio.h>
++#include <linux/pinctrl/consumer.h>
++#include <linux/regulator/consumer.h>
++#include <media/v4l2-chip-ident.h>
++#include "rpmsg_v4l2_capture.h"
++
++
++#include <linux/platform_device.h>
++#include <linux/dma-mapping.h>
++#include <linux/interrupt.h>
++
++#include <linux/kernel.h>
++#include <linux/rpmsg.h>
++
++#include "../capture/v4l2-int-device.h"
++
++
++#define MIN_FPS 9
++#define MAX_FPS 9
++#define DEFAULT_FPS 9
++
++#define OVRPMSG_XCLK_MIN 6000000
++#define OVRPMSG_XCLK_MAX 24000000
++
++enum ovRpmsg_mode {
++	ovRpmsg_mode_MIN = 0,
++	ovRpmsg_mode_QVGA_320_240 = 0,
++	ovRpmsg_mode_MAX = 0
++};
++
++enum ovRpmsg_frame_rate {
++	ovRpmsg_9_fps,
++};
++
++struct ovRpmsg_mode_info {
++	enum ovRpmsg_mode mode;
++	u32 width;
++	u32 height;
++	struct reg_value *init_data_ptr;
++	u32 init_data_size;
++};
++
++static struct sensor_data ovRpmsg_data;
++
++enum rxtypes {
++	RX_LUT,
++	RX_BUF_0,
++	RX_BUF_1
++};
++
++struct csi_rx_msg {
++	uint32_t type;
++	uint32_t addr;
++};
++
++
++/* --------------- IOCTL functions from v4l2_int_ioctl_desc --------------- */
++
++
++static int ioctl_enum_fmt_cap(struct v4l2_int_device *s,
++			      struct v4l2_fmtdesc *fmt)
++{
++	if (fmt->index > ovRpmsg_mode_MAX)
++		return -EINVAL;
++
++	fmt->pixelformat = ovRpmsg_data.pix.pixelformat;
++
++	return 0;
++}
++
++
++static int ioctl_dev_init(struct v4l2_int_device *s)
++{
++	struct sensor_data *sensor = s->priv;
++	u32 tgt_fps;	/* target frames per secound */
++	enum ovRpmsg_frame_rate frame_rate;
++
++	ovRpmsg_data.on = true;
++
++	/* Default camera frame rate is set in probe */
++	tgt_fps = sensor->streamcap.timeperframe.denominator /
++		  sensor->streamcap.timeperframe.numerator;
++
++	if (tgt_fps == 9)
++		frame_rate = ovRpmsg_9_fps;
++	else
++		return -EINVAL; /* Only support 9fps now. */
++
++	ovRpmsg_data.pix.width = 160;
++	ovRpmsg_data.pix.height = 120;
++
++	return 0;
++}
++
++static int ioctl_enum_framesizes(struct v4l2_int_device *s,
++				 struct v4l2_frmsizeenum *fsize)
++{
++	if (fsize->index > ovRpmsg_mode_MAX)
++		return -EINVAL;
++
++	fsize->type = V4L2_FRMSIZE_TYPE_DISCRETE;
++	fsize->pixel_format = V4L2_PIX_FMT_RGB32;
++	fsize->discrete.width = 160;
++	fsize->discrete.height = 120;
++	return 0;
++}
++
++static int ioctl_enum_frameintervals(struct v4l2_int_device *s,
++					 struct v4l2_frmivalenum *fival)
++{
++	int i, j, count;
++
++	if (fival->index < 0 || fival->index > ovRpmsg_mode_MAX)
++		return -EINVAL;
++
++	if (fival->width == 0 || fival->height == 0 ||
++	    fival->pixel_format == 0) {
++		pr_warning("Please assign pixelformat, width and height.\n");
++		return -EINVAL;
++	}
++
++	fival->type = V4L2_FRMIVAL_TYPE_DISCRETE;
++	fival->discrete.numerator = 1;
++	fival->discrete.denominator = 9;
++
++	return 0;
++}
++
++static struct v4l2_int_ioctl_desc ovRpmsg_ioctl_desc[] = {
++	{ vidioc_int_dev_init_num,		(v4l2_int_ioctl_func *)ioctl_dev_init },
++	{ vidioc_int_enum_fmt_cap_num,		(v4l2_int_ioctl_func *)ioctl_enum_fmt_cap },
++	{ vidioc_int_enum_framesizes_num,	(v4l2_int_ioctl_func *)ioctl_enum_framesizes },
++	{ vidioc_int_enum_frameintervals_num,	(v4l2_int_ioctl_func *)ioctl_enum_frameintervals },
++};
++
++
++static struct v4l2_int_slave ovRpmsg_slave = {
++	.ioctls = ovRpmsg_ioctl_desc,
++	.num_ioctls = ARRAY_SIZE(ovRpmsg_ioctl_desc),
++};
++
++static struct v4l2_int_device ovRpmsg_int_device = {
++	.module = THIS_MODULE,
++	.name = "ovRpmsg",
++	.type = v4l2_int_type_slave,
++	.u = {
++		.slave = &ovRpmsg_slave,
++	},
++};
++
++static int rpmsg_enc_eba_update(void *private, dma_addr_t eba)
++{
++	int err = 0;
++	cam_data *cam = (cam_data *) private;
++	struct csi_rx_msg msg;
++
++	int *buffer_num = &cam->ping_pong_csi;
++
++	if (cam->ping_pong_csi)
++		msg.type = RX_BUF_1;
++	else
++		msg.type = RX_BUF_0;
++	msg.addr = eba;
++
++	err = rpmsg_send(ovRpmsg_data.rpmsg_dev->ept, &msg, sizeof(msg));
++
++	*buffer_num = (*buffer_num == 0) ? 1 : 0;
++
++	return err;
++}
++
++static int rpmsg_enc_enabling_tasks(void *private)
++{
++	int err = 0;
++	cam_data *cam = (cam_data *) private;
++
++	pr_debug("IPU:In rpmsg_enc_enabling_tasks\n");
++
++	cam->dummy_frame.vaddress = dma_alloc_coherent(0,
++			       PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage),
++			       &cam->dummy_frame.paddress,
++			       GFP_DMA | GFP_KERNEL);
++	if (cam->dummy_frame.vaddress == 0) {
++		pr_err("ERROR: v4l2 capture: Allocate dummy frame "
++		       "failed.\n");
++		return -ENOBUFS;
++	}
++	cam->dummy_frame.buffer.type = V4L2_BUF_TYPE_PRIVATE;
++	cam->dummy_frame.buffer.length =
++	    PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage);
++	cam->dummy_frame.buffer.m.offset = cam->dummy_frame.paddress;
++
++	return err;
++}
++
++static int rpmsg_enc_disabling_tasks(void *private)
++{
++	cam_data *cam = (cam_data *) private;
++	int err = 0;
++
++	if (cam->dummy_frame.vaddress != 0) {
++		dma_free_coherent(0, cam->dummy_frame.buffer.length,
++				  cam->dummy_frame.vaddress,
++				  cam->dummy_frame.paddress);
++		cam->dummy_frame.vaddress = 0;
++	}
++
++	return err;
++}
++
++static int rpmsg_enc_enable_rpmsg(void *private)
++{
++	cam_data *cam = (cam_data *) private;
++	int err = 0;
++
++	if (cam == 0)
++		err = -EINVAL;
++
++	return err;
++}
++
++static int rpmsg_enc_disable_rpmsg(void *private)
++{
++	cam_data *cam = (cam_data *) private;
++	int err = 0;
++
++	if (cam == 0)
++		err = -EINVAL;
++
++	return err;
++}
++
++int rpmsg_enc_select(void *private)
++{
++	cam_data *cam = (cam_data *) private;
++	int err = 0;
++
++	if (cam) {
++		cam->enc_update_eba = rpmsg_enc_eba_update;
++		cam->enc_enable = rpmsg_enc_enabling_tasks;
++		cam->enc_disable = rpmsg_enc_disabling_tasks;
++		cam->enc_enable_csi = rpmsg_enc_enable_rpmsg;
++		cam->enc_disable_csi = rpmsg_enc_disable_rpmsg;
++		ovRpmsg_data.cam = cam;
++	} else {
++		err = -EIO;
++	}
++
++	return err;
++}
++EXPORT_SYMBOL(rpmsg_enc_select);
++
++int rpmsg_enc_deselect(void *private)
++{
++	cam_data *cam = (cam_data *) private;
++	int err = 0;
++
++	if (cam) {
++		cam->enc_update_eba = NULL;
++		cam->enc_enable = NULL;
++		cam->enc_disable = NULL;
++		cam->enc_enable_csi = NULL;
++		cam->enc_disable_csi = NULL;
++		ovRpmsg_data.cam = NULL;
++	}
++
++	return err;
++}
++EXPORT_SYMBOL(rpmsg_enc_deselect);
++
++
++/**
++ * Handle received RPMSG
++ */
++
++static int rpmsg_lepton_callback(struct rpmsg_device *dev, void *data, int len,
++		void *priv, u32 src)
++{
++	cam_data *cam = ovRpmsg_data.cam;
++	struct {
++		uint32_t addr;
++		uint32_t buf_num;
++	} *msg = data;
++
++//	print_hex_dump(KERN_INFO, "incoming message:", DUMP_PREFIX_NONE, 16, 1, data, len, true);
++
++	pr_debug("Got %X %d\n", msg->addr, msg->buf_num);
++
++	if (cam && cam->enc_callback) {
++		cam->local_buf_num = msg->buf_num;
++		cam->enc_callback(msg->addr, cam);
++	}
++
++	return 0;
++}
++
++/**
++ * Set up Lepton-M4 CSI interface
++ */
++
++static int rpmsg_lepton_probe(struct rpmsg_device *dev)
++{
++	int err;
++	void *vaddr;
++	dma_addr_t paddr;
++	struct csi_rx_msg msg;
++
++	dev_info(&dev->dev, "new channel: 0x%x -> 0x%x!\n", dev->src, dev->dst);
++
++	/* Send LUT to M4 */
++	vaddr = dma_alloc_coherent(0, 0x40000, &paddr, GFP_DMA | GFP_KERNEL);
++	msg.type = RX_LUT;
++	msg.addr = paddr;
++	err = rpmsg_send(dev->ept, &msg, sizeof(msg));
++	if (err) {
++		pr_err("rpmsg_send failed: %d\n", err);
++		return err;
++	}
++
++	/* Set initial values for the sensor struct. */
++	memset(&ovRpmsg_data, 0, sizeof(ovRpmsg_data));
++
++	ovRpmsg_data.pix.pixelformat = V4L2_PIX_FMT_RGB32;
++	ovRpmsg_data.pix.width = 160;
++	ovRpmsg_data.pix.height = 120;
++	ovRpmsg_data.streamcap.capturemode = 0;
++	ovRpmsg_data.streamcap.timeperframe.denominator = DEFAULT_FPS;
++	ovRpmsg_data.streamcap.timeperframe.numerator = 1;
++	ovRpmsg_data.rpmsg_dev = dev;
++
++	ovRpmsg_int_device.priv = &ovRpmsg_data;
++	err = v4l2_int_device_register(&ovRpmsg_int_device);
++
++	pr_info("camera ovRpmsg is found\n");
++
++	return err;
++}
++
++static void rpmsg_lepton_remove(struct rpmsg_device *dev)
++{
++	dev_info(&dev->dev, "rpmsg lepton-csi client driver is removed\n");
++
++	v4l2_int_device_unregister(&ovRpmsg_int_device);
++}
++
++static struct rpmsg_device_id rpmsg_driver_lepton_id_table[] = {
++	{ .name	= "rpmsg-client-lepton-csi" },
++	{ },
++};
++MODULE_DEVICE_TABLE(rpmsg, rpmsg_driver_lepton_id_table);
++
++
++static struct rpmsg_driver rpmsg_lepton_client = {
++	.drv.name	= KBUILD_MODNAME,
++	.id_table	= rpmsg_driver_lepton_id_table,
++	.probe		= rpmsg_lepton_probe,
++	.callback	= rpmsg_lepton_callback,
++	.remove		= rpmsg_lepton_remove,
++};
++module_rpmsg_driver(rpmsg_lepton_client);
++
++
++MODULE_AUTHOR("Peter Fitger, FLIR Systems AB");
++MODULE_DESCRIPTION("OVRPMSG Camera Driver");
++MODULE_LICENSE("GPL");
++MODULE_VERSION("1.0");
++MODULE_ALIAS("CSI");
++
+diff --git a/drivers/media/platform/mxc/rpmsg/rpmsg_sw.h b/drivers/media/platform/mxc/rpmsg/rpmsg_sw.h
+new file mode 100644
+index 0000000..1fd146f
+--- /dev/null
++++ b/drivers/media/platform/mxc/rpmsg/rpmsg_sw.h
+@@ -0,0 +1,30 @@
++/*
++ * Copyright 2004-2014 Freescale Semiconductor, Inc. All Rights Reserved.
++ */
++
++/*
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/*!
++ * @file rpmsg_sw.h
++ *
++ * @brief This file contains the RPMSG use case driver header.
++ *
++ * @ingroup IPU
++ */
++
++#ifndef _INCLUDE_RPMSG_SW_H_
++#define _INCLUDE_RPMSG_SW_H_
++
++int rpmsg_enc_select(void *private);
++int rpmsg_enc_deselect(void *private);
++int rpmsg_still_select(void *private);
++int rpmsg_still_deselect(void *private);
++
++#endif
+diff --git a/drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.c b/drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.c
+new file mode 100644
+index 0000000..83ecfd1
+--- /dev/null
++++ b/drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.c
+@@ -0,0 +1,2009 @@
++/*
++ * Copyright 2004-2015 Freescale Semiconductor, Inc. All Rights Reserved.
++ */
++
++/*
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/*!
++ * @file drivers/media/video/mxc/capture/mxc_v4l2_capture.c
++ *
++ * @brief Mxc Video For Linux 2 driver
++ *
++ * @ingroup MXC_V4L2_CAPTURE
++ */
++#include <linux/version.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/platform_device.h>
++#include <linux/fs.h>
++#include <linux/slab.h>
++#include <linux/ctype.h>
++#include <linux/clk.h>
++#include <linux/io.h>
++#include <linux/semaphore.h>
++#include <linux/pagemap.h>
++#include <linux/vmalloc.h>
++#include <linux/types.h>
++#include <linux/fb.h>
++#include <linux/dma-mapping.h>
++#include <linux/delay.h>
++#include <linux/mxcfb.h>
++#include <linux/of_device.h>
++#include <media/v4l2-chip-ident.h>
++#include <media/v4l2-ioctl.h>
++#include <media/v4l2-device.h>
++#include <linux/fsl_devices.h>
++#include "rpmsg_v4l2_capture.h"
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/rpmsg.h>
++#include <linux/clk.h>
++#include <linux/device.h>
++#include <linux/i2c.h>
++#include <linux/pinctrl/consumer.h>
++#include <linux/regulator/consumer.h>
++#include "../capture/v4l2-int-device.h"
++#include "rpmsg_sw.h"
++
++
++#define init_MUTEX(sem)         sema_init(sem, 1)
++
++static const struct of_device_id mxc_v4l2_dt_ids[] = {
++	{
++		.compatible = "fsl,imx7-rpmsg-capture",
++	}, {
++		/* sentinel */
++	}
++};
++MODULE_DEVICE_TABLE(of, mxc_v4l2_dt_ids);
++
++static int video_nr = -1;
++
++#define MXC_V4L2_CAPTURE_NUM_INPUTS 1
++
++static struct v4l2_input mxc_capture_inputs = {
++	.index = 0,
++	.name = "CSI RPMSG",
++	.type = V4L2_INPUT_TYPE_CAMERA,
++	.audioset = 0,
++	.tuner = 0,
++	.std = V4L2_STD_UNKNOWN,
++	.status = 0
++};
++
++/*! List of TV input video formats supported. The video formats is corresponding
++ * to the v4l2_id in video_fmt_t.
++ * Currently, only PAL and NTSC is supported. Needs to be expanded in the
++ * future.
++ */
++typedef enum {
++	TV_NOT_LOCKED = 0,		/*!< Not locked on a signal. */
++} video_fmt_idx;
++
++/*! Number of video standards supported (including 'not locked' signal). */
++#define TV_STD_MAX		(TV_NOT_LOCKED + 1)
++
++/*! Video format structure. */
++typedef struct {
++	int v4l2_id;		/*!< Video for linux ID. */
++	char name[16];		/*!< Name (e.g., "NTSC", "PAL", etc.) */
++	u16 raw_width;		/*!< Raw width. */
++	u16 raw_height;		/*!< Raw height. */
++	u16 active_width;	/*!< Active width. */
++	u16 active_height;	/*!< Active height. */
++	u16 active_top;		/*!< Active top. */
++	u16 active_left;	/*!< Active left. */
++} video_fmt_t;
++
++/*!* Standard index of TV. */
++static video_fmt_idx video_index = TV_NOT_LOCKED;
++
++static int mxc_v4l2_master_attach(struct v4l2_int_device *slave);
++static void mxc_v4l2_master_detach(struct v4l2_int_device *slave);
++
++/*! Information about this driver. */
++static struct v4l2_int_master mxc_v4l2_master = {
++	.attach = mxc_v4l2_master_attach,
++	.detach = mxc_v4l2_master_detach,
++};
++
++/***************************************************************************
++ * Functions for handling Frame buffers.
++ **************************************************************************/
++
++/*!
++ * Free frame buffers
++ *
++ * @param cam      Structure cam_data *
++ *
++ * @return status  0 success.
++ */
++static int mxc_free_frame_buf(cam_data *cam)
++{
++	int i;
++
++	pr_debug("MVC: In mxc_free_frame_buf\n");
++
++	for (i = 0; i < FRAME_NUM; i++) {
++		if (cam->frame[i].vaddress != 0) {
++			dma_free_coherent(0, cam->frame[i].buffer.length,
++					  cam->frame[i].vaddress,
++					  cam->frame[i].paddress);
++			cam->frame[i].vaddress = 0;
++		}
++	}
++
++	return 0;
++}
++
++/*!
++ * Allocate frame buffers
++ *
++ * @param cam      Structure cam_data*
++ * @param count    int number of buffer need to allocated
++ *
++ * @return status  -0 Successfully allocated a buffer, -ENOBUFS	failed.
++ */
++static int mxc_allocate_frame_buf(cam_data *cam, int count)
++{
++	int i;
++
++	pr_debug("In MVC:mxc_allocate_frame_buf - size=%d\n",
++		cam->v2f.fmt.pix.sizeimage);
++
++	for (i = 0; i < count; i++) {
++		cam->frame[i].vaddress =
++		    dma_alloc_coherent(0,
++				       PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage),
++				       &cam->frame[i].paddress,
++				       GFP_DMA | GFP_KERNEL);
++		if (cam->frame[i].vaddress == 0) {
++			pr_err("ERROR: v4l2 capture: "
++				"mxc_allocate_frame_buf failed.\n");
++			mxc_free_frame_buf(cam);
++			return -ENOBUFS;
++		}
++		cam->frame[i].buffer.index = i;
++		cam->frame[i].buffer.flags = V4L2_BUF_FLAG_MAPPED;
++		cam->frame[i].buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++		cam->frame[i].buffer.length =
++		    PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage);
++		cam->frame[i].buffer.memory = V4L2_MEMORY_MMAP;
++		cam->frame[i].buffer.m.offset = cam->frame[i].paddress;
++		cam->frame[i].index = i;
++	}
++
++	return 0;
++}
++
++/*!
++ * Free frame buffers status
++ *
++ * @param cam    Structure cam_data *
++ *
++ * @return none
++ */
++static void mxc_free_frames(cam_data *cam)
++{
++	int i;
++
++	pr_debug("In MVC:mxc_free_frames\n");
++
++	for (i = 0; i < FRAME_NUM; i++)
++		cam->frame[i].buffer.flags = V4L2_BUF_FLAG_MAPPED;
++
++	cam->enc_counter = 0;
++	INIT_LIST_HEAD(&cam->ready_q);
++	INIT_LIST_HEAD(&cam->working_q);
++	INIT_LIST_HEAD(&cam->done_q);
++}
++
++/*!
++ * Return the buffer status
++ *
++ * @param cam	   Structure cam_data *
++ * @param buf	   Structure v4l2_buffer *
++ *
++ * @return status  0 success, EINVAL failed.
++ */
++static int mxc_v4l2_buffer_status(cam_data *cam, struct v4l2_buffer *buf)
++{
++	pr_debug("In MVC:mxc_v4l2_buffer_status\n");
++
++	if (buf->index < 0 || buf->index >= FRAME_NUM) {
++		pr_err("ERROR: v4l2 capture: mxc_v4l2_buffer_status buffers "
++		       "not allocated\n");
++		return -EINVAL;
++	}
++
++	memcpy(buf, &(cam->frame[buf->index].buffer), sizeof(*buf));
++	return 0;
++}
++
++static int mxc_v4l2_release_bufs(cam_data *cam)
++{
++	pr_debug("In MVC:mxc_v4l2_release_bufs\n");
++	return 0;
++}
++
++static int mxc_v4l2_prepare_bufs(cam_data *cam, struct v4l2_buffer *buf)
++{
++	pr_debug("In MVC:mxc_v4l2_prepare_bufs\n");
++
++	if (buf->index < 0 || buf->index >= FRAME_NUM || buf->length <
++			PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage)) {
++		pr_err("ERROR: v4l2 capture: mxc_v4l2_prepare_bufs buffers "
++			"not allocated,index=%d, length=%d\n", buf->index,
++			buf->length);
++		return -EINVAL;
++	}
++
++	cam->frame[buf->index].buffer.index = buf->index;
++	cam->frame[buf->index].buffer.flags = V4L2_BUF_FLAG_MAPPED;
++	cam->frame[buf->index].buffer.length = buf->length;
++	cam->frame[buf->index].buffer.m.offset = cam->frame[buf->index].paddress
++		= buf->m.offset;
++	cam->frame[buf->index].buffer.type = buf->type;
++	cam->frame[buf->index].buffer.memory = V4L2_MEMORY_USERPTR;
++	cam->frame[buf->index].index = buf->index;
++
++	return 0;
++}
++
++/***************************************************************************
++ * Functions for handling the video stream.
++ **************************************************************************/
++
++/*!
++ * Indicates whether the palette is supported.
++ *
++ * @param palette V4L2_PIX_FMT_RGB565, V4L2_PIX_FMT_BGR24 or V4L2_PIX_FMT_BGR32
++ *
++ * @return 0 if failed
++ */
++static inline int valid_mode(u32 palette)
++{
++	return ((palette == V4L2_PIX_FMT_BGR32) ||
++		(palette == V4L2_PIX_FMT_RGB32));
++}
++
++/*!
++ * Start the encoder job
++ *
++ * @param cam      structure cam_data *
++ *
++ * @return status  0 Success
++ */
++static int mxc_streamon(cam_data *cam)
++{
++	struct mxc_v4l_frame *frame;
++	unsigned long lock_flags;
++	int err = 0;
++
++	pr_debug("In MVC:mxc_streamon\n");
++
++	if (NULL == cam) {
++		pr_err("ERROR! cam parameter is NULL\n");
++		return -1;
++	}
++
++	if (cam->capture_on) {
++		pr_err("ERROR: v4l2 capture: Capture stream has been turned "
++		       " on\n");
++		return -1;
++	}
++
++	if (list_empty(&cam->ready_q)) {
++		pr_err("ERROR: v4l2 capture: mxc_streamon buffer has not been "
++			"queued yet\n");
++		return -EINVAL;
++	}
++	if (cam->enc_update_eba &&
++		cam->ready_q.prev == cam->ready_q.next) {
++		pr_err("ERROR: v4l2 capture: mxc_streamon buffer need "
++		       "ping pong at least two buffers\n");
++		return -EINVAL;
++	}
++
++	cam->capture_pid = current->pid;
++
++	if (cam->enc_enable) {
++		err = cam->enc_enable(cam);
++		if (err != 0)
++			return err;
++	}
++
++	spin_lock_irqsave(&cam->queue_int_lock, lock_flags);
++	cam->ping_pong_csi = 0;
++	cam->local_buf_num = 0;
++	if (cam->enc_update_eba) {
++		frame =
++		    list_entry(cam->ready_q.next, struct mxc_v4l_frame, queue);
++		list_del(cam->ready_q.next);
++		list_add_tail(&frame->queue, &cam->working_q);
++		frame->buf_num = cam->ping_pong_csi;
++		err = cam->enc_update_eba(cam, frame->buffer.m.offset);
++
++		frame =
++		    list_entry(cam->ready_q.next, struct mxc_v4l_frame, queue);
++		list_del(cam->ready_q.next);
++		list_add_tail(&frame->queue, &cam->working_q);
++		frame->buf_num = cam->ping_pong_csi;
++		err |= cam->enc_update_eba(cam, frame->buffer.m.offset);
++		spin_unlock_irqrestore(&cam->queue_int_lock, lock_flags);
++	} else {
++		spin_unlock_irqrestore(&cam->queue_int_lock, lock_flags);
++		return -EINVAL;
++	}
++
++	if (cam->enc_enable_csi) {
++		err = cam->enc_enable_csi(cam);
++		if (err != 0)
++			return err;
++	}
++
++	cam->capture_on = true;
++
++	return err;
++}
++
++/*!
++ * Shut down the encoder job
++ *
++ * @param cam      structure cam_data *
++ *
++ * @return status  0 Success
++ */
++static int mxc_streamoff(cam_data *cam)
++{
++	int err = 0;
++
++	pr_debug("In MVC:mxc_streamoff\n");
++
++	if (cam->capture_on == false)
++		return 0;
++
++	/* For both CSI--MEM and CSI--IC--MEM
++	 * 1. wait for idmac eof
++	 * 2. disable csi first
++	 * 3. disable idmac
++	 * 4. disable smfc (CSI--MEM channel)
++	 */
++	if (mxc_capture_inputs.name != NULL) {
++		if (cam->enc_disable_csi) {
++			err = cam->enc_disable_csi(cam);
++			if (err != 0)
++				return err;
++		}
++		if (cam->enc_disable) {
++			err = cam->enc_disable(cam);
++			if (err != 0)
++				return err;
++		}
++	}
++
++	mxc_free_frames(cam);
++	mxc_capture_inputs.status |= V4L2_IN_ST_NO_POWER;
++	cam->capture_on = false;
++	return err;
++}
++
++
++
++/***************************************************************************
++ * VIDIOC Functions.
++ **************************************************************************/
++
++/*!
++ * V4L2 - mxc_v4l2_g_fmt function
++ *
++ * @param cam         structure cam_data *
++ *
++ * @param f           structure v4l2_format *
++ *
++ * @return  status    0 success, EINVAL failed
++ */
++static int mxc_v4l2_g_fmt(cam_data *cam, struct v4l2_format *f)
++{
++	int retval = 0;
++
++	pr_debug("In MVC: mxc_v4l2_g_fmt type=%d\n", f->type);
++
++	switch (f->type) {
++	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
++		pr_debug("   type is V4L2_BUF_TYPE_VIDEO_CAPTURE\n");
++		f->fmt.pix = cam->v2f.fmt.pix;
++		break;
++	default:
++		pr_debug("   type is invalid\n");
++		retval = -EINVAL;
++	}
++
++	pr_debug("End of %s: v2f pix widthxheight %d x %d\n",
++		 __func__,
++		 cam->v2f.fmt.pix.width, cam->v2f.fmt.pix.height);
++
++	return retval;
++}
++
++/*!
++ * V4L2 - mxc_v4l2_s_fmt function
++ *
++ * @param cam         structure cam_data *
++ *
++ * @param f           structure v4l2_format *
++ *
++ * @return  status    0 success, EINVAL failed
++ */
++static int mxc_v4l2_s_fmt(cam_data *cam, struct v4l2_format *f)
++{
++	int retval = 0;
++	int size = 0;
++	int bytesperline = 0;
++	int *width, *height;
++
++	pr_debug("In MVC: mxc_v4l2_s_fmt\n");
++
++	switch (f->type) {
++	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
++		pr_debug("   type=V4L2_BUF_TYPE_VIDEO_CAPTURE\n");
++		if (!valid_mode(f->fmt.pix.pixelformat)) {
++			pr_err("ERROR: v4l2 capture: mxc_v4l2_s_fmt: format "
++			       "not supported\n");
++			return -EINVAL;
++		}
++
++		width = &f->fmt.pix.width;
++		height = &f->fmt.pix.height;
++
++		/* stride line limitation */
++		*width -= *width % 8;
++		*height -= *height % 8;
++
++		if (*width == 0 || *height == 0) {
++			pr_err("ERROR: v4l2 capture: width or height"
++				" too small.\n");
++			return -EINVAL;
++		}
++
++		switch (f->fmt.pix.pixelformat) {
++		case V4L2_PIX_FMT_RGB565:
++			size = f->fmt.pix.width * f->fmt.pix.height * 2;
++			bytesperline = f->fmt.pix.width * 2;
++			break;
++		case V4L2_PIX_FMT_BGR24:
++			size = f->fmt.pix.width * f->fmt.pix.height * 3;
++			bytesperline = f->fmt.pix.width * 3;
++			break;
++		case V4L2_PIX_FMT_RGB24:
++			size = f->fmt.pix.width * f->fmt.pix.height * 3;
++			bytesperline = f->fmt.pix.width * 3;
++			break;
++		case V4L2_PIX_FMT_BGR32:
++			size = f->fmt.pix.width * f->fmt.pix.height * 4;
++			bytesperline = f->fmt.pix.width * 4;
++			break;
++		case V4L2_PIX_FMT_RGB32:
++			size = f->fmt.pix.width * f->fmt.pix.height * 4;
++			bytesperline = f->fmt.pix.width * 4;
++			break;
++		case V4L2_PIX_FMT_YUV422P:
++			size = f->fmt.pix.width * f->fmt.pix.height * 2;
++			bytesperline = f->fmt.pix.width;
++			break;
++		case V4L2_PIX_FMT_UYVY:
++		case V4L2_PIX_FMT_YUYV:
++			size = f->fmt.pix.width * f->fmt.pix.height * 2;
++			bytesperline = f->fmt.pix.width * 2;
++			break;
++		case V4L2_PIX_FMT_YUV420:
++		case V4L2_PIX_FMT_YVU420:
++			size = f->fmt.pix.width * f->fmt.pix.height * 3 / 2;
++			bytesperline = f->fmt.pix.width;
++			break;
++		case V4L2_PIX_FMT_NV12:
++			size = f->fmt.pix.width * f->fmt.pix.height * 3 / 2;
++			bytesperline = f->fmt.pix.width;
++			break;
++		default:
++			break;
++		}
++
++		if (f->fmt.pix.bytesperline < bytesperline)
++			f->fmt.pix.bytesperline = bytesperline;
++		else
++			bytesperline = f->fmt.pix.bytesperline;
++
++		if (f->fmt.pix.sizeimage < size)
++			f->fmt.pix.sizeimage = size;
++		else
++			size = f->fmt.pix.sizeimage;
++
++		cam->v2f.fmt.pix = f->fmt.pix;
++		break;
++	default:
++		retval = -EINVAL;
++		break;
++	}
++
++	pr_debug("End of %s: v2f pix widthxheight %d x %d\n",
++		 __func__,
++		 cam->v2f.fmt.pix.width, cam->v2f.fmt.pix.height);
++
++	return retval;
++}
++
++/*!
++ * get control param
++ *
++ * @param cam         structure cam_data *
++ *
++ * @param c           structure v4l2_control *
++ *
++ * @return  status    0 success, EINVAL failed
++ */
++static int mxc_v4l2_g_ctrl(cam_data *cam, struct v4l2_control *c)
++{
++	int status = 0;
++
++	pr_debug("In MVC:mxc_v4l2_g_ctrl\n");
++
++	/* probably don't need to store the values that can be retrieved,
++	 * locally, but they are for now. */
++	switch (c->id) {
++	case V4L2_CID_HFLIP:
++		break;
++	case V4L2_CID_VFLIP:
++		break;
++	case V4L2_CID_MXC_ROT:
++		break;
++	case V4L2_CID_BRIGHTNESS:
++		break;
++	case V4L2_CID_HUE:
++		break;
++	case V4L2_CID_CONTRAST:
++		break;
++	case V4L2_CID_SATURATION:
++		break;
++	case V4L2_CID_RED_BALANCE:
++		break;
++	case V4L2_CID_BLUE_BALANCE:
++		break;
++	case V4L2_CID_BLACK_LEVEL:
++		break;
++	default:
++		pr_err("ERROR: v4l2 capture: unsupported ioctrl!\n");
++	}
++
++	return status;
++}
++
++/*!
++ * V4L2 - set_control function
++ *          V4L2_CID_PRIVATE_BASE is the extention for IPU preprocessing.
++ *          0 for normal operation
++ *          1 for vertical flip
++ *          2 for horizontal flip
++ *          3 for horizontal and vertical flip
++ *          4 for 90 degree rotation
++ * @param cam         structure cam_data *
++ *
++ * @param c           structure v4l2_control *
++ *
++ * @return  status    0 success, EINVAL failed
++ */
++static int mxc_v4l2_s_ctrl(cam_data *cam, struct v4l2_control *c)
++{
++	int ret = 0;
++
++	pr_debug("In MVC:mxc_v4l2_s_ctrl\n");
++
++	switch (c->id) {
++	case V4L2_CID_HFLIP:
++		break;
++	case V4L2_CID_VFLIP:
++		break;
++	case V4L2_CID_MXC_ROT:
++	case V4L2_CID_MXC_VF_ROT:
++		break;
++	case V4L2_CID_HUE:
++		break;
++	case V4L2_CID_CONTRAST:
++		break;
++	case V4L2_CID_BRIGHTNESS:
++		break;
++	case V4L2_CID_SATURATION:
++		break;
++	case V4L2_CID_RED_BALANCE:
++		break;
++	case V4L2_CID_BLUE_BALANCE:
++		break;
++	case V4L2_CID_EXPOSURE:
++		break;
++	case V4L2_CID_MXC_FLASH:
++		break;
++	case V4L2_CID_MXC_SWITCH_CAM:
++		break;
++	default:
++		pr_debug("   default case\n");
++		ret = -EINVAL;
++		break;
++	}
++
++	return ret;
++}
++
++/*!
++ * V4L2 - mxc_v4l2_s_param function
++ * Allows setting of capturemode and frame rate.
++ *
++ * @param cam         structure cam_data *
++ * @param parm        structure v4l2_streamparm *
++ *
++ * @return  status    0 success, EINVAL failed
++ */
++static int mxc_v4l2_s_param(cam_data *cam, struct v4l2_streamparm *parm)
++{
++	int err = 0;
++
++	pr_debug("In mxc_v4l2_s_param\n");
++
++	if (parm->type != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
++		pr_err(KERN_ERR "mxc_v4l2_s_param invalid type\n");
++		return -EINVAL;
++	}
++
++	return err;
++}
++
++/*!
++ * V4L2 - mxc_v4l2_s_std function
++ *
++ * Sets the TV standard to be used.
++ *
++ * @param cam	      structure cam_data *
++ * @param parm	      structure v4l2_streamparm *
++ *
++ * @return  status    0 success, EINVAL failed
++ */
++static int mxc_v4l2_s_std(cam_data *cam, v4l2_std_id e)
++{
++	pr_debug("In mxc_v4l2_s_std %Lx\n", e);
++
++	cam->standard.id = V4L2_STD_ALL;
++	video_index = TV_NOT_LOCKED;
++		pr_err("ERROR: unrecognized std! %Lx (PAL=%Lx, NTSC=%Lx\n",
++			e, V4L2_STD_PAL, V4L2_STD_NTSC);
++
++	return 0;
++}
++
++/*!
++ * V4L2 - mxc_v4l2_g_std function
++ *
++ * Gets the TV standard from the TV input device.
++ *
++ * @param cam	      structure cam_data *
++ *
++ * @param e	      structure v4l2_streamparm *
++ *
++ * @return  status    0 success, EINVAL failed
++ */
++static int mxc_v4l2_g_std(cam_data *cam, v4l2_std_id *e)
++{
++	pr_debug("In mxc_v4l2_g_std\n");
++
++	return 0;
++}
++
++/*!
++ * Dequeue one V4L capture buffer
++ *
++ * @param cam         structure cam_data *
++ * @param buf         structure v4l2_buffer *
++ *
++ * @return  status    0 success, EINVAL invalid frame number,
++ *                    ETIME timeout, ERESTARTSYS interrupted by user
++ */
++static int mxc_v4l_dqueue(cam_data *cam, struct v4l2_buffer *buf)
++{
++	int retval = 0;
++	struct mxc_v4l_frame *frame;
++	unsigned long lock_flags;
++
++	pr_debug("In MVC:mxc_v4l_dqueue\n");
++
++	if (!wait_event_interruptible_timeout(cam->enc_queue,
++					      cam->enc_counter != 0,
++					      10 * HZ)) {
++		pr_err("ERROR: v4l2 capture: mxc_v4l_dqueue timeout "
++			"enc_counter %x\n",
++		       cam->enc_counter);
++		return -ETIME;
++	} else if (signal_pending(current)) {
++		pr_err("ERROR: v4l2 capture: mxc_v4l_dqueue() "
++			"interrupt received\n");
++		return -ERESTARTSYS;
++	}
++
++	if (down_interruptible(&cam->busy_lock))
++		return -EBUSY;
++
++	spin_lock_irqsave(&cam->dqueue_int_lock, lock_flags);
++	cam->enc_counter--;
++
++	frame = list_entry(cam->done_q.next, struct mxc_v4l_frame, queue);
++	list_del(cam->done_q.next);
++	if (frame->buffer.flags & V4L2_BUF_FLAG_DONE) {
++		frame->buffer.flags &= ~V4L2_BUF_FLAG_DONE;
++	} else if (frame->buffer.flags & V4L2_BUF_FLAG_QUEUED) {
++		pr_err("ERROR: v4l2 capture: VIDIOC_DQBUF: "
++			"Buffer not filled.\n");
++		frame->buffer.flags &= ~V4L2_BUF_FLAG_QUEUED;
++		retval = -EINVAL;
++	} else if ((frame->buffer.flags & 0x7) == V4L2_BUF_FLAG_MAPPED) {
++		pr_err("ERROR: v4l2 capture: VIDIOC_DQBUF: "
++			"Buffer not queued.\n");
++		retval = -EINVAL;
++	}
++
++	cam->frame[frame->index].buffer.field = cam->device_type ?
++				V4L2_FIELD_INTERLACED : V4L2_FIELD_NONE;
++
++	buf->bytesused = cam->v2f.fmt.pix.sizeimage;
++	buf->index = frame->index;
++	buf->flags = frame->buffer.flags;
++	buf->m = cam->frame[frame->index].buffer.m;
++	buf->timestamp = cam->frame[frame->index].buffer.timestamp;
++	buf->field = cam->frame[frame->index].buffer.field;
++	spin_unlock_irqrestore(&cam->dqueue_int_lock, lock_flags);
++
++	pr_debug("DQUEUE %X %d %p %X\n", buf->m.offset, buf->index, cam->frame[buf->index].vaddress,
++			*(u32 *)cam->frame[buf->index].vaddress);
++
++	up(&cam->busy_lock);
++	return retval;
++}
++
++/*!
++ * V4L interface - open function
++ *
++ * @param file         structure file *
++ *
++ * @return  status    0 success, ENODEV invalid device instance,
++ *                    ENODEV timeout, ERESTARTSYS interrupted by user
++ */
++static int mxc_v4l_open(struct file *file)
++{
++//	struct v4l2_ifparm ifparm;
++//	struct v4l2_format cam_fmt;
++	struct video_device *dev = video_devdata(file);
++	cam_data *cam = video_get_drvdata(dev);
++	int err = 0;
++	struct sensor_data *sensor;
++
++	pr_debug("\nIn MVC: mxc_v4l_open\n");
++	pr_debug("   device name is %s\n", dev->name);
++
++	if (!cam) {
++		pr_err("ERROR: v4l2 capture: Internal error, "
++			"cam_data not found!\n");
++		return -EBADF;
++	}
++
++	if (cam->sensor == NULL ||
++	    cam->sensor->type != v4l2_int_type_slave) {
++		pr_err("ERROR: v4l2 capture: slave not found!\n");
++		return -EAGAIN;
++	}
++
++	sensor = cam->sensor->priv;
++	if (!sensor) {
++		pr_err("%s: Internal error, sensor_data is not found!\n",
++		       __func__);
++		return -EBADF;
++	}
++
++	down(&cam->busy_lock);
++	err = 0;
++	if (signal_pending(current))
++		goto oops;
++
++	if (cam->open_count++ == 0) {
++		wait_event_interruptible(cam->power_queue,
++					 cam->low_power == false);
++
++#if defined(CONFIG_MXC_RPMSG_ENC) || defined(CONFIG_MXC_RPMSG_ENC_MODULE)
++		err = rpmsg_enc_select(cam);
++#endif
++
++		cam->enc_counter = 0;
++		INIT_LIST_HEAD(&cam->ready_q);
++		INIT_LIST_HEAD(&cam->working_q);
++		INIT_LIST_HEAD(&cam->done_q);
++
++//		vidioc_int_g_ifparm(cam->sensor, &ifparm);
++
++//		cam_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++//		vidioc_int_g_fmt_cap(cam->sensor, &cam_fmt);
++
++
++		pr_debug("End of %s: v2f pix widthxheight %d x %d\n",
++			__func__,
++			cam->v2f.fmt.pix.width, cam->v2f.fmt.pix.height);
++
++		vidioc_int_s_power(cam->sensor, 1);
++		vidioc_int_dev_init(cam->sensor);
++	}
++
++	file->private_data = dev;
++
++oops:
++	up(&cam->busy_lock);
++	return err;
++}
++
++/*!
++ * V4L interface - close function
++ *
++ * @param file     struct file *
++ *
++ * @return         0 success
++ */
++static int mxc_v4l_close(struct file *file)
++{
++	struct video_device *dev = video_devdata(file);
++	int err = 0;
++	cam_data *cam = video_get_drvdata(dev);
++	struct sensor_data *sensor;
++	pr_debug("In MVC:mxc_v4l_close\n");
++
++	if (!cam) {
++		pr_err("ERROR: v4l2 capture: Internal error, "
++			"cam_data not found!\n");
++		return -EBADF;
++	}
++
++	if (!cam->sensor) {
++		pr_err("%s: Internal error, camera is not found!\n",
++		       __func__);
++		return -EBADF;
++	}
++
++	sensor = cam->sensor->priv;
++	if (!sensor) {
++		pr_err("%s: Internal error, sensor_data is not found!\n",
++		       __func__);
++		return -EBADF;
++	}
++
++	down(&cam->busy_lock);
++
++	/* for the case somebody hit the ctrl C */
++	if (cam->capture_pid == current->pid) {
++		err |= mxc_streamoff(cam);
++		wake_up_interruptible(&cam->enc_queue);
++	}
++
++	if (--cam->open_count == 0) {
++		vidioc_int_s_power(cam->sensor, 0);
++		wait_event_interruptible(cam->power_queue,
++					 cam->low_power == false);
++		pr_debug("mxc_v4l_close: release resource\n");
++
++#if defined(CONFIG_MXC_RPMSG_ENC) || defined(CONFIG_MXC_RPMSG_ENC_MODULE)
++		err |= rpmsg_enc_deselect(cam);
++#endif
++
++		mxc_free_frame_buf(cam);
++		file->private_data = NULL;
++
++		/* capture off */
++		wake_up_interruptible(&cam->enc_queue);
++		mxc_free_frames(cam);
++		cam->enc_counter++;
++	}
++
++	up(&cam->busy_lock);
++
++	return err;
++}
++
++#if defined(CONFIG_MXC_IPU_PRP_ENC) || defined(CONFIG_MXC_IPU_CSI_ENC) || \
++    defined(CONFIG_MXC_IPU_PRP_ENC_MODULE) || \
++    defined(CONFIG_MXC_IPU_CSI_ENC_MODULE)
++/*
++ * V4L interface - read function
++ *
++ * @param file       struct file *
++ * @param read buf   char *
++ * @param count      size_t
++ * @param ppos       structure loff_t *
++ *
++ * @return           bytes read
++ */
++static ssize_t mxc_v4l_read(struct file *file, char *buf, size_t count,
++			    loff_t *ppos)
++{
++	int err = 0;
++	u8 *v_address[2];
++	struct video_device *dev = video_devdata(file);
++	cam_data *cam = video_get_drvdata(dev);
++
++	if (down_interruptible(&cam->busy_lock))
++		return -EINTR;
++
++	v_address[0] = dma_alloc_coherent(0,
++				       PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage),
++				       &cam->still_buf[0],
++				       GFP_DMA | GFP_KERNEL);
++
++	v_address[1] = dma_alloc_coherent(0,
++				       PAGE_ALIGN(cam->v2f.fmt.pix.sizeimage),
++				       &cam->still_buf[1],
++				       GFP_DMA | GFP_KERNEL);
++
++	if (!v_address[0] || !v_address[1]) {
++		err = -ENOBUFS;
++		goto exit0;
++	}
++
++//	err = rpmsg_still_select(cam);
++	if (err != 0) {
++		err = -EIO;
++		goto exit0;
++	}
++
++	cam->still_counter = 0;
++	err = cam->csi_start(cam);
++	if (err != 0) {
++		err = -EIO;
++		goto exit1;
++	}
++
++	if (!wait_event_interruptible_timeout(cam->still_queue,
++					      cam->still_counter != 0,
++					      10 * HZ)) {
++		pr_err("ERROR: v4l2 capture: mxc_v4l_read timeout counter %x\n",
++		       cam->still_counter);
++		err = -ETIME;
++		goto exit1;
++	}
++	err = copy_to_user(buf, v_address[1], cam->v2f.fmt.pix.sizeimage);
++
++exit1:
++//	rpmsg_still_deselect(cam);
++
++exit0:
++	if (v_address[0] != 0)
++		dma_free_coherent(0, cam->v2f.fmt.pix.sizeimage, v_address[0],
++				  cam->still_buf[0]);
++	if (v_address[1] != 0)
++		dma_free_coherent(0, cam->v2f.fmt.pix.sizeimage, v_address[1],
++				  cam->still_buf[1]);
++
++	cam->still_buf[0] = cam->still_buf[1] = 0;
++
++	up(&cam->busy_lock);
++	if (err < 0)
++		return err;
++
++	return cam->v2f.fmt.pix.sizeimage - err;
++}
++#endif
++
++/*!
++ * V4L interface - ioctl function
++ *
++ * @param file       struct file*
++ *
++ * @param ioctlnr    unsigned int
++ *
++ * @param arg        void*
++ *
++ * @return           0 success, ENODEV for invalid device instance,
++ *                   -1 for other errors.
++ */
++static long mxc_v4l_do_ioctl(struct file *file,
++			    unsigned int ioctlnr, void *arg)
++{
++	struct video_device *dev = video_devdata(file);
++	cam_data *cam = video_get_drvdata(dev);
++	int retval = 0;
++	unsigned long lock_flags;
++
++	pr_debug("In MVC: mxc_v4l_do_ioctl %x\n", ioctlnr);
++	wait_event_interruptible(cam->power_queue, cam->low_power == false);
++	/* make this _really_ smp-safe */
++	if (ioctlnr != VIDIOC_DQBUF)
++		if (down_interruptible(&cam->busy_lock))
++			return -EBUSY;
++
++	switch (ioctlnr) {
++	/*!
++	 * V4l2 VIDIOC_QUERYCAP ioctl
++	 */
++	case VIDIOC_QUERYCAP: {
++		struct v4l2_capability *cap = arg;
++		pr_debug("   case VIDIOC_QUERYCAP\n");
++		strcpy(cap->driver, "mxc_rpmsg_v4l2");
++		cap->version = KERNEL_VERSION(0, 1, 11);
++		cap->capabilities = V4L2_CAP_VIDEO_CAPTURE |
++				    V4L2_CAP_STREAMING;
++		cap->device_caps =  0;
++		cap->card[0] = '\0';
++		cap->bus_info[0] = '\0';
++		cap->reserved[0] = 0;
++		cap->reserved[1] = 0;
++		cap->reserved[2] = 0;
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_G_FMT ioctl
++	 */
++	case VIDIOC_G_FMT: {
++		struct v4l2_format *gf = arg;
++		pr_debug("   case VIDIOC_G_FMT\n");
++		retval = mxc_v4l2_g_fmt(cam, gf);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_S_DEST_CROP ioctl
++	 */
++	case VIDIOC_S_DEST_CROP: {
++		pr_debug("   case VIDIOC_S_DEST_CROP\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_S_FMT ioctl
++	 */
++	case VIDIOC_S_FMT: {
++		struct v4l2_format *sf = arg;
++		pr_debug("   case VIDIOC_S_FMT\n");
++		retval = mxc_v4l2_s_fmt(cam, sf);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_REQBUFS ioctl
++	 */
++	case VIDIOC_REQBUFS: {
++		struct v4l2_requestbuffers *req = arg;
++		pr_debug("   case VIDIOC_REQBUFS\n");
++
++		if (req->count > FRAME_NUM) {
++			pr_err("ERROR: v4l2 capture: VIDIOC_REQBUFS: "
++			       "not enough buffers\n");
++			req->count = FRAME_NUM;
++		}
++
++		if ((req->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)) {
++			pr_err("ERROR: v4l2 capture: VIDIOC_REQBUFS: "
++			       "wrong buffer type\n");
++			retval = -EINVAL;
++			break;
++		}
++
++		mxc_streamoff(cam);
++		if (req->memory & V4L2_MEMORY_MMAP) {
++			mxc_free_frame_buf(cam);
++			retval = mxc_allocate_frame_buf(cam, req->count);
++		}
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_QUERYBUF ioctl
++	 */
++	case VIDIOC_QUERYBUF: {
++		struct v4l2_buffer *buf = arg;
++		int index = buf->index;
++		pr_debug("   case VIDIOC_QUERYBUF\n");
++
++		if (buf->type != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
++			pr_err("ERROR: v4l2 capture: "
++			       "VIDIOC_QUERYBUFS: "
++			       "wrong buffer type\n");
++			retval = -EINVAL;
++			break;
++		}
++
++		if (buf->memory & V4L2_MEMORY_MMAP) {
++			memset(buf, 0, sizeof(buf));
++			buf->index = index;
++		}
++
++		down(&cam->param_lock);
++		if (buf->memory & V4L2_MEMORY_USERPTR) {
++			mxc_v4l2_release_bufs(cam);
++			retval = mxc_v4l2_prepare_bufs(cam, buf);
++		}
++
++		if (buf->memory & V4L2_MEMORY_MMAP)
++			retval = mxc_v4l2_buffer_status(cam, buf);
++		up(&cam->param_lock);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_QBUF ioctl
++	 */
++	case VIDIOC_QBUF: {
++		struct v4l2_buffer *buf = arg;
++		int index = buf->index;
++		pr_debug("   case VIDIOC_QBUF\n");
++
++		spin_lock_irqsave(&cam->queue_int_lock, lock_flags);
++		if ((cam->frame[index].buffer.flags & 0x7) ==
++		    V4L2_BUF_FLAG_MAPPED) {
++			cam->frame[index].buffer.flags |=
++			    V4L2_BUF_FLAG_QUEUED;
++			list_add_tail(&cam->frame[index].queue,
++				      &cam->ready_q);
++		} else if (cam->frame[index].buffer.
++			   flags & V4L2_BUF_FLAG_QUEUED) {
++			pr_err("ERROR: v4l2 capture: VIDIOC_QBUF: "
++			       "buffer already queued\n");
++			retval = -EINVAL;
++		} else if (cam->frame[index].buffer.
++			   flags & V4L2_BUF_FLAG_DONE) {
++			pr_err("ERROR: v4l2 capture: VIDIOC_QBUF: "
++			       "overwrite done buffer.\n");
++			cam->frame[index].buffer.flags &=
++			    ~V4L2_BUF_FLAG_DONE;
++			cam->frame[index].buffer.flags |=
++			    V4L2_BUF_FLAG_QUEUED;
++			retval = -EINVAL;
++		}
++
++		buf->flags = cam->frame[index].buffer.flags;
++		spin_unlock_irqrestore(&cam->queue_int_lock, lock_flags);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_DQBUF ioctl
++	 */
++	case VIDIOC_DQBUF: {
++		struct v4l2_buffer *buf = arg;
++		pr_debug("   case VIDIOC_DQBUF\n");
++
++		if ((cam->enc_counter == 0) &&
++			(file->f_flags & O_NONBLOCK)) {
++			retval = -EAGAIN;
++			break;
++		}
++
++		retval = mxc_v4l_dqueue(cam, buf);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_STREAMON ioctl
++	 */
++	case VIDIOC_STREAMON: {
++		pr_debug("   case VIDIOC_STREAMON\n");
++		retval = mxc_streamon(cam);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_STREAMOFF ioctl
++	 */
++	case VIDIOC_STREAMOFF: {
++		pr_debug("   case VIDIOC_STREAMOFF\n");
++		retval = mxc_streamoff(cam);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_G_CTRL ioctl
++	 */
++	case VIDIOC_G_CTRL: {
++		pr_debug("   case VIDIOC_G_CTRL\n");
++		retval = mxc_v4l2_g_ctrl(cam, arg);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_S_CTRL ioctl
++	 */
++	case VIDIOC_S_CTRL: {
++		pr_debug("   case VIDIOC_S_CTRL\n");
++		retval = mxc_v4l2_s_ctrl(cam, arg);
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_CROPCAP ioctl
++	 */
++	case VIDIOC_CROPCAP: {
++		pr_debug("   case VIDIOC_CROPCAP\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_G_CROP ioctl
++	 */
++	case VIDIOC_G_CROP: {
++		pr_debug("   case VIDIOC_G_CROP\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_S_CROP ioctl
++	 */
++	case VIDIOC_S_CROP: {
++		pr_debug("   case VIDIOC_S_CROP\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	case VIDIOC_OVERLAY: {
++		pr_debug("   case VIDIOC_OVERLAY\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_G_FBUF ioctl
++	 */
++	case VIDIOC_G_FBUF: {
++		pr_debug("   case VIDIOC_G_FBUF\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	/*!
++	 * V4l2 VIDIOC_S_FBUF ioctl
++	 */
++	case VIDIOC_S_FBUF: {
++		pr_debug("   case VIDIOC_S_FBUF\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	case VIDIOC_G_PARM: {
++		struct v4l2_streamparm *parm = arg;
++		pr_debug("   case VIDIOC_G_PARM\n");
++		if (cam->sensor)
++			retval = vidioc_int_g_parm(cam->sensor, parm);
++		else {
++			pr_err("ERROR: v4l2 capture: slave not found!\n");
++			retval = -ENODEV;
++		}
++		break;
++	}
++
++	case VIDIOC_S_PARM:  {
++		struct v4l2_streamparm *parm = arg;
++		pr_debug("   case VIDIOC_S_PARM\n");
++		if (cam->sensor)
++			retval = mxc_v4l2_s_param(cam, parm);
++		else {
++			pr_err("ERROR: v4l2 capture: slave not found!\n");
++			retval = -ENODEV;
++		}
++		break;
++	}
++
++	/* linux v4l2 bug, kernel c0485619 user c0405619 */
++	case VIDIOC_ENUMSTD: {
++		struct v4l2_standard *e = arg;
++		if (e->index > 1) {
++			retval = -EINVAL;
++			break;
++		}
++		pr_debug("   case VIDIOC_ENUMSTD %d\n", e->index);
++		*e = cam->standard;
++		break;
++	}
++
++	case VIDIOC_G_STD: {
++		v4l2_std_id *e = arg;
++		pr_debug("   case VIDIOC_G_STD\n");
++		if (cam->sensor)
++			retval = mxc_v4l2_g_std(cam, e);
++		else {
++			pr_err("ERROR: v4l2 capture: slave not found!\n");
++			retval = -ENODEV;
++		}
++		break;
++	}
++
++	case VIDIOC_S_STD: {
++		v4l2_std_id *e = arg;
++		pr_debug("   case VIDIOC_S_STD\n");
++		retval = mxc_v4l2_s_std(cam, *e);
++
++		break;
++	}
++
++	case VIDIOC_ENUMOUTPUT: {
++		pr_debug("   case VIDIOC_ENUMOUTPUT\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	case VIDIOC_G_OUTPUT: {
++		pr_debug("   case VIDIOC_G_OUTPUT\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	case VIDIOC_S_OUTPUT: {
++		pr_debug("   case VIDIOC_S_OUTPUT\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	case VIDIOC_ENUMINPUT: {
++		struct v4l2_input *input = arg;
++		pr_debug("   case VIDIOC_ENUMINPUT\n");
++		if (input->index >= MXC_V4L2_CAPTURE_NUM_INPUTS) {
++			retval = -EINVAL;
++			break;
++		}
++		*input = mxc_capture_inputs;
++		break;
++	}
++
++	case VIDIOC_G_INPUT: {
++		pr_debug("   case VIDIOC_G_INPUT\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	case VIDIOC_S_INPUT: {
++		pr_debug("   case VIDIOC_S_INPUT\n");
++		retval = -EINVAL;
++		break;
++	}
++	case VIDIOC_ENUM_FMT: {
++		struct v4l2_fmtdesc *f = arg;
++		pr_debug("   case VIDIOC_ENUM_FMT\n");
++		if (cam->sensor)
++			retval = vidioc_int_enum_fmt_cap(cam->sensor, f);
++		else {
++			pr_err("ERROR: v4l2 capture: slave not found!\n");
++			retval = -ENODEV;
++		}
++		break;
++	}
++	case VIDIOC_ENUM_FRAMESIZES: {
++		struct v4l2_frmsizeenum *fsize = arg;
++		pr_debug("   case VIDIOC_ENUM_FRAMESIZES\n");
++		if (cam->sensor) {
++			retval = vidioc_int_enum_framesizes(cam->sensor, fsize);
++			pr_info("VIDIOC_ENUM_FRAMESIZES ret %d\n", retval);
++		} else {
++			pr_err("ERROR: v4l2 capture: slave not found!\n");
++			retval = -ENODEV;
++		}
++		break;
++	}
++	case VIDIOC_ENUM_FRAMEINTERVALS: {
++		struct v4l2_frmivalenum *fival = arg;
++		pr_debug("   case VIDIOC_ENUM_FRAMEINTERVALS\n");
++		if (cam->sensor) {
++			retval = vidioc_int_enum_frameintervals(cam->sensor,
++								fival);
++			pr_info("VIDIOC_ENUM_FRAMEINTERVALS ret %d\n", retval);
++		} else {
++			pr_err("ERROR: v4l2 capture: slave not found!\n");
++			retval = -ENODEV;
++		}
++		break;
++	}
++	case VIDIOC_DBG_G_CHIP_IDENT: {
++		struct v4l2_dbg_chip_ident *p = arg;
++		pr_debug("   case VIDIOC_DBG_G_CHIP_IDENT\n");
++		p->ident = V4L2_IDENT_NONE;
++		p->revision = 0;
++		if (cam->sensor)
++			retval = vidioc_int_g_chip_ident(cam->sensor, (int *)p);
++		else {
++			pr_err("ERROR: v4l2 capture: slave not found!\n");
++			retval = -ENODEV;
++		}
++		break;
++	}
++	case VIDIOC_TRY_FMT:
++	case VIDIOC_QUERYCTRL:
++	case VIDIOC_G_TUNER:
++	case VIDIOC_S_TUNER:
++	case VIDIOC_G_FREQUENCY:
++	case VIDIOC_S_FREQUENCY:
++	default:
++		pr_debug("   case default or not supported\n");
++		retval = -EINVAL;
++		break;
++	}
++
++	if (ioctlnr != VIDIOC_DQBUF)
++		up(&cam->busy_lock);
++	return retval;
++}
++
++/*
++ * V4L interface - ioctl function
++ *
++ * @return  None
++ */
++static long mxc_v4l_ioctl(struct file *file, unsigned int cmd,
++			 unsigned long arg)
++{
++//	pr_debug("In MVC:mxc_v4l_ioctl\n");
++	return video_usercopy(file, cmd, arg, mxc_v4l_do_ioctl);
++}
++
++/*!
++ * V4L interface - mmap function
++ *
++ * @param file        structure file *
++ *
++ * @param vma         structure vm_area_struct *
++ *
++ * @return status     0 Success, EINTR busy lock error, ENOBUFS remap_page error
++ */
++static int mxc_mmap(struct file *file, struct vm_area_struct *vma)
++{
++	struct video_device *dev = video_devdata(file);
++	unsigned long size;
++	int res = 0;
++	cam_data *cam = video_get_drvdata(dev);
++
++	pr_debug("In MVC:mxc_mmap\n");
++	pr_debug("   pgoff=0x%lx, start=0x%lx, end=0x%lx\n",
++		 vma->vm_pgoff, vma->vm_start, vma->vm_end);
++
++	/* make this _really_ smp-safe */
++	if (down_interruptible(&cam->busy_lock))
++		return -EINTR;
++
++	size = vma->vm_end - vma->vm_start;
++	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
++
++	if (remap_pfn_range(vma, vma->vm_start,
++			    vma->vm_pgoff, size, vma->vm_page_prot)) {
++		pr_err("ERROR: v4l2 capture: mxc_mmap: "
++			"remap_pfn_range failed\n");
++		res = -ENOBUFS;
++		goto mxc_mmap_exit;
++	}
++
++	vma->vm_flags &= ~VM_IO;	/* using shared anonymous pages */
++
++mxc_mmap_exit:
++	up(&cam->busy_lock);
++	return res;
++}
++
++/*!
++ * V4L interface - poll function
++ *
++ * @param file       structure file *
++ *
++ * @param wait       structure poll_table_struct *
++ *
++ * @return  status   POLLIN | POLLRDNORM
++ */
++static unsigned int mxc_poll(struct file *file, struct poll_table_struct *wait)
++{
++	struct video_device *dev = video_devdata(file);
++	cam_data *cam = video_get_drvdata(dev);
++	wait_queue_head_t *queue = NULL;
++	int res = POLLIN | POLLRDNORM;
++
++	pr_debug("In MVC:mxc_poll\n");
++
++	if (down_interruptible(&cam->busy_lock))
++		return -EINTR;
++
++	queue = &cam->enc_queue;
++	poll_wait(file, queue, wait);
++
++	up(&cam->busy_lock);
++
++	return res;
++}
++
++/*!
++ * This structure defines the functions to be called in this driver.
++ */
++static struct v4l2_file_operations mxc_v4l_fops = {
++	.owner = THIS_MODULE,
++	.open = mxc_v4l_open,
++	.release = mxc_v4l_close,
++	.read = mxc_v4l_read,
++	.unlocked_ioctl = mxc_v4l_ioctl,
++	.mmap = mxc_mmap,
++	.poll = mxc_poll,
++};
++
++static struct video_device mxc_v4l_template = {
++	.name = "Mxc Camera",
++	.fops = &mxc_v4l_fops,
++	.release = video_device_release,
++};
++
++/*!
++ * This function can be used to release any platform data on closing.
++ */
++static void camera_platform_release(struct device *device)
++{
++}
++
++/*!
++ * Camera V4l2 callback function.
++ *
++ * @param mask      u32
++ *
++ * @param dev       void device structure
++ *
++ * @return status
++ */
++static void camera_callback(u32 addr, void *dev)
++{
++	struct mxc_v4l_frame *done_frame;
++	struct mxc_v4l_frame *ready_frame;
++	struct timeval cur_time;
++
++	cam_data *cam = (cam_data *) dev;
++	if (cam == NULL)
++		return;
++
++	pr_debug("In MVC:camera_callback\n");
++
++	spin_lock(&cam->queue_int_lock);
++	spin_lock(&cam->dqueue_int_lock);
++	if (!list_empty(&cam->working_q)) {
++		do_gettimeofday(&cur_time);
++
++		done_frame = list_entry(cam->working_q.next,
++					struct mxc_v4l_frame,
++					queue);
++
++		if (done_frame->buf_num != cam->local_buf_num) {
++			pr_info("Callback %X vs %X, %d vs %d\n", done_frame->buffer.m.offset, addr,
++					done_frame->buf_num, cam->local_buf_num);
++			goto next;
++		}
++
++		/*
++		 * Set the current time to done frame buffer's
++		 * timestamp. Users can use this information to judge
++		 * the frame's usage.
++		 */
++		done_frame->buffer.timestamp = cur_time;
++
++		if (done_frame->buffer.flags & V4L2_BUF_FLAG_QUEUED) {
++			done_frame->buffer.flags |= V4L2_BUF_FLAG_DONE;
++			done_frame->buffer.flags &= ~V4L2_BUF_FLAG_QUEUED;
++
++			/* Added to the done queue */
++			list_del(cam->working_q.next);
++			list_add_tail(&done_frame->queue, &cam->done_q);
++
++			pr_debug("Done %d %X\n", done_frame->buf_num, done_frame->buffer.m.offset);
++
++			/* Wake up the queue */
++			cam->enc_counter++;
++			wake_up_interruptible(&cam->enc_queue);
++
++		} else
++			pr_err("ERROR: v4l2 capture: camera_callback: "
++				"buffer not queued\n");
++	}
++
++next:
++	if (!list_empty(&cam->ready_q)) {
++		ready_frame = list_entry(cam->ready_q.next,
++					 struct mxc_v4l_frame,
++					 queue);
++		if (cam->enc_update_eba)
++			if (cam->enc_update_eba(
++				cam,
++				ready_frame->buffer.m.offset) == 0) {
++				list_del(cam->ready_q.next);
++				list_add_tail(&ready_frame->queue,
++					      &cam->working_q);
++				ready_frame->buf_num = cam->local_buf_num;
++				pr_debug("Working %d %X\n", ready_frame->buf_num, ready_frame->buffer.m.offset);
++			}
++	} else {
++		if (cam->enc_update_eba)
++			cam->enc_update_eba(
++				cam, cam->dummy_frame.buffer.m.offset);
++	}
++
++	cam->local_buf_num = (cam->local_buf_num == 0) ? 1 : 0;
++	spin_unlock(&cam->dqueue_int_lock);
++	spin_unlock(&cam->queue_int_lock);
++
++	return;
++}
++
++/*!
++ * initialize cam_data structure
++ *
++ * @param cam      structure cam_data *
++ *
++ * @return status  0 Success
++ */
++static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
++{
++	const struct of_device_id *of_id =
++			of_match_device(mxc_v4l2_dt_ids, &pdev->dev);
++//	struct device_node *np = pdev->dev.of_node;
++//	int ret = 0;
++	struct v4l2_device *v4l2_dev;
++//	int rpmsg;
++
++	pr_debug("In MVC: init_camera_struct\n");
++/*
++	ret = of_property_read_u32(np, "rpmsg", &rpmsg);
++	if (ret) {
++		dev_err(&pdev->dev, "rpmsg missing or invalid\n");
++		return ret;
++	}
++*/
++	/* Default everything to 0 */
++	memset(cam, 0, sizeof(cam_data));
++
++	if (of_id)
++		pdev->id_entry = of_id->data;
++
++	init_MUTEX(&cam->param_lock);
++	init_MUTEX(&cam->busy_lock);
++
++	cam->video_dev = video_device_alloc();
++	if (cam->video_dev == NULL)
++		return -ENODEV;
++
++	*(cam->video_dev) = mxc_v4l_template;
++
++	video_set_drvdata(cam->video_dev, cam);
++	dev_set_drvdata(&pdev->dev, (void *)cam);
++	cam->video_dev->minor = -1;
++
++	v4l2_dev = kzalloc(sizeof(*v4l2_dev), GFP_KERNEL);
++	if (!v4l2_dev) {
++		dev_err(&pdev->dev, "failed to allocate v4l2_dev structure\n");
++		video_device_release(cam->video_dev);
++		return -ENOMEM;
++	}
++
++	if (v4l2_device_register(&pdev->dev, v4l2_dev) < 0) {
++		dev_err(&pdev->dev, "register v4l2 device failed\n");
++		video_device_release(cam->video_dev);
++		kfree(v4l2_dev);
++		return -ENODEV;
++	}
++	cam->video_dev->v4l2_dev = v4l2_dev;
++
++	init_waitqueue_head(&cam->enc_queue);
++	init_waitqueue_head(&cam->still_queue);
++
++	cam->standard.index = 0;
++	cam->standard.id = V4L2_STD_UNKNOWN;
++	cam->standard.frameperiod.denominator = 30;
++	cam->standard.frameperiod.numerator = 1;
++	cam->standard.framelines = 480;
++	cam->capture_on = false;
++
++	cam->v2f.fmt.pix.sizeimage = 160 * 120 * 4;
++	cam->v2f.fmt.pix.bytesperline = 160 * 4;
++	cam->v2f.fmt.pix.width = 160;
++	cam->v2f.fmt.pix.height = 120;
++	cam->v2f.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB32;
++
++	cam->enc_callback = camera_callback;
++	init_waitqueue_head(&cam->power_queue);
++	spin_lock_init(&cam->queue_int_lock);
++	spin_lock_init(&cam->dqueue_int_lock);
++
++	cam->self = kmalloc(sizeof(struct v4l2_int_device), GFP_KERNEL);
++	cam->self->module = THIS_MODULE;
++	sprintf(cam->self->name, "mxc_v4l2_rpmsg_cap");
++	cam->self->type = v4l2_int_type_master;
++	cam->self->u.master = &mxc_v4l2_master;
++
++	return 0;
++}
++
++static ssize_t show_streaming(struct device *dev,
++			struct device_attribute *attr, char *buf)
++{
++	struct video_device *video_dev = container_of(dev,
++						struct video_device, dev);
++	cam_data *cam = video_get_drvdata(video_dev);
++
++	if (cam->capture_on)
++		return sprintf(buf, "stream on\n");
++	else
++		return sprintf(buf, "stream off\n");
++}
++static DEVICE_ATTR(fsl_v4l2_rpmsg_property, S_IRUGO, show_streaming, NULL);
++
++/*!
++ * This function is called to probe the devices if registered.
++ *
++ * @param   pdev  the device structure used to give information on which device
++ *                to probe
++ *
++ * @return  The function returns 0 on success and -1 on failure.
++ */
++static int mxc_v4l2_probe(struct platform_device *pdev)
++{
++	/* Create cam and initialize it. */
++	cam_data *cam = kmalloc(sizeof(cam_data), GFP_KERNEL);
++	if (cam == NULL) {
++		pr_err("ERROR: v4l2 capture: failed to register camera\n");
++		return -1;
++	}
++
++	init_camera_struct(cam, pdev);
++	pdev->dev.release = camera_platform_release;
++
++	/* Set up the v4l2 device and register it*/
++	cam->self->priv = cam;
++	v4l2_int_device_register(cam->self);
++
++	/* register v4l video device */
++	if (video_register_device(cam->video_dev, VFL_TYPE_GRABBER, video_nr)
++		< 0) {
++		kfree(cam);
++		cam = NULL;
++		pr_err("ERROR: v4l2 capture: video_register_device failed\n");
++		return -1;
++	}
++	pr_debug("   Video device registered: %s #%d\n",
++		 cam->video_dev->name, cam->video_dev->minor);
++
++	if (device_create_file(&cam->video_dev->dev,
++			&dev_attr_fsl_v4l2_rpmsg_property))
++		dev_err(&pdev->dev, "Error on creating sysfs file"
++			" for rpmsg\n");
++
++	return 0;
++}
++
++/*!
++ * This function is called to remove the devices when device unregistered.
++ *
++ * @param   pdev  the device structure used to give information on which device
++ *                to remove
++ *
++ * @return  The function returns 0 on success and -1 on failure.
++ */
++static int mxc_v4l2_remove(struct platform_device *pdev)
++{
++	cam_data *cam = (cam_data *)platform_get_drvdata(pdev);
++	if (cam->open_count) {
++		pr_err("ERROR: v4l2 capture:camera open "
++			"-- setting ops to NULL\n");
++		return -EBUSY;
++	} else {
++		struct v4l2_device *v4l2_dev = cam->video_dev->v4l2_dev;
++		device_remove_file(&cam->video_dev->dev,
++			&dev_attr_fsl_v4l2_rpmsg_property);
++
++		pr_info("V4L2 freeing image input device\n");
++		v4l2_int_device_unregister(cam->self);
++		video_unregister_device(cam->video_dev);
++
++		mxc_free_frame_buf(cam);
++		kfree(cam);
++
++		v4l2_device_unregister(v4l2_dev);
++		kfree(v4l2_dev);
++	}
++
++	pr_info("V4L2 unregistering video\n");
++	return 0;
++}
++
++/*!
++ * This function is called to put the sensor in a low power state.
++ * Refer to the document driver-model/driver.txt in the kernel source tree
++ * for more information.
++ *
++ * @param   pdev  the device structure used to give information on which I2C
++ *                to suspend
++ * @param   state the power state the device is entering
++ *
++ * @return  The function returns 0 on success and -1 on failure.
++ */
++static int mxc_v4l2_suspend(struct platform_device *pdev, pm_message_t state)
++{
++	cam_data *cam = platform_get_drvdata(pdev);
++
++	pr_debug("In MVC:mxc_v4l2_suspend\n");
++
++	if (cam == NULL)
++		return -1;
++
++	down(&cam->busy_lock);
++
++	cam->low_power = true;
++
++	if (cam->capture_on == true) {
++		if (cam->enc_disable_csi)
++			cam->enc_disable_csi(cam);
++
++		if (cam->enc_disable)
++			cam->enc_disable(cam);
++	}
++
++	if (cam->sensor && cam->open_count) {
++		vidioc_int_s_power(cam->sensor, 0);
++	}
++
++	up(&cam->busy_lock);
++
++	return 0;
++}
++
++/*!
++ * This function is called to bring the sensor back from a low power state.
++ * Refer to the document driver-model/driver.txt in the kernel source tree
++ * for more information.
++ *
++ * @param   pdev   the device structure
++ *
++ * @return  The function returns 0 on success and -1 on failure
++ */
++static int mxc_v4l2_resume(struct platform_device *pdev)
++{
++	cam_data *cam = platform_get_drvdata(pdev);
++
++	pr_debug("In MVC:mxc_v4l2_resume\n");
++
++	if (cam == NULL)
++		return -1;
++
++	down(&cam->busy_lock);
++
++	cam->low_power = false;
++	wake_up_interruptible(&cam->power_queue);
++
++	if (cam->sensor && cam->open_count) {
++		vidioc_int_s_power(cam->sensor, 1);
++	}
++
++	if (cam->capture_on == true) {
++		if (cam->enc_enable)
++			cam->enc_enable(cam);
++
++		if (cam->enc_enable_csi)
++			cam->enc_enable_csi(cam);
++	}
++
++	up(&cam->busy_lock);
++
++	return 0;
++}
++
++/*!
++ * This structure contains pointers to the power management callback functions.
++ */
++static struct platform_driver mxc_v4l2_driver = {
++	.driver = {
++		   .name = "mxc_v4l2_rpmsg",
++		   .owner = THIS_MODULE,
++		   .of_match_table = mxc_v4l2_dt_ids,
++		   },
++	.probe = mxc_v4l2_probe,
++	.remove = mxc_v4l2_remove,
++	.suspend = mxc_v4l2_suspend,
++	.resume = mxc_v4l2_resume,
++	.shutdown = NULL,
++};
++
++/*!
++ * Initializes the camera driver.
++ */
++static int mxc_v4l2_master_attach(struct v4l2_int_device *slave)
++{
++	cam_data *cam = slave->u.slave->master->priv;
++	struct v4l2_format cam_fmt;
++
++	pr_debug("In MVC: mxc_v4l2_master_attach\n");
++	pr_debug("   slave.name = %s\n", slave->name);
++	pr_debug("   master.name = %s\n", slave->u.slave->master->name);
++
++	if (slave == NULL) {
++		pr_err("ERROR: v4l2 capture: slave parameter not valid.\n");
++		return -1;
++	}
++
++	cam->sensor = slave;
++
++	vidioc_int_dev_exit(cam->sensor);
++	vidioc_int_s_power(cam->sensor, 0);
++
++	cam_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++	vidioc_int_g_fmt_cap(cam->sensor, &cam_fmt);
++
++	/* Used to detect TV in (type 1) vs. camera (type 0)*/
++	cam->device_type = cam_fmt.fmt.pix.priv;
++
++	pr_debug("End of %s: v2f pix widthxheight %d x %d\n",
++		 __func__,
++		 cam->v2f.fmt.pix.width, cam->v2f.fmt.pix.height);
++
++	return 0;
++}
++
++/*!
++ * Disconnects the camera driver.
++ */
++static void mxc_v4l2_master_detach(struct v4l2_int_device *slave)
++{
++	cam_data *cam = slave->u.slave->master->priv;
++
++	pr_debug("In MVC:mxc_v4l2_master_detach\n");
++
++	cam->sensor = NULL;
++
++	vidioc_int_dev_exit(slave);
++}
++
++/*!
++ * Entry point for the V4L2
++ *
++ * @return  Error code indicating success or failure
++ */
++static __init int camera_init(void)
++{
++	u8 err = 0;
++
++	pr_debug("In MVC:camera_init\n");
++
++	/* Register the device driver structure. */
++	err = platform_driver_register(&mxc_v4l2_driver);
++	if (err != 0) {
++		pr_err("ERROR: v4l2 capture:camera_init: "
++			"platform_driver_register failed.\n");
++		return err;
++	}
++
++	return err;
++}
++
++/*!
++ * Exit and cleanup for the V4L2
++ */
++static void __exit camera_exit(void)
++{
++	pr_debug("In MVC: camera_exit\n");
++
++	platform_driver_unregister(&mxc_v4l2_driver);
++}
++
++module_init(camera_init);
++module_exit(camera_exit);
++
++module_param(video_nr, int, 0444);
++MODULE_AUTHOR("Freescale Semiconductor, Inc.");
++MODULE_DESCRIPTION("V4L2 capture driver for Mxc based cameras");
++MODULE_LICENSE("GPL");
++MODULE_SUPPORTED_DEVICE("video");
++
++
++
++
+diff --git a/drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.h b/drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.h
+new file mode 100644
+index 0000000..92ae21c
+--- /dev/null
++++ b/drivers/media/platform/mxc/rpmsg/rpmsg_v4l2_capture.h
+@@ -0,0 +1,129 @@
++/*
++ * Copyright 2004-2015 Freescale Semiconductor, Inc. All Rights Reserved.
++ */
++
++/*
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/*!
++ * @defgroup MXC_V4L2_CAPTURE MXC V4L2 Video Capture Driver
++ */
++/*!
++ * @file mxc_v4l2_capture.h
++ *
++ * @brief mxc V4L2 capture device API  Header file
++ *
++ * It include all the defines for frame operations, also three structure defines
++ * use case ops structure, common v4l2 driver structure and frame structure.
++ *
++ * @ingroup MXC_V4L2_CAPTURE
++ */
++#ifndef __MXC_V4L2_CAPTURE_H__
++#define __MXC_V4L2_CAPTURE_H__
++
++#include <linux/uaccess.h>
++#include <linux/list.h>
++#include <linux/mxc_v4l2.h>
++#include <linux/completion.h>
++
++#include <media/v4l2-dev.h>
++
++
++#define FRAME_NUM 10
++
++/*!
++ * v4l2 frame structure.
++ */
++struct mxc_v4l_frame {
++	u32 paddress;
++	void *vaddress;
++	int count;
++	int width;
++	int height;
++
++	struct v4l2_buffer buffer;
++	struct list_head queue;
++	int index;
++	int buf_num;
++};
++
++/*!
++ * common v4l2 driver structure.
++ */
++typedef struct _cam_data {
++	struct video_device *video_dev;
++	int device_type;
++
++	/* semaphore guard against SMP multithreading */
++	struct semaphore busy_lock;
++
++	int open_count;
++
++	/* params lock for this camera */
++	struct semaphore param_lock;
++
++	/* Encoder */
++	struct list_head ready_q;
++	struct list_head done_q;
++	struct list_head working_q;
++	int ping_pong_csi;
++	spinlock_t queue_int_lock;
++	spinlock_t dqueue_int_lock;
++	struct mxc_v4l_frame frame[FRAME_NUM];
++	struct mxc_v4l_frame dummy_frame;
++	wait_queue_head_t enc_queue;
++	int enc_counter;
++	dma_addr_t rot_enc_bufs[2];
++	void *rot_enc_bufs_vaddr[2];
++	int rot_enc_buf_size[2];
++	enum v4l2_buf_type type;
++
++	/* still image capture */
++	wait_queue_head_t still_queue;
++	int still_counter;
++	dma_addr_t still_buf[2];
++	void *still_buf_vaddr;
++
++	/* v4l2 format */
++	struct v4l2_format v2f;
++	struct v4l2_format input_fmt;	/* camera in */
++	struct v4l2_standard standard;
++
++	int (*enc_update_eba) (void *private, dma_addr_t eba);
++	int (*enc_enable) (void *private);
++	int (*enc_disable) (void *private);
++	int (*enc_enable_csi) (void *private);
++	int (*enc_disable_csi) (void *private);
++	void (*enc_callback) (u32 mask, void *dev);
++	int (*csi_start) (void *private);
++	int (*csi_stop) (void *private);
++
++	/* misc status flag */
++	bool capture_on;
++	int capture_pid;
++	bool low_power;
++	wait_queue_head_t power_queue;
++
++	int local_buf_num;
++
++	/* camera sensor interface */
++	struct v4l2_int_device *sensor;
++	struct v4l2_int_device *self;
++} cam_data;
++
++struct sensor_data {
++	const struct ov5642_platform_data *platform_data;
++	struct v4l2_int_device *v4l2_int_device;
++	struct v4l2_pix_format pix;
++	struct v4l2_captureparm streamcap;
++	cam_data *cam;
++	bool on;
++	struct rpmsg_device *rpmsg_dev;
++};
++#endif				/* __MXC_V4L2_CAPTURE_H__ */
+-- 
+1.9.1
+

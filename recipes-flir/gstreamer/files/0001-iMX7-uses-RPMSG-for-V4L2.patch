@@ -1,0 +1,80 @@
+From 74ee134d9d5fa4b15870f8d95259be3d04f1ab9f Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Fri, 25 May 2018 10:37:35 +0200
+Subject: [PATCH] iMX7 uses RPMSG for V4L2
+
+---
+ Makefile.am                 |  5 ++++-
+ libs/v4l2_core/gstimxv4l2.c | 12 ++++++++++--
+ 2 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index 4c5f41b..f5e8911 100755
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -141,7 +141,10 @@ VPUWRAPDIRS =
+ endif
+ 
+ if PLATFORM_IS_MX7ULP
+-V4LSINKDIRS =
++
++if USE_V4L_SINK
++V4LSINKDIRS = plugins/v4l2
++endif
+ 
+ if USE_OVERLAY_SINK
+ OVERLAYSINKDIRS = plugins/overlay_sink
+diff --git a/libs/v4l2_core/gstimxv4l2.c b/libs/v4l2_core/gstimxv4l2.c
+index 96d197e..a801d3e 100755
+--- a/libs/v4l2_core/gstimxv4l2.c
++++ b/libs/v4l2_core/gstimxv4l2.c
+@@ -188,6 +188,10 @@ static IMXV4l2FmtMap g_imxv4l2fmt_maps_PXP[] = {
+   {GST_VIDEO_CAPS_MAKE_BAYER("rggb"), V4L2_PIX_FMT_SRGGB8, GST_VIDEO_FORMAT_UNKNOWN, 8, 0},
+ };
+ 
++static IMXV4l2FmtMap g_imxv4l2fmt_maps_RPMSG[] = {
++  {GST_VIDEO_CAPS_MAKE("xRGB"), V4L2_PIX_FMT_RGB32, GST_VIDEO_FORMAT_xRGB, 32, 0},
++};
++
+ static guint g_camera_format[] = {
+   V4L2_PIX_FMT_YUV420,
+   V4L2_PIX_FMT_NV12,
+@@ -201,6 +205,7 @@ static guint g_camera_format_IPU[] = {
+   V4L2_PIX_FMT_NV12,
+   V4L2_PIX_FMT_YUYV,
+   V4L2_PIX_FMT_UYVY,
++  V4L2_PIX_FMT_RGB32,
+   0,
+ };
+ 
+@@ -230,6 +235,9 @@ static IMXV4l2FmtMap * imx_v4l2_get_fmt_map(guint *map_size)
+   } else if (HAS_PXP()){
+     fmt_map = g_imxv4l2fmt_maps_PXP;
+     *map_size = sizeof(g_imxv4l2fmt_maps_PXP)/sizeof(IMXV4l2FmtMap);
++  } else {
++    fmt_map = g_imxv4l2fmt_maps_RPMSG;
++    *map_size = sizeof(g_imxv4l2fmt_maps_RPMSG)/sizeof(IMXV4l2FmtMap);
+   }
+ 
+   return fmt_map;
+@@ -1004,7 +1012,7 @@ gst_imx_v4l2capture_set_function (IMXV4l2Handle *handle)
+   }
+ 
+   handle->is_tvin = FALSE;
+-  if (!strcmp (cap.driver, MXC_V4L2_CAPTURE_NAME)) {
++  if (!strncmp (cap.driver, MXC_V4L2_CAPTURE_NAME, 8)) {
+     struct v4l2_dbg_chip_ident chip;
+     if (ioctl(handle->v4l2_fd, VIDIOC_DBG_G_CHIP_IDENT, &chip)) {
+       GST_ERROR ("VIDIOC_DBG_G_CHIP_IDENT failed.\n");
+@@ -1147,7 +1155,7 @@ gpointer gst_imx_v4l2_open_device (gchar *device, int type)
+   handle->v4l2_hold_buf_num = V4L2_HOLDED_BUFFERS;
+ 
+   if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT) {
+-    if (HAS_IPU()) {
++    if (1) {
+       handle->dev_itf.v4l2out_config_input = (V4l2outConfigInput)imx_ipu_v4l2out_config_input;
+       handle->dev_itf.v4l2out_config_output = (V4l2outConfigOutput)imx_ipu_v4l2out_config_output;
+       handle->dev_itf.v4l2out_config_rotate = (V4l2outConfigRotate)imx_ipu_v4l2out_config_rotate;
+-- 
+1.9.1
+
