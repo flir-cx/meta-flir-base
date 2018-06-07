@@ -1,7 +1,8 @@
 # IMAGE_INSTALL_remove = ""
 
 IMAGE_INSTALL_append += " \
-    hostapd \
     firmware-redpine \
+    hostapd \
+    imx-gst1.0-plugin \
     rndisload \
 "
