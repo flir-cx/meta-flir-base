@@ -1,0 +1,804 @@
+From a63ee77173c540a548b1348bb55c51d52793e418 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Fri, 17 Aug 2018 10:53:53 +0200
+Subject: [PATCH] Support for FLIR low cost brassboard
+
+new mx7ulp_bblc_defconfig
+new imx7ulp-bblc.dts device tree
+new bblc.cc board file
+
+based on imx7ulp-evk board
+---
+ arch/arm/cpu/armv7/mx7ulp/Kconfig |   5 +
+ arch/arm/dts/Makefile             |   1 +
+ arch/arm/dts/imx7ulp-bblc.dts     | 195 ++++++++++++++++++++++++++++++++
+ board/flir/bblc/Kconfig           |  12 ++
+ board/flir/bblc/Makefile          |   9 ++
+ board/flir/bblc/bblc.c            |  87 +++++++++++++++
+ board/flir/bblc/imximage.cfg      | 122 ++++++++++++++++++++
+ configs/mx7ulp_bblc_defconfig     |  45 ++++++++
+ include/configs/bblc.h            | 229 ++++++++++++++++++++++++++++++++++++++
+ 9 files changed, 705 insertions(+)
+ create mode 100644 arch/arm/dts/imx7ulp-bblc.dts
+ create mode 100644 board/flir/bblc/Kconfig
+ create mode 100644 board/flir/bblc/Makefile
+ create mode 100644 board/flir/bblc/bblc.c
+ create mode 100644 board/flir/bblc/imximage.cfg
+ create mode 100644 configs/mx7ulp_bblc_defconfig
+ create mode 100644 include/configs/bblc.h
+
+diff --git a/arch/arm/cpu/armv7/mx7ulp/Kconfig b/arch/arm/cpu/armv7/mx7ulp/Kconfig
+index fc7159e..5f1fa8d 100644
+--- a/arch/arm/cpu/armv7/mx7ulp/Kconfig
++++ b/arch/arm/cpu/armv7/mx7ulp/Kconfig
+@@ -28,9 +28,14 @@ config TARGET_MX7ULP_EVK
+         bool "Support mx7ulp EVK board"
+ 	select MX7ULP
+ 
++config TARGET_MX7ULP_BBLC
++	bool "Support FLIR bblc brass board"
++	select MX7ULP
++
+ endchoice
+ 
+ source "board/freescale/mx7ulp_arm2/Kconfig"
+ source "board/freescale/mx7ulp_evk/Kconfig"
++source "board/flir/bblc/Kconfig"
+ 
+ endif
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index afd1a5b..08f73bd 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -381,6 +381,7 @@ dtb-$(CONFIG_MX7) += imx7-colibri.dtb \
+ 		imx7d-19x19-lpddr3-arm2.dtb
+ 
+ dtb-$(CONFIG_ARCH_MX7ULP) += imx7ulp-evk.dtb \
++		imx7ulp-bblc.dtb \
+ 		imx7ulp-evk-emmc.dtb \
+ 		imx7ulp-evk-qspi.dtb \
+ 		imx7ulp-10x10-arm2.dtb \
+diff --git a/arch/arm/dts/imx7ulp-bblc.dts b/arch/arm/dts/imx7ulp-bblc.dts
+new file mode 100644
+index 0000000..54fcfad
+--- /dev/null
++++ b/arch/arm/dts/imx7ulp-bblc.dts
+@@ -0,0 +1,195 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/dts-v1/;
++
++#include "imx7ulp.dtsi"
++
++
++/ {
++	model = "FLIR Low Cost Brassboard";
++	compatible = "flir,imx7ulp-bblc", "fsl,imx7ulp", "Generic DT based system";
++
++	chosen {
++		stdout-path = &lpuart4;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x60000000 0x20000000>;
++	};
++
++
++	regulators {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		
++	};
++
++
++};
++
++
++&iomuxc1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hog_1>;
++
++	imx7ulp-evk {
++		pinctrl_hog_1: hoggrp-1 {
++			fsl,pins = <
++				ULP1_PAD_PTC1__PTC1	 0x30100	 //SHUTTER_OUT
++			>;
++		};
++
++		pinctrl_lpi2c5: lpi2c5grp {
++			fsl,pins = <
++				ULP1_PAD_PTC4__LPI2C5_SCL       0x27
++				ULP1_PAD_PTC5__LPI2C5_SDA       0x27
++			>;
++		};
++		
++		pinctrl_lpi2c6: lpi2c6grp {
++			fsl,pins = <
++				ULP1_PAD_PTE8__LPI2C6_SCL	0x27
++				ULP1_PAD_PTE9__LPI2C6_SDA	0x27
++			>;
++		};
++		
++		pinctrl_lpi2c7: lpi2c7grp {
++			fsl,pins = <
++				ULP1_PAD_PTE12__LPI2C7_SCL	0x27
++				ULP1_PAD_PTF13__LPI2C7_SDA	0x27
++			>;
++		};
++		
++		pinctrl_lpuart4: lpuart4grp {
++			fsl,pins = <
++				ULP1_PAD_PTC3__LPUART4_RX	0x3
++				ULP1_PAD_PTC2__LPUART4_TX	0x3
++			>;
++		};
++
++		pinctrl_lpuart6: lpuart6grp {
++			fsl,pins = <
++				ULP1_PAD_PTE10__LPUART6_TX	0x3
++				ULP1_PAD_PTE11__LPUART6_RX	0x3
++				ULP1_PAD_PTE9__LPUART6_RTS_B	0x3
++				ULP1_PAD_PTE8__LPUART6_CTS_B	0x3
++			>;
++		};
++
++		pinctrl_usdhc0: usdhc0grp {
++			fsl,pins = <
++				ULP1_PAD_PTD0__PTD0		0x20000		/* USDHC0 RST */
++				ULP1_PAD_PTD1__SDHC0_CMD	0x43
++				ULP1_PAD_PTD2__SDHC0_CLK	0x10042
++				ULP1_PAD_PTD3__SDHC0_D7	0x43
++				ULP1_PAD_PTD4__SDHC0_D6	0x43
++				ULP1_PAD_PTD5__SDHC0_D5	0x43
++				ULP1_PAD_PTD6__SDHC0_D4	0x43
++				ULP1_PAD_PTD7__SDHC0_D3	0x43
++				ULP1_PAD_PTD8__SDHC0_D2	0x43
++				ULP1_PAD_PTD9__SDHC0_D1	0x43
++				ULP1_PAD_PTD10__SDHC0_D0	0x43
++				ULP1_PAD_PTD11__SDHC0_DQS	0x42
++			>;
++		};
++
++		pinctrl_usdhc1: usdhc1grp {
++			fsl,pins = <
++				ULP1_PAD_PTE3__SDHC1_CMD		0x43
++				ULP1_PAD_PTE2__SDHC1_CLK		0x10042
++				ULP1_PAD_PTE1__SDHC1_D0		0x43
++				ULP1_PAD_PTE0__SDHC1_D1		0x43
++				ULP1_PAD_PTE5__SDHC1_D2		0x43
++				ULP1_PAD_PTE4__SDHC1_D3		0x43
++			>;
++		};
++
++	};
++};
++
++/* Touch screen */
++&lpi2c7 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	pinctrl-names = "default",  "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c7>;
++	pinctrl-1 = <&pinctrl_lpi2c7>;
++	status = "okay";
++
++};
++	
++/*  IO expander for keyboard, VCAM, Lepton, Temp sensor 1 and 2, EEPROM	*/
++&lpi2c6 {
++#address-cells = <1>;
++#size-cells = <0>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c6>;
++	pinctrl-1 = <&pinctrl_lpi2c6>;
++	status = "okay";
++	
++};
++	
++/*  PMIC */
++&lpi2c5 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c5>;
++	pinctrl-1 = <&pinctrl_lpi2c5>;
++	status = "okay";
++};
++
++
++
++&lpuart4 { /* console */
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpuart4>;
++	pinctrl-1 = <&pinctrl_lpuart4>;
++	status = "okay";
++};
++
++&lpuart6 { /* BT */
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpuart6>;
++	pinctrl-1 = <&pinctrl_lpuart6>;
++	status = "okay";
++};
++
++
++
++&usbotg1 {
++	srp-disable;
++	hnp-disable;
++	adp-disable;
++	status = "okay";
++};
++
++/* emmc */
++&usdhc0 {
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_usdhc1>;
++	pinctrl-1 = <&pinctrl_usdhc1>;
++	bus-width = <8>;
++	no-1-8-v;
++	pm-ignore-notify;
++	keep-power-in-suspend;
++	non-removable;
++	status = "okay";
++};
++
++/* wifi */
++&usdhc1 {
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_usdhc0>;
++	pinctrl-1 = <&pinctrl_usdhc0>;
++	non-removable;
++	status = "okay";
++};
+diff --git a/board/flir/bblc/Kconfig b/board/flir/bblc/Kconfig
+new file mode 100644
+index 0000000..6d6889a
+--- /dev/null
++++ b/board/flir/bblc/Kconfig
+@@ -0,0 +1,12 @@
++if TARGET_MX7ULP_BBLC
++
++config SYS_BOARD
++	default "bblc"
++
++config SYS_VENDOR
++	default "flir"
++
++config SYS_CONFIG_NAME
++	default "bblc"
++
++endif
+diff --git a/board/flir/bblc/Makefile b/board/flir/bblc/Makefile
+new file mode 100644
+index 0000000..b63c448
+--- /dev/null
++++ b/board/flir/bblc/Makefile
+@@ -0,0 +1,9 @@
++#
++#  Copyright 2018 FLIR
++# 
++#  This program is free software; you can redistribute it and/or modify
++#  it under the terms of the GNU General Public License version 2 as
++#  published by the Free Software Foundation.
++# 
++
++obj-y  := bblc.o
+diff --git a/board/flir/bblc/bblc.c b/board/flir/bblc/bblc.c
+new file mode 100644
+index 0000000..3e969c6
+--- /dev/null
++++ b/board/flir/bblc/bblc.c
+@@ -0,0 +1,87 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/arch/mx7ulp-pins.h>
++#include <asm/arch/iomux.h>
++#include <asm/gpio.h>
++#include <usb.h>
++#include <dm.h>
++
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define UART_PAD_CTRL	(PAD_CTL_PUS_UP)
++
++int dram_init(void)
++{
++	gd->ram_size = PHYS_SDRAM_SIZE;
++
++	return 0;
++}
++
++static iomux_cfg_t const lpuart4_pads[] = {
++	MX7ULP_PAD_PTC3__LPUART4_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
++	MX7ULP_PAD_PTC2__LPUART4_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
++};
++
++static void setup_iomux_uart(void)
++{
++	mx7ulp_iomux_setup_multiple_pads(lpuart4_pads,
++					 ARRAY_SIZE(lpuart4_pads));
++}
++
++
++#ifdef CONFIG_DM_USB
++static void setup_usb(void)
++{
++}
++
++int board_ehci_usb_phy_mode(struct udevice *dev)
++{
++	return USB_INIT_HOST;
++}
++#endif
++
++int board_early_init_f(void)
++{
++	setup_iomux_uart();
++
++	return 0;
++}
++
++
++int board_init(void)
++{
++	/* address of boot parameters */
++	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
++
++#ifdef CONFIG_DM_USB
++	setup_usb();
++#endif
++
++	return 0;
++}
++
++int board_mmc_get_env_dev(int devno)
++{
++	return devno;
++}
++
++int board_late_init(void)
++{
++
++#ifdef CONFIG_ENV_IS_IN_MMC
++	board_late_mmc_env_init();
++#endif
++
++	return 0;
++}
++
+diff --git a/board/flir/bblc/imximage.cfg b/board/flir/bblc/imximage.cfg
+new file mode 100644
+index 0000000..5ffaf94
+--- /dev/null
++++ b/board/flir/bblc/imximage.cfg
+@@ -0,0 +1,122 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#define __ASSEMBLY__
++#include <config.h>
++
++/* image version */
++
++IMAGE_VERSION 2
++
++/*
++ * Boot Device : one of
++ * spi/sd/nand/onenand, qspi/nor
++ */
++
++BOOT_FROM	sd
++
++
++/*
++ * Device Configuration Data (DCD)
++ *
++ * Each entry must have the format:
++ * Addr-type           Address        Value
++ *
++ * where:
++ *	Addr-type register length (1,2 or 4 bytes)
++ *	Address	  absolute address of the register
++ *	value	  value to be stored in the register
++ */
++DATA 4   0x403f00dc 0x00000000
++DATA 4   0x403e0040 0x01000020
++DATA 4   0x403e0500 0x01000000
++DATA 4   0x403e050c 0x80808080
++DATA 4   0x403e0508 0x00160002
++DATA 4   0x403E0510 0x00000001
++DATA 4   0x403E0514 0x00000014
++DATA 4   0x403e0500 0x00000001
++CHECK_BITS_SET 4 0x403e0500 0x01000000
++DATA 4   0x403e050c 0x8080801B
++CHECK_BITS_SET 4 0x403e050c 0x00000040
++DATA 4   0x403E0030 0x00000001
++DATA 4   0x403e0040 0x11000020
++DATA 4   0x403f00dc 0x42000000
++
++DATA 4   0x40B300AC 0x40000000
++
++DATA 4   0x40AD0128 0x00040000
++DATA 4   0x40AD00F8 0x00000000
++DATA 4   0x40AD00D8 0x00000180
++DATA 4   0x40AD0108 0x00000180
++DATA 4   0x40AD0104 0x00000180
++DATA 4   0x40AD0124 0x00010000
++DATA 4   0x40AD0080 0x0000018C
++DATA 4   0x40AD0084 0x0000018C
++DATA 4   0x40AD0088 0x0000018C
++DATA 4   0x40AD008C 0x0000018C
++
++DATA 4   0x40AD0120 0x00010000
++DATA 4   0x40AD010C 0x00000180
++DATA 4   0x40AD0110 0x00000180
++DATA 4   0x40AD0114 0x00000180
++DATA 4   0x40AD0118 0x00000180
++DATA 4   0x40AD0090 0x00000180
++DATA 4   0x40AD0094 0x00000180
++DATA 4   0x40AD0098 0x00000180
++DATA 4   0x40AD009C 0x00000180
++
++DATA 4   0x40AD00E0 0x00040000
++DATA 4   0x40AD00E4 0x00040000
++
++DATA 4   0x40AB001C 0x00008000
++DATA 4   0x40AB0800 0xA1390003
++DATA 4   0x40AB085C 0x0D3900A0
++DATA 4   0x40AB0890 0x00400000
++
++DATA 4   0x40AB0848 0x40404040
++DATA 4   0x40AB0850 0x40404040
++DATA 4   0x40AB081C 0x33333333
++DATA 4   0x40AB0820 0x33333333
++DATA 4   0x40AB0824 0x33333333
++DATA 4   0x40AB0828 0x33333333
++
++DATA 4   0x40AB08C0 0x24922492
++DATA 4   0x40AB08B8 0x00000800
++
++DATA 4   0x40AB0004 0x00020052
++DATA 4   0x40AB000C 0x292C42F3
++DATA 4   0x40AB0010 0x00100A22
++DATA 4   0x40AB0038 0x00120556
++DATA 4   0x40AB0014 0x00C700DB
++DATA 4   0x40AB0018 0x00211718
++DATA 4   0x40AB002C 0x0F9F26D2
++DATA 4   0x40AB0030 0x009F0E10
++DATA 4   0x40AB0040 0x0000003F
++DATA 4   0x40AB0000 0xC3190000
++
++DATA 4   0x40AB001C 0x00008010
++DATA 4   0x40AB001C 0x00008018
++DATA 4   0x40AB001C 0x003F8030
++DATA 4   0x40AB001C 0x003F8038
++DATA 4   0x40AB001C 0xFF0A8030
++DATA 4   0x40AB001C 0xFF0A8038
++DATA 4   0x40AB001C 0x04028030
++DATA 4   0x40AB001C 0x04028038
++DATA 4   0x40AB001C 0x83018030
++DATA 4   0x40AB001C 0x83018038
++DATA 4   0x40AB001C 0x01038030
++DATA 4   0x40AB001C 0x01038038
++
++DATA 4   0x40AB083C 0x20000000
++
++DATA 4   0x40AB0020 0x00001800
++DATA 4   0x40AB0800 0xA1310000
++DATA 4   0x40AB0004 0x00020052
++DATA 4   0x40AB0404 0x00011006
++DATA 4   0x40AB001C 0x00000000
++
+diff --git a/configs/mx7ulp_bblc_defconfig b/configs/mx7ulp_bblc_defconfig
+new file mode 100644
+index 0000000..101b86e
+--- /dev/null
++++ b/configs/mx7ulp_bblc_defconfig
+@@ -0,0 +1,45 @@
++CONFIG_ARM=y
++CONFIG_ARCH_MX7ULP=y
++# CONFIG_AUTOBOOT is not set
++CONFIG_TARGET_MX7ULP_BBLC=y
++CONFIG_DEFAULT_DEVICE_TREE="imx7ulp-bblc"
++CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/flir/bblc/imximage.cfg"
++CONFIG_BOARD_LATE_INIT=y
++CONFIG_BOARD_EARLY_INIT_F=y
++CONFIG_HUSH_PARSER=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_PING=y
++CONFIG_CMD_DHCP=y
++CONFIG_OF_CONTROL=y
++CONFIG_DM=y
++CONFIG_DM_GPIO=y
++CONFIG_IMX_RGPIO2P=y
++CONFIG_DM_I2C=y
++CONFIG_SYS_I2C_IMX_LPI2C=y
++CONFIG_PINCTRL=y
++CONFIG_PINCTRL_IMX7ULP=y
++CONFIG_DM_SERIAL=y
++CONFIG_FSL_LPUART=y
++CONFIG_CMD_MMC=y
++CONFIG_DM_MMC=y
++# CONFIG_DM_MMC_OPS is not set
++# CONFIG_BLK is not set
++CONFIG_DM_REGULATOR=y
++CONFIG_DM_REGULATOR_FIXED=y
++CONFIG_DM_REGULATOR_GPIO=y
++CONFIG_CMD_GPIO=y
++# CONFIG_CMD_SF=y
++# CONFIG_FSL_QSPI=y
++# CONFIG_DM_SPI=y
++# CONFIG_DM_SPI_FLASH=y
++# CONFIG_SPI_FLASH=y
++# CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_ULP_WATCHDOG=y
++# CONFIG_CMD_USB=y
++# CONFIG_USB=y
++# CONFIG_DM_USB=y
++# CONFIG_USB_EHCI_HCD=y
++# CONFIG_MXC_USB_OTG_HACTIVE=y
++# CONFIG_USB_STORAGE=y
++# CONFIG_VIDEO=y
++
+diff --git a/include/configs/bblc.h b/include/configs/bblc.h
+new file mode 100644
+index 0000000..801d2cc
+--- /dev/null
++++ b/include/configs/bblc.h
+@@ -0,0 +1,229 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __MX7ULP_EVK_CONFIG_H
++#define __MX7ULP_EVK_CONFIG_H
++
++#include <linux/sizes.h>
++#include <asm/arch/imx-regs.h>
++
++#ifdef CONFIG_SECURE_BOOT
++#ifndef CONFIG_CSF_SIZE
++#define CONFIG_CSF_SIZE			0x4000
++#endif
++#endif
++
++#define CONFIG_BOARD_POSTCLK_INIT
++#define CONFIG_SYS_BOOTM_LEN		0x1000000
++
++#define SRC_BASE_ADDR			CMC1_RBASE
++#define IRAM_BASE_ADDR			OCRAM_0_BASE
++#define IOMUXC_BASE_ADDR		IOMUXC1_RBASE
++
++/* Fuses */
++#define CONFIG_CMD_FUSE
++#define CONFIG_MXC_OCOTP
++
++#define CONFIG_BOUNCE_BUFFER
++#define CONFIG_FSL_ESDHC
++#define CONFIG_FSL_USDHC
++#define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
++
++#define CONFIG_SYS_FSL_USDHC_NUM        1
++
++#define CONFIG_SYS_FSL_ESDHC_ADDR       0
++#define CONFIG_SYS_MMC_ENV_DEV          0	/* USDHC1 */
++#define CONFIG_SYS_MMC_ENV_PART         0	/* user area */
++#define CONFIG_MMCROOT                  "/dev/mmcblk0p2"  /* USDHC1 */
++#define CONFIG_SYS_MMC_IMG_LOAD_PART    1
++
++#define CONFIG_ENV_OFFSET		(14 * SZ_64K)
++#define CONFIG_ENV_IS_IN_MMC
++#define CONFIG_ENV_SIZE			SZ_8K
++
++#define CONFIG_CMD_FAT
++
++/* Using ULP WDOG for reset */
++#define WDOG_BASE_ADDR			WDG1_RBASE
++
++#define CONFIG_SYS_ARCH_TIMER
++#define CONFIG_SYS_HZ_CLOCK		1000000 /* Fixed at 1Mhz from TSTMR */
++
++#define CONFIG_INITRD_TAG
++#define CONFIG_CMDLINE_TAG
++#define CONFIG_SETUP_MEMORY_TAGS
++/*#define CONFIG_REVISION_TAG*/
++
++/* Size of malloc() pool */
++#define CONFIG_SYS_MALLOC_LEN		(8 * SZ_1M)
++
++/* UART */
++#define LPUART_BASE			LPUART4_RBASE
++
++/* allow to overwrite serial and ethaddr */
++#define CONFIG_ENV_OVERWRITE
++#define CONFIG_CONS_INDEX		1
++#define CONFIG_BAUDRATE			115200
++
++#undef CONFIG_CMD_IMLS
++#define CONFIG_SYS_LONGHELP
++#define CONFIG_AUTO_COMPLETE
++
++#define CONFIG_SYS_CACHELINE_SIZE      64
++
++/* Miscellaneous configurable options */
++#define CONFIG_SYS_PROMPT		"=> "
++#define CONFIG_SYS_CBSIZE		512
++
++/* Print Buffer Size */
++#define CONFIG_SYS_MAXARGS		256
++#define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
++#define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
++
++#define CONFIG_CMDLINE_EDITING
++#define CONFIG_STACKSIZE		SZ_8K
++
++/* Physical Memory Map */
++#define CONFIG_NR_DRAM_BANKS		1
++
++#define CONFIG_SYS_TEXT_BASE		0x67800000
++#define PHYS_SDRAM			0x60000000
++#define PHYS_SDRAM_SIZE			SZ_512M
++#define CONFIG_SYS_MEMTEST_START	PHYS_SDRAM
++#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
++#define CONFIG_CMD_BOOTZ
++
++#define CONFIG_LOADADDR             0x60800000
++
++#define CONFIG_CMD_MEMTEST
++#define CONFIG_SYS_MEMTEST_END      0x9E000000
++
++#define CONFIG_MFG_ENV_SETTINGS \
++	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
++		"rdinit=/linuxrc " \
++		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
++		"g_mass_storage.file=/fat g_mass_storage.ro=1 " \
++		"g_mass_storage.idVendor=0x066F g_mass_storage.idProduct=0x37FF "\
++		"g_mass_storage.iSerialNumber=\"\" "\
++		"\0" \
++		"initrd_addr=0x63800000\0" \
++		"initrd_high=0xffffffff\0" \
++		"bootcmd_mfg=run mfgtool_args; " \
++			"if test ${tee} = yes; then " \
++				"bootm ${tee_addr} ${initrd_addr} ${fdt_addr}; " \
++			"else " \
++				"bootz ${loadaddr} ${initrd_addr} ${fdt_addr}; " \
++			"fi;\0"
++
++#define CONFIG_EXTRA_ENV_SETTINGS \
++	CONFIG_MFG_ENV_SETTINGS \
++	"script=boot.scr\0" \
++	"image=zImage\0" \
++	"console=ttyLP0\0" \
++	"fdt_high=0xffffffff\0" \
++	"initrd_high=0xffffffff\0" \
++	"fdt_file=imx7ulp-evk.dtb\0" \
++	"fdt_addr=0x63000000\0" \
++	"tee_addr=0x64000000\0" \
++	"tee_file=uTee-7ulp\0" \
++	"boot_fdt=try\0" \
++	"earlycon=lpuart32,0x402D0010\0" \
++	"ip_dyn=yes\0" \
++	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
++	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
++	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
++	"mmcautodetect=yes\0" \
++	"mmcargs=setenv bootargs console=${console},${baudrate} " \
++		"root=${mmcroot}\0" \
++	"loadbootscript=" \
++		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
++	"bootscript=echo Running bootscript from mmc ...; " \
++		"source\0" \
++	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
++	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
++	"loadtee=fatload mmc ${mmcdev}:${mmcpart} ${tee_addr} ${tee_file}\0" \
++	"mmcboot=echo Booting from mmc ...; " \
++		"run mmcargs; " \
++		"if test ${tee} = yes; then " \
++			"run loadfdt; run loadtee; bootm ${tee_addr} - ${fdt_addr}; " \
++		"else " \
++			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
++				"if run loadfdt; then " \
++					"bootz ${loadaddr} - ${fdt_addr}; " \
++				"else " \
++					"if test ${boot_fdt} = try; then " \
++						"bootz; " \
++					"else " \
++						"echo WARN: Cannot load the DT; " \
++					"fi; " \
++				"fi; " \
++			"else " \
++				"bootz; " \
++			"fi; " \
++		"fi;\0" \
++	"netargs=setenv bootargs console=${console},${baudrate} " \
++		"root=/dev/nfs " \
++		"ip=:::::eth0:dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
++	"netboot=echo Booting from net ...; " \
++		"run netargs; " \
++		"if test ${ip_dyn} = yes; then " \
++			"setenv get_cmd dhcp; " \
++		"else " \
++			"setenv get_cmd tftp; " \
++		"fi; " \
++		"usb start; "\
++		"${get_cmd} ${image}; " \
++		"if test ${tee} = yes; then " \
++			"${get_cmd} ${tee_addr} ${tee_file}; " \
++			"${get_cmd} ${fdt_addr} ${fdt_file}; " \
++			"bootm ${tee_addr} - ${fdt_addr}; " \
++		"else " \
++			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
++				"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
++					"bootz ${loadaddr} - ${fdt_addr}; " \
++				"else " \
++					"if test ${boot_fdt} = try; then " \
++						"bootz; " \
++					"else " \
++						"echo WARN: Cannot load the DT; " \
++					"fi; " \
++				"fi; " \
++			"else " \
++				"bootz; " \
++			"fi; " \
++		"fi;\0" \
++
++#define CONFIG_BOOTCOMMAND \
++	   "mmc dev ${mmcdev}; if mmc rescan; then " \
++		   "if run loadbootscript; then " \
++			   "run bootscript; " \
++		   "else " \
++			   "if run loadimage; then " \
++				   "run mmcboot; " \
++			   "else run netboot; " \
++			   "fi; " \
++		   "fi; " \
++	   "fi"
++
++#define CONFIG_SYS_HZ			1000
++#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
++
++#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
++#define CONFIG_SYS_INIT_RAM_SIZE	SZ_256K
++
++#define CONFIG_SYS_INIT_SP_OFFSET \
++	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
++#define CONFIG_SYS_INIT_SP_ADDR \
++	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
++
++#ifndef CONFIG_SYS_DCACHE_OFF
++#define CONFIG_CMD_CACHE
++#endif
++
++
++#endif	/* __CONFIG_H */
+-- 
+2.7.4
+
