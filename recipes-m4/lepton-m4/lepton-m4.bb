@@ -5,7 +5,7 @@ LICENSE = "CLOSED"
 PR = "r1"
 PV = "0.1"
 PACKAGES = "${PN} ${PN}-dbg"
-DEPENDS = "m4sdk m4freertos"
+DEPENDS = "m4sdk m4freertos cmake-native"
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 inherit autotools
@@ -35,10 +35,10 @@ do_compile()  {
 
 do_install() {
     install -d ${D}/boot
-    install -m 0755 ${WORKDIR}/build/debug/imx7ulpm4.elf  ${D}/boot
+    install -m 0755 ${WORKDIR}/build/debug/imx7ulpm4.bin  ${D}/boot
 }
 
-FILES_${PN} += "/boot/imx7ulpm4.elf "
+FILES_${PN} += "/boot/imx7ulpm4.bin "
 FILES_${PN}-dbg += "/usr/src/debug/* \
 		/usr/bin/.debug/* "
 
