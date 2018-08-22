@@ -1,0 +1,91 @@
+From 1b8cf2f6ad751d3bb649cdb58936ab97b5918254 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Wed, 22 Aug 2018 16:27:15 +0200
+Subject: [PATCH] Add bootaux command to load and start M4
+
+---
+ arch/arm/cpu/armv7/mx7ulp/soc.c | 27 +++++++++++++++++++++++++++
+ arch/arm/imx-common/Kconfig     |  2 +-
+ arch/arm/imx-common/Makefile    |  1 +
+ configs/mx7ulp_bblc_defconfig   |  4 +++-
+ 4 files changed, 32 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/cpu/armv7/mx7ulp/soc.c b/arch/arm/cpu/armv7/mx7ulp/soc.c
+index c5599b7..fbc7afa 100644
+--- a/arch/arm/cpu/armv7/mx7ulp/soc.c
++++ b/arch/arm/cpu/armv7/mx7ulp/soc.c
+@@ -86,6 +86,33 @@ int mcore_early_load_and_boot(void)
+ }
+ #endif
+ 
++#ifdef CONFIG_IMX_BOOTAUX
++int arch_auxiliary_core_up(u32 core_id, ulong boot_private_data)
++{
++	u32 stack, pc;
++
++	if (!boot_private_data)
++		return 1;
++
++	stack = *(u32 *)boot_private_data;
++	pc = *(u32 *)(boot_private_data + 4);
++
++	/* Set GP register to tell the M4 rom the image entry */
++	/* We assume the M4 image has IVT head and padding which
++	 * should be same as the one programmed into QSPI flash
++	 */
++
++	writel(pc, SIM0_RBASE + 0x70); /*GP7*/
++
++	return 0;
++}
++
++int arch_auxiliary_core_check_up(u32 core_id)
++{
++	return 0;
++}
++#endif
++
+ int arch_cpu_init(void)
+ {
+ #ifdef CONFIG_IMX_M4_BIND
+diff --git a/arch/arm/imx-common/Kconfig b/arch/arm/imx-common/Kconfig
+index c2f17c6..d783306 100644
+--- a/arch/arm/imx-common/Kconfig
++++ b/arch/arm/imx-common/Kconfig
+@@ -26,7 +26,7 @@ config IMX_RDC
+ 
+ config IMX_BOOTAUX
+ 	bool "Support boot auxiliary core"
+-	depends on ARCH_MX7 || ARCH_MX6 || ARCH_IMX8
++	depends on ARCH_MX7 || ARCH_MX6 || ARCH_IMX8 || ARCH_MX7ULP
+ 	help
+ 	  bootaux [addr] to boot auxiliary core.
+ 
+diff --git a/arch/arm/imx-common/Makefile b/arch/arm/imx-common/Makefile
+index 6a1639d..ce450a6 100644
+--- a/arch/arm/imx-common/Makefile
++++ b/arch/arm/imx-common/Makefile
+@@ -49,6 +49,7 @@ obj-$(CONFIG_IMX_TRUSTY_OS) += trusty.o
+ endif
+ ifeq ($(SOC),$(filter $(SOC),mx7ulp))
+ obj-y  += cache.o
++obj-$(CONFIG_IMX_BOOTAUX) += imx_bootaux.o
+ obj-$(CONFIG_IMX_VIDEO_SKIP) += video.o
+ obj-$(CONFIG_SECURE_BOOT) += hab.o
+ endif
+diff --git a/configs/mx7ulp_bblc_defconfig b/configs/mx7ulp_bblc_defconfig
+index 101b86e..aa36077 100644
+--- a/configs/mx7ulp_bblc_defconfig
++++ b/configs/mx7ulp_bblc_defconfig
+@@ -42,4 +42,6 @@ CONFIG_ULP_WATCHDOG=y
+ # CONFIG_MXC_USB_OTG_HACTIVE=y
+ # CONFIG_USB_STORAGE=y
+ # CONFIG_VIDEO=y
+-
++CONFIG_IMX_BOOTAUX=y
++CONFIG_DOS_PARTITION=y
++# CONFIG_IMX_M4_BIND=y
+\ No newline at end of file
+-- 
+1.9.1
+
