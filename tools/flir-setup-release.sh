@@ -69,6 +69,10 @@ do
 done
 
 if [ -z "$DISTRO" ]; then
+    DISTRO=fsl-fb
+fi
+
+if [ -z "$DISTRO" ]; then
     if [ -z "$FSLDISTRO" ]; then
         FSLDISTRO='fsl-imx-xwayland'
     fi
