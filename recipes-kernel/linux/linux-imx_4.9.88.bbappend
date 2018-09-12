@@ -11,5 +11,6 @@ SRC_URI_append = " \
     file://0013-Device-tree-for-FLIR-bblc-brass-board-based-on-imx7u.patch \    
     file://0014-bblc-disable-rpmsg.patch \     
     file://0015-bblc-device-tree-add-dummy-extcon-to-enable-usb-and-.patch \       
+    file://0016-Support-for-Evander-LCD-on-BBLC.patch \
     file://defconfig \
 "
