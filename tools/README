@@ -1,0 +1,25 @@
+meta-flir-base
+==============
+FLIR setup for imx7 yocto is to add a layer on top of freescale 
+distribution.
+
+meta-flir-base: FLIR open source yocto distribution
+Layer addition as such is added through files in meta-flir-base/tools folder
+
+Fetching code (public):
+1.  mkdir <your selection>
+2.  cd <your selection>
+3.  repo init -u ssh://git@bitbucketcommercial.flir.com:7999/im7/flir-yocto-manifest.git -m flir-exported.xml
+    (flir-exported.xml as manifest, master as branch, 
+     use -b/-m flags if change to this is required)
+4.  repo sync
+5a. MACHINE=bblc source ./flir-setup-release.sh -b build_bblc
+5b. (or, for wayland, 
+    MACHINE=bblc DISTRO=fsl-imx-wayland source ./flir-setup-release.sh -b build_bblc-wl)
+6.  bitbake core-image-minimal
+
+Note;
+FLIR cameras uses meta-flir-base as distributed for FLIR public components.
+As an addition to this there is a meta-flir-internal yocto layer that contains
+non public code.
+Camera content thus has some additons to images that extends this public code
