@@ -1,0 +1,111 @@
+From b493d145374bece1d779cb9e2ab8250f201fd14b Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Thu, 20 Sep 2018 14:58:22 +0200
+Subject: [PATCH] otm1287a display: output enable set to active high and
+ flipped display
+
+removed default setup code as all displays are already otp from factory
+---
+ drivers/video/fbdev/mxc/mxcfb_otm1287a.c | 36 ++++++++++++++++++--------------
+ 1 file changed, 20 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/video/fbdev/mxc/mxcfb_otm1287a.c b/drivers/video/fbdev/mxc/mxcfb_otm1287a.c
+index 67f882f..beafbea 100644
+--- a/drivers/video/fbdev/mxc/mxcfb_otm1287a.c
++++ b/drivers/video/fbdev/mxc/mxcfb_otm1287a.c
+@@ -39,8 +39,10 @@
+ #define OTM1287A_CMD_SLPOUT					(0x11)
+ #define OTM1287A_CMD_DISPON					(0x29)
+ #define OTM1287A_REG_MADCTL					(0x36)
++#define OTM1287A_OTP_PROGRAMMED
+ 
+ 
++#ifndef OTM1287A_OTP_PROGRAMMED
+ /* to write parameters 1 2 3 4 to reg 0x5566
+ 	fill in following struct
+ 	{0x6600,5,{0x55,0x1,0x2,0x3,0x4}
+@@ -56,10 +58,11 @@ static struct reg_value lcd_setup[] =
+ {
+ 	{0x0000,4,{0xff,0x12,0x87,0x1}	},						//Enable Access Command 2 and Software EXTC Enable
+ 	{0x8000,3,{0xff,0x12,0x87}},							//Enable Access Orise Command 2
++//	{0x9000,9,{0xf6,0x1d,0x00,0x00,0x00,0xff,0xff,0xff,0x0f}},//Enable Test pattern - 
+ //	{0x9000,9,{0xf6,0x12,0x00,0x00,0x00,0xff,0xff,0xff,0x0f}},//Enable Test pattern - BW lines
+ //	{0x9000,9,{0xf6,0x15,0xff,0x00,0x00,0x00,0x00,0xff,0x00}},//Enable Test pattern - R/B Cross
+ //	{0x9000,9,{0xf6,0x1C,0x00,0x00,0x00,0x00,0x00,0x00,0x00}},//Enable Test pattern - Scales
+-	{0x9000,9,{0xf6,0x13,0xff,0x00,0x00,0x00,0x00,0xff,0x0c}},//Enable Test pattern - R/B Checker board
++//	{0x9000,9,{0xf6,0x13,0xff,0x00,0x00,0x00,0x00,0xff,0x0c}},//Enable Test pattern - R/B Checker board
+ //	{0x9000,9,{0xf6,0x16,0x00,0xff,0x00,0x00,0x00,0xff,0x00}},//Enable Test pattern - 3 vertical green scales
+ //	{0x9000,9,{0xf6,0x19,0x00,0xff,0x00,0xff,0x00,0x00,0x00}},//Enable Test pattern - 3 horizontal green scales
+ 
+@@ -133,27 +136,28 @@ static struct reg_value lcd_setup[] =
+ 	{0x8000,3,{0xff,0xff,0xff}},						//Disable Access Orise Command 2
+ 	{0x0000,4,{0xff,0xff,0xff,0xff}	}					//Disable Access Command 2 & Software EXTC Enable
+ };
++#endif
+ 
+-#if 0
++#if 1 //factory timings
+ static struct fb_videomode otm_lcd_modedb[] = {
+ 	{
+-	 "ORISE-VGA", 60, 640, 480, 34422,
+-	 150, 150,
+-	 16, 16,
+-	 2, 2,
+-	 FB_SYNC_OE_LOW_ACT,
++	 "ORISE-VGA", 60, 640, 480, 46058,
++	 30, 30,
++	 15, 15,
++	 4, 4,
++	 0,
+ 	 FB_VMODE_NONINTERLACED,
+ 	 0,
+ 	},
+ };
+-#else
++#else //evander timings
+ static struct fb_videomode otm_lcd_modedb[] = {
+ 	{
+ 	 "ORISE-VGA", 60, 640, 480, 37000,
+-	 100, 100,
++	 100, 100, 
+ 	 31, 10,
+ 	 96,4,
+-	 FB_SYNC_OE_LOW_ACT,
++	 0, 
+ 	 FB_VMODE_NONINTERLACED,
+ 	 0,
+ 	},
+@@ -199,10 +203,9 @@ static int otm1287a_write_cmd(struct mipi_dsi_info *mipi_dsi, u32 cmd)
+ 
+ int mipid_otm1287a_lcd_setup(struct mipi_dsi_info *mipi_dsi)
+ {
+-	int i;
+-
+-	pr_info("mipid_otm1287a_lcd_setup\n");
+ 
++#ifndef OTM1287A_OTP_PROGRAMMED
++	int i;
+ 	for(i=0;i<ARRAY_SIZE(lcd_setup);i++)
+ 	{
+ 		mipi_dsi->mipi_dsi_pkt_write(mipi_dsi, MIPI_DSI_DCS_SHORT_WRITE_PARAM,
+@@ -214,13 +217,14 @@ int mipid_otm1287a_lcd_setup(struct mipi_dsi_info *mipi_dsi)
+ 			mipi_dsi->mipi_dsi_pkt_write(mipi_dsi, MIPI_DSI_DCS_LONG_WRITE,
+ 					(u32*) lcd_setup[i].buf, lcd_setup[i].buf_size);
+ 	}
+-
+-	otm1287a_write_reg(mipi_dsi,OTM1287A_REG_MADCTL,0x2);
++#endif
++	
++	otm1287a_write_reg(mipi_dsi,OTM1287A_REG_MADCTL,0x1); 
+ 	msleep(10);
+ 	otm1287a_write_cmd(mipi_dsi,OTM1287A_CMD_SLPOUT);
+ 	msleep(120);
+ 	otm1287a_write_cmd(mipi_dsi,OTM1287A_CMD_DISPON);
+-
++	
+ 	return 0;
+ }
+ 
+-- 
+2.7.4
+
