@@ -12,5 +12,6 @@ SRC_URI_append = " \
     file://0014-bblc-disable-rpmsg.patch \     
     file://0015-bblc-device-tree-add-dummy-extcon-to-enable-usb-and-.patch \       
     file://0016-Support-for-Evander-LCD-on-BBLC.patch \
+    file://0017-otm1287a-display-output-enable-set-to-active-high-an.patch \
     file://defconfig \
 "
