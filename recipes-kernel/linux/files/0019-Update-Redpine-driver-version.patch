@@ -1,0 +1,1176 @@
+From cc7ef31b6836cf7c6847003ea5aa5c023b7a3d6e Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Thu, 27 Sep 2018 15:32:25 +0200
+Subject: [PATCH 1/3] Update Redpine driver version
+
+---
+ drivers/net/wireless/rsi/Kconfig            |  16 ++++
+ drivers/net/wireless/rsi/Makefile           |  95 ++++++++++----------
+ drivers/net/wireless/rsi/rsi_91x_coex.c     |   5 +-
+ drivers/net/wireless/rsi/rsi_91x_core.c     |   2 +-
+ drivers/net/wireless/rsi/rsi_91x_hal.c      |  13 ++-
+ drivers/net/wireless/rsi/rsi_91x_mac80211.c | 131 ++++++++++++++++++---------
+ drivers/net/wireless/rsi/rsi_91x_main.c     |  52 +++++++----
+ drivers/net/wireless/rsi/rsi_91x_mgmt.c     | 134 ++++++++++++++++++++++------
+ drivers/net/wireless/rsi/rsi_91x_ps.c       |   2 +-
+ drivers/net/wireless/rsi/rsi_91x_sdio.c     |  14 ++-
+ drivers/net/wireless/rsi/rsi_91x_sdio_ops.c |   5 +-
+ drivers/net/wireless/rsi/rsi_91x_usb.c      |   9 ++
+ drivers/net/wireless/rsi/rsi_91x_usb_ops.c  |   5 +-
+ drivers/net/wireless/rsi/rsi_hal.h          |   9 +-
+ drivers/net/wireless/rsi/rsi_main.h         |  25 +++++-
+ drivers/net/wireless/rsi/rsi_zigb.h         |   0
+ 16 files changed, 368 insertions(+), 149 deletions(-)
+ mode change 100644 => 100755 drivers/net/wireless/rsi/rsi_zigb.h
+
+diff --git a/drivers/net/wireless/rsi/Kconfig b/drivers/net/wireless/rsi/Kconfig
+index 4a2e0de..8ea0720 100644
+--- a/drivers/net/wireless/rsi/Kconfig
++++ b/drivers/net/wireless/rsi/Kconfig
+@@ -90,4 +90,20 @@ config CARACALLA_BOARD
+ 	  This option is used to support Caracalla board with RSI driver.
+ 	  Select Y, if you have to use this support.
+ 
++config RSI_ZIGB 
++	bool "Redpine device support on Zigbee"
++	depends on RSI_91X && RSI_COEX
++	default n
++	---help---
++	  This option is used to support Zigbee with RSI driver.
++	  Select Y, if you have to use this support.
++
++config RSI_MULTI_MODE
++	bool "Redpine device multiple modes"
++	depends on RSI_91X
++	default n
++	---help---
++	  Select Y, if you have to use this support.
++
++
+ endif # WLAN_VENDOR_RSI
+diff --git a/drivers/net/wireless/rsi/Makefile b/drivers/net/wireless/rsi/Makefile
+index 73d089c..d4f08c7 100644
+--- a/drivers/net/wireless/rsi/Makefile
++++ b/drivers/net/wireless/rsi/Makefile
+@@ -1,47 +1,48 @@
+-#/*
+-# Copyright (c) 2017 Redpine Signals Inc. All rights reserved.
+-#
+-# Redistribution and use in source and binary forms, with or without
+-# modification, are permitted provided that the following conditions are met:
+-#
+-# 	1. Redistributions of source code must retain the above copyright
+-# 	   notice, this list of conditions and the following disclaimer.
+-#
+-# 	2. Redistributions in binary form must reproduce the above copyright
+-# 	   notice, this list of conditions and the following disclaimer in the
+-# 	   documentation and/or other materials provided with the distribution.
+-#
+-# 	3. Neither the name of the copyright holder nor the names of its
+-# 	   contributors may be used to endorse or promote products derived from
+-# 	   this software without specific prior written permission.
+-#
+-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+-# INTERRUPTION). HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+-# POSSIBILITY OF SUCH DAMAGE.
+-#*/
+-
+-rsi_91x-y			+= rsi_91x_main.o
+-rsi_91x-y			+= rsi_91x_core.o
+-rsi_91x-y			+= rsi_91x_mac80211.o
+-rsi_91x-y			+= rsi_91x_mgmt.o
+-rsi_91x-y			+= rsi_91x_hal.o
+-rsi_91x-y			+= rsi_91x_ps.o
+-rsi_91x-$(CONFIG_RSI_DEBUGFS)	+= rsi_91x_debugfs.o
+-rsi_91x-$(CONFIG_RSI_BT_ALONE)	+= rsi_91x_hci.o
+-rsi_91x-$(CONFIG_RSI_COEX)	+= rsi_91x_coex.o
+-rsi_91x-$(CONFIG_RSI_COEX)	+= rsi_91x_hci.o
+-rsi_91x-$(CONFIG_RSI_11K)	+= rsi_91x_rrm.o
+-
+-rsi_usb-$(CONFIG_RSI_USB)	+= rsi_91x_usb.o rsi_91x_usb_ops.o
+-rsi_sdio-$(CONFIG_RSI_SDIO)	+= rsi_91x_sdio.o rsi_91x_sdio_ops.o
+-obj-$(CONFIG_RSI_91X) 		+= rsi_91x.o
+-obj-$(CONFIG_RSI_SDIO)		+= rsi_sdio.o
+-obj-$(CONFIG_RSI_USB)		+= rsi_usb.o
++#/*
++# Copyright (c) 2017 Redpine Signals Inc. All rights reserved.
++#
++# Redistribution and use in source and binary forms, with or without
++# modification, are permitted provided that the following conditions are met:
++#
++# 	1. Redistributions of source code must retain the above copyright
++# 	   notice, this list of conditions and the following disclaimer.
++#
++# 	2. Redistributions in binary form must reproduce the above copyright
++# 	   notice, this list of conditions and the following disclaimer in the
++# 	   documentation and/or other materials provided with the distribution.
++#
++# 	3. Neither the name of the copyright holder nor the names of its
++# 	   contributors may be used to endorse or promote products derived from
++# 	   this software without specific prior written permission.
++#
++# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
++# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++# INTERRUPTION). HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++# POSSIBILITY OF SUCH DAMAGE.
++#*/
++
++rsi_91x-y			+= rsi_91x_main.o
++rsi_91x-y			+= rsi_91x_core.o
++rsi_91x-y			+= rsi_91x_mac80211.o
++rsi_91x-y			+= rsi_91x_mgmt.o
++rsi_91x-y			+= rsi_91x_hal.o
++rsi_91x-y			+= rsi_91x_ps.o
++rsi_91x-$(CONFIG_RSI_DEBUGFS)	+= rsi_91x_debugfs.o
++rsi_91x-$(CONFIG_RSI_BT_ALONE)	+= rsi_91x_hci.o
++rsi_91x-$(CONFIG_RSI_COEX)	+= rsi_91x_coex.o
++rsi_91x-$(CONFIG_RSI_COEX)	+= rsi_91x_hci.o
++rsi_91x-$(CONFIG_RSI_ZIGB)	+= rsi_91x_zigb.o
++rsi_91x-$(CONFIG_RSI_11K)	+= rsi_91x_rrm.o
++
++rsi_usb-$(CONFIG_RSI_USB)	+= rsi_91x_usb.o rsi_91x_usb_ops.o
++rsi_sdio-$(CONFIG_RSI_SDIO)	+= rsi_91x_sdio.o rsi_91x_sdio_ops.o
++obj-$(CONFIG_RSI_91X) 		+= rsi_91x.o
++obj-$(CONFIG_RSI_SDIO)		+= rsi_sdio.o
++obj-$(CONFIG_RSI_USB)		+= rsi_usb.o
+diff --git a/drivers/net/wireless/rsi/rsi_91x_coex.c b/drivers/net/wireless/rsi/rsi_91x_coex.c
+index c11bc8e..3130acd 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_coex.c
++++ b/drivers/net/wireless/rsi/rsi_91x_coex.c
+@@ -93,13 +93,16 @@ static void rsi_coex_sched_tx_pkts(struct rsi_coex_ctrl_block *coex_cb)
+  */
+ static void rsi_coex_scheduler_thread(struct rsi_common *common)
+ {
++	int status = 0;
+ 	struct rsi_coex_ctrl_block *coex_cb =
+ 		(struct rsi_coex_ctrl_block *)common->coex_cb;
+ 
+ 	u32 timeout = EVENT_WAIT_FOREVER;
+ 
+ 	do {
+-		rsi_wait_event(&coex_cb->coex_tx_thread.event, timeout);
++		status = rsi_wait_event(&coex_cb->coex_tx_thread.event, timeout);
++		if (status < 0)
++			break;
+ 		rsi_reset_event(&coex_cb->coex_tx_thread.event);
+ 
+ 		rsi_coex_sched_tx_pkts(coex_cb);
+diff --git a/drivers/net/wireless/rsi/rsi_91x_core.c b/drivers/net/wireless/rsi/rsi_91x_core.c
+index 2621e2c..f842700 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_core.c
++++ b/drivers/net/wireless/rsi/rsi_91x_core.c
+@@ -486,7 +486,7 @@ void rsi_core_xmit(struct rsi_common *common, struct sk_buff *skb)
+ 			goto xmit_fail; 
+ 		}
+ #endif
+-		rsi_dbg(INFO_ZONE, "Core: TX Dot11 Mgmt Pkt Type: %s\n",
++		rsi_dbg(MGMT_TX_ZONE, "Core: TX Dot11 Mgmt Pkt Type: %s\n",
+ 			dot11_pkt_type(wlh->frame_control));
+ #ifndef CONFIG_HW_SCAN_OFFLOAD
+ 		if (ieee80211_is_probe_req(wlh->frame_control)) {
+diff --git a/drivers/net/wireless/rsi/rsi_91x_hal.c b/drivers/net/wireless/rsi/rsi_91x_hal.c
+index c2fd925..154eb26 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_hal.c
++++ b/drivers/net/wireless/rsi/rsi_91x_hal.c
+@@ -301,6 +301,13 @@ int rsi_prepare_mgmt_desc(struct rsi_common *common,struct sk_buff *skb)
+ 
+ 	wh = (struct ieee80211_hdr *)&skb->data[header_size];
+ 	vif = rsi_get_vif(adapter, wh->addr2);
++	if(!vif) {
++		rsi_dbg(ERR_ZONE,
++			"%s: Failed to get vif\n", __func__);
++		status = -ENOSPC;
++		goto err;
++	}
++
+ 	vap_id = ((struct vif_priv *)vif->drv_priv)->vap_id;
+ 
+ 	desc = (__le16 *)skb->data;
+@@ -1454,8 +1461,10 @@ int rsi_validate_oper_mode(u16 oper_mode)
+ #else
+ 		return 0;
+ #endif
++#ifdef CONFIG_RSI_MULTI_MODE
+ 	case 0xFF:
+ 		return 0xFF;
++#endif
+ 	default:
+ 		return -EINVAL;
+ 	}
+@@ -1463,6 +1472,7 @@ int rsi_validate_oper_mode(u16 oper_mode)
+ }
+ EXPORT_SYMBOL_GPL(rsi_validate_oper_mode);
+ 
++#ifdef CONFIG_RSI_MULTI_MODE
+ int rsi_opermode_instances(struct rsi_hw *adapter)
+ {
+ 	struct rsi_common *common = adapter->priv;
+@@ -1498,6 +1508,7 @@ int rsi_opermode_instances(struct rsi_hw *adapter)
+ 	return -EINVAL;
+ }
+ EXPORT_SYMBOL_GPL(rsi_opermode_instances);
++#endif
+ 
+ /**
+  * rsi_hal_device_init() - This function initializes the Device
+@@ -1532,12 +1543,10 @@ int rsi_hal_device_init(struct rsi_hw *adapter)
+ 		break;
+ 	case DEV_OPMODE_ZB_COORDINATOR:
+ 		common->coex_mode = 6;
+-		common->oper_mode = 16;
+ 		common->zb_fsm_state = ZB_DEVICE_NOT_READY;
+ 		break;
+ 	case DEV_OPMODE_ZB_ROUTER:
+ 		common->coex_mode = 7;
+-		common->oper_mode = 16;
+ 		common->zb_fsm_state = ZB_DEVICE_NOT_READY;
+ 		break;
+ 	default:
+diff --git a/drivers/net/wireless/rsi/rsi_91x_mac80211.c b/drivers/net/wireless/rsi/rsi_91x_mac80211.c
+index 3591fa2..db9b2d9 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_mac80211.c
++++ b/drivers/net/wireless/rsi/rsi_91x_mac80211.c
+@@ -215,7 +215,45 @@ struct reg_map {
+ 	{"MA", NL80211_DFS_WORLD}, {"NL", NL80211_DFS_ETSI},
+ };
+ #endif
++static int rsi_mac80211_get_chan_survey(struct ieee80211_hw *hw,
++					int idx, struct survey_info *survey)
++{
++	int ret = 0;
++	struct ieee80211_supported_band *sband;
++	struct rsi_hw *adapter = hw->priv;
+ 
++	if (!idx)
++		rsi_dbg(INFO_ZONE, "Copying ACS survey results\n");
++
++#if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 6, 0))
++	sband = hw->wiphy->bands[NL80211_BAND_2GHZ];
++#else
++	sband = hw->wiphy->bands[IEEE80211_BAND_2GHZ];
++#endif
++	if (!sband) {
++#if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 6, 0))
++		sband = hw->wiphy->bands[NL80211_BAND_5GHZ];
++#else
++		sband = hw->wiphy->bands[IEEE80211_BAND_5GHZ];
++#endif
++	}
++	if (!sband || idx >= sband->n_channels)
++		return  -ENOENT;
++
++	memcpy(survey, &adapter->rsi_survey[idx], sizeof(struct survey_info));
++	memset(&adapter->rsi_survey[idx], 0, sizeof(struct survey_info));
++
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
++	survey->filled = SURVEY_INFO_NOISE_DBM |
++		SURVEY_INFO_TIME |
++		SURVEY_INFO_TIME_BUSY;
++#else
++	survey->filled = SURVEY_INFO_NOISE_DBM |
++		SURVEY_INFO_CHANNEL_TIME |
++		SURVEY_INFO_CHANNEL_TIME_BUSY;
++#endif
++	return ret;
++}
+ struct ieee80211_vif *rsi_get_vif(struct rsi_hw *adapter, u8 *mac)
+ {
+ 	u8 i;
+@@ -422,7 +460,7 @@ void rsi_mac80211_hw_scan_cancel(struct ieee80211_hw *hw,
+ 	struct rsi_hw *adapter = hw->priv;
+ 	struct rsi_common *common = adapter->priv;
+ 	struct ieee80211_bss_conf *bss = &adapter->vifs[0]->bss_conf;
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+ 	struct cfg80211_scan_info info;
+ #endif
+ 
+@@ -446,7 +484,7 @@ void rsi_mac80211_hw_scan_cancel(struct ieee80211_hw *hw,
+ 			rsi_reset_event(&common->cancel_hw_scan_event);
+ 		} else {
+ 			common->bgscan_en = 0;
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+ 			info.aborted = false;
+ 			ieee80211_scan_completed(adapter->hw, &info);
+ #else	
+@@ -563,6 +601,14 @@ static void rsi_mac80211_tx(struct ieee80211_hw *hw,
+ 	struct rsi_common *common = adapter->priv;
+ 	struct ieee80211_hdr *wlh = (struct ieee80211_hdr *)skb->data;
+ 	struct ieee80211_vif *vif = adapter->vifs[adapter->sc_nvifs - 1];
++	struct ieee80211_bss_conf *bss = &adapter->vifs[0]->bss_conf;
++
++	if ((memcmp(common->mac_addr, wlh->addr2, ETH_ALEN))) {
++		rsi_dbg(ERR_ZONE,
++			"%s: MAC ID is not found and dropping this packets\n", __func__);
++		ieee80211_free_txskb(common->priv->hw, skb);
++		return;
++	}
+ 
+ #ifdef CONFIG_RSI_WOW
+ 	if (common->wow_flags & RSI_WOW_ENABLED) {
+@@ -574,6 +620,9 @@ static void rsi_mac80211_tx(struct ieee80211_hw *hw,
+ 		ieee80211_free_txskb(common->priv->hw, skb);
+ 		return;
+ 	}
++	if ((!bss->assoc) &&
++	    (adapter->ps_state == PS_ENABLED))
++		rsi_disable_ps(adapter);
+ 
+ 	if ((common->coex_mode == 4) &&
+ 	    (vif->type == NL80211_IFTYPE_STATION) &&
+@@ -854,6 +903,7 @@ static int rsi_mac80211_change_interface(struct ieee80211_hw *hw,
+ 	
+ 	switch (newtype) {
+ 		case NL80211_IFTYPE_AP:
++			rsi_disable_ps(adapter);
+ 			rsi_dbg(INFO_ZONE, "Change to AP Mode\n");
+ 			intf_mode = AP_OPMODE;
+ 			break;
+@@ -948,6 +998,11 @@ static int rsi_channel_change(struct ieee80211_hw *hw)
+ 			return -EINVAL;
+ 		}
+ 		common->ap_channel = curchan;
++		if (vif->type == NL80211_IFTYPE_AP &&
++		    adapter->auto_chan_sel) {
++			rsi_dbg(INFO_ZONE, "ACS Final Channel selection");
++			adapter->auto_chan_sel = ACS_DISABLE;
++		}
+ 		return 0;
+ 	}
+ 	common->mac80211_cur_channel = channel;
+@@ -1079,20 +1134,12 @@ static int rsi_mac80211_config(struct ieee80211_hw *hw,
+ 	    (vif->type == NL80211_IFTYPE_STATION)) {
+ 		unsigned long flags;
+ 
+-//		spin_lock_irqsave(&adapter->ps_lock, flags);
+-		if (conf->flags & IEEE80211_CONF_PS) {
++		spin_lock_irqsave(&adapter->ps_lock, flags);
++		if (conf->flags & IEEE80211_CONF_PS)
+ 			rsi_enable_ps(adapter);
+-			rsi_reset_event(&common->mgmt_cfm_event);
+-			rsi_wait_event(&common->mgmt_cfm_event,
+-				       msecs_to_jiffies(1000));
+-
+-		} else {
++		else
+ 			rsi_disable_ps(adapter);
+-			rsi_reset_event(&common->mgmt_cfm_event);
+-			rsi_wait_event(&common->mgmt_cfm_event,
+-				       msecs_to_jiffies(1000));
+-		}
+-//		spin_unlock_irqrestore(&adapter->ps_lock, flags);
++		spin_unlock_irqrestore(&adapter->ps_lock, flags);
+ 	}
+ 
+ 	/* RTS threshold */
+@@ -1563,8 +1610,10 @@ static int rsi_mac80211_ampdu_action(struct ieee80211_hw *hw,
+ 				     u16 tid,
+ 				     u16 *ssn,
+ 				     u8 buf_size)
+-#elif ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) && \
+-	(LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)))
++#elif (((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)) && \
++	(LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 69))) || \
++       ((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)) && \
++	(LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))))
+ static int rsi_mac80211_ampdu_action(struct ieee80211_hw *hw,
+ 				     struct ieee80211_vif *vif,
+ 				     enum ieee80211_ampdu_mlme_action action,
+@@ -1593,7 +1642,7 @@ static int rsi_mac80211_ampdu_action(struct ieee80211_hw *hw,
+ 	u8 ii = 0;
+ 	u8 sta_id = 0;
+ 
+-#if (((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)) && \
++#if (((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 69)) && \
+       (LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0))) || \
+      (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)) || \
+      (defined(CONFIG_CARACALLA_BOARD)))
+@@ -1610,12 +1659,14 @@ static int rsi_mac80211_ampdu_action(struct ieee80211_hw *hw,
+ 
+ 	mutex_lock(&common->mutex);
+ 
+-#if ((LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)) && \
+-	!(defined(CONFIG_CARACALLA_BOARD)))
++#if (((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 69)) && \
++      (LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0))) || \
++     (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)) || \
++     (defined(CONFIG_CARACALLA_BOARD)))
++	seq_no = params->ssn;
++#else
+ 	if (ssn != NULL)
+ 		seq_no = *ssn;
+-#else
+-	seq_no = params->ssn;
+ #endif
+ 	if ((vif->type == NL80211_IFTYPE_AP) ||
+ 	    (vif->type == NL80211_IFTYPE_P2P_GO)) {
+@@ -1795,7 +1846,7 @@ static void rsi_perform_cqm(struct rsi_common *common,
+ 
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+ 	ieee80211_cqm_rssi_notify(adapter->vifs[adapter->sc_nvifs - 1],
+-				  rssi, event, GFP_KERNEL);
++				  event, rssi, GFP_KERNEL);
+ #else
+ 	ieee80211_cqm_rssi_notify(adapter->vifs[adapter->sc_nvifs - 1],
+ 				  event, GFP_KERNEL);
+@@ -2014,7 +2065,7 @@ void rsi_indicate_pkt_to_os(struct rsi_common *common,
+ 	if (rsi_fill_rx_status(hw, skb, common, rx_status))
+ 		return;
+ 
+-	rsi_dbg(INFO_ZONE, "RX Packet Type: %s\n",
++	rsi_dbg(MGMT_RX_ZONE, "RX Packet Type: %s\n",
+ 		dot11_pkt_type(skb->data[0]));
+ 	rsi_hex_dump(DATA_RX_ZONE, "802.11 RX packet", skb->data, skb->len);
+ 	ieee80211_rx_irqsafe(hw, skb);
+@@ -2406,12 +2457,15 @@ static void rsi_reg_notify(struct wiphy *wiphy,
+ 		__func__, regdfs_region_str(region_code));
+ #endif
+ 
+-#ifdef CONFIG_CARACALLA_BOARD
+ 	sband = wiphy->bands[NL80211_BAND_2GHZ];
+ 	for (i = 0; i < sband->n_channels; i++) {
+ 		ch = &sband->channels[i];
+ 
++#ifdef CONFIG_CARACALLA_BOARD
+ 		if ((region_code == NL80211_DFS_FCC) &&
++#else
++		if ((region_code == NL80211_DFS_UNSET) &&
++#endif
+ 		    (ch->hw_value == 12 || ch->hw_value == 13)) {
+ 			if (ch->flags & IEEE80211_CHAN_DISABLED)
+ 				ch->flags &= ~IEEE80211_CHAN_DISABLED;
+@@ -2422,9 +2476,10 @@ static void rsi_reg_notify(struct wiphy *wiphy,
+ 		    (ch->flags & IEEE80211_CHAN_NO_IR))
+ 			continue;
+ 		
++#ifdef CONFIG_CARACALLA_BOARD
+ 		rsi_apply_carcalla_power_values(adapter, vif, ch);
+-	}
+ #endif
++	}
+ 
+ 	if (common->num_supp_bands > 1) {
+ 		sband = wiphy->bands[NL80211_BAND_5GHZ];
+@@ -2571,13 +2626,8 @@ static int rsi_mac80211_suspend(struct ieee80211_hw *hw,
+ 	struct rsi_common *common = adapter->priv;
+ 
+ 	mutex_lock(&common->mutex);
+-	if (common->coex_mode > 1) {
++	if (common->coex_mode > 1)
+ 		rsi_disable_ps(adapter);
+-		rsi_reset_event(&common->mgmt_cfm_event);
+-		rsi_wait_event(&common->mgmt_cfm_event,
+-			       msecs_to_jiffies(1000));
+-
+-	}
+ 
+ 	if (rsi_config_wowlan(adapter, wowlan)) {
+ 		rsi_dbg(ERR_ZONE, "Failed to configure WoWLAN\n");
+@@ -2853,6 +2903,7 @@ static int rsi_mac80211_roc(struct ieee80211_hw *hw,
+ 	.set_antenna = rsi_mac80211_set_antenna,
+ 	.get_antenna = rsi_mac80211_get_antenna,
+         .rfkill_poll = rsi_mac80211_rfkill_poll,
++	.get_survey  = rsi_mac80211_get_chan_survey,
+ #ifdef CONFIG_PM 
+ 	.suspend = rsi_mac80211_suspend,
+ 	.resume  = rsi_mac80211_resume,
+@@ -2947,18 +2998,12 @@ int rsi_mac80211_attach(struct rsi_common *common)
+ 	SET_IEEE80211_PERM_ADDR(hw, common->mac_addr);
+ 	ether_addr_copy(hw->wiphy->addr_mask, addr_mask);
+ 
+-	if (common->coex_mode == 4) {
+-		  wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
+-			  		   BIT(NL80211_IFTYPE_AP);
+-	} else if (common->coex_mode == 2) {
+-		  wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION);
+-	} else {
+-		  wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
+-			  		   BIT(NL80211_IFTYPE_AP) |
+-					   BIT(NL80211_IFTYPE_P2P_DEVICE) |
+-					   BIT(NL80211_IFTYPE_P2P_CLIENT) |
+-					   BIT(NL80211_IFTYPE_P2P_GO);
+-	}
++	wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
++				 BIT(NL80211_IFTYPE_AP) |
++				 BIT(NL80211_IFTYPE_P2P_DEVICE) |
++				 BIT(NL80211_IFTYPE_P2P_CLIENT) |
++				 BIT(NL80211_IFTYPE_P2P_GO);
++
+ 	wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
+ 	wiphy->retry_short = RETRY_SHORT;
+ 	wiphy->retry_long  = RETRY_LONG;
+diff --git a/drivers/net/wireless/rsi/rsi_91x_main.c b/drivers/net/wireless/rsi/rsi_91x_main.c
+index 1c01c5e..dd009a5 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_main.c
++++ b/drivers/net/wireless/rsi/rsi_91x_main.c
+@@ -42,10 +42,10 @@
+ #include "rsi_coex.h"
+ #endif
+ 
+-u16 rsi_zone_enabled =	INFO_ZONE |
+-			INIT_ZONE |
+-			MGMT_TX_ZONE |
+-			MGMT_RX_ZONE |
++u16 rsi_zone_enabled =	//INFO_ZONE |
++			//INIT_ZONE |
++			//MGMT_TX_ZONE |
++			//MGMT_RX_ZONE |
+ 			//DATA_TX_ZONE |
+ 			//DATA_RX_ZONE |
+ 			//FSM_ZONE |
+@@ -68,22 +68,30 @@
+ int dev_oper_mode_count;
+ #ifdef CONFIG_CARACALLA_BOARD
+ #if defined (CONFIG_RSI_COEX) || defined(CONFIG_RSI_BT_ALONE)
+-u16 dev_oper_mode[5] = {DEV_OPMODE_STA_BT_DUAL,
+-						0xff, 0xff, 0xff, 0xff};
++u16 dev_oper_mode = DEV_OPMODE_STA_BT_DUAL;
+ #else
+-u16 dev_oper_mode[5] = {DEV_OPMODE_WIFI_ALONE,
+-						0xff, 0xff, 0xff, 0xff};
++u16 dev_oper_mode = DEV_OPMODE_WIFI_ALONE;
+ #endif
+ #else
+-u16 dev_oper_mode[5] = {DEV_OPMODE_WIFI_ALONE,
+-						0xff, 0xff, 0xff, 0xff};
++#ifdef CONFIG_RSI_MULTI_MODE
++u16 dev_oper_mode[5] = {DEV_OPMODE_STA_BT_DUAL, DEV_OPMODE_AP_BT_DUAL,
++						0xff, 0xff, 0xff};
++#else
++//u16 dev_oper_mode = DEV_OPMODE_STA_BT_DUAL;
++u16 dev_oper_mode = DEV_OPMODE_AP_BT_DUAL;
++#endif
+ #endif
+ 
++#ifdef CONFIG_RSI_MULTI_MODE
+ module_param_array(dev_oper_mode, ushort, &dev_oper_mode_count, S_IRUGO);
++#else
++module_param(dev_oper_mode, ushort, S_IRUGO);
++#endif
+ MODULE_PARM_DESC(dev_oper_mode,
+ 		 "1 -	Wi-Fi Alone \
+ 		  4 -	BT Alone \
+ 		  8 -	BT LE Alone \
++		  12 -	BT classic + BT LE \
+ 		  5 -	Wi-Fi STA + BT classic \
+ 		  9 -	Wi-Fi STA + BT LE \
+ 		  13 -	Wi-Fi STA + BT classic + BT LE \
+@@ -144,10 +152,10 @@ void rsi_hex_dump(u32 zone, char *msg_str, const u8 *msg, u32 len)
+ 	printk("%s: (length = %d)\n", msg_str, len);
+ 	for (ii = 0; ii < len; ii++) {
+ 		if (ii && !(ii % 16))
+-			printk("\n");
+-		printk("%02x ", msg[ii]);
++			printk(KERN_CONT "\n");
++		printk(KERN_CONT "%02x ", msg[ii]);
+ 	}
+-	printk("\n");
++	printk(KERN_CONT "\n");
+ }
+ EXPORT_SYMBOL_GPL(rsi_hex_dump);
+ 
+@@ -177,9 +185,9 @@ static char *opmode_str(int oper_mode)
+ 	case DEV_OPMODE_STA_ZB:
+ 	       return "Wi-Fi STA + ZIGB STA";
+ 	case DEV_OPMODE_ZB_COORDINATOR:
+-	       return "Wi-Fi STA + ZIGB Coordinator";
++	       return "ZIGB Coordinator";
+ 	case DEV_OPMODE_ZB_ROUTER:
+-	       return "Wi-Fi STA + ZIBG Router";
++	       return "ZIBG Router";
+ 	}
+ 	return "Unknown";
+ }
+@@ -381,13 +389,16 @@ int rsi_read_pkt(struct rsi_common *common, u8 *rx_pkt, s32 rcv_pkt_len)
+  */
+ static void rsi_tx_scheduler_thread(struct rsi_common *common)
+ {
++	int status = 0;
+ 	struct rsi_hw *adapter = common->priv;
+ 	u32 timeout = EVENT_WAIT_FOREVER;
+ 
+ 	do {
+ 		if (adapter->determine_event_timeout)
+ 			timeout = adapter->determine_event_timeout(adapter);
+-		rsi_wait_event(&common->tx_thread.event, timeout);
++		status = rsi_wait_event(&common->tx_thread.event, timeout);
++		if (status < 0)
++			break;
+ 		rsi_reset_event(&common->tx_thread.event);
+ 
+ 		if (common->init_done)
+@@ -486,19 +497,22 @@ struct rsi_hw *rsi_91x_init(void)
+ 	mutex_init(&common->tx_lock);
+ 	mutex_init(&common->rx_lock);
+ 	sema_init(&common->tx_bus_lock, 1);
+-
++	rsi_init_event(&common->mgmt_cfm_event);
+ #ifdef CONFIG_HW_SCAN_OFFLOAD
+ 	rsi_init_event(&common->chan_set_event);
+ 	rsi_init_event(&common->probe_cfm_event);
+-	rsi_init_event(&common->mgmt_cfm_event);
+ 	rsi_init_event(&common->chan_change_event);
+ 	rsi_init_event(&common->cancel_hw_scan_event);
+ 	common->scan_workqueue = 
+ 		create_singlethread_workqueue("rsi_scan_worker");
+ 	INIT_WORK(&common->scan_work, rsi_scan_start);
+ #endif
++#ifdef CONFIG_RSI_MULTI_MODE
+ 	common->dev_oper_mode[0] = dev_oper_mode_count;
+ 	memcpy(&common->dev_oper_mode[1], &dev_oper_mode, 5 * sizeof(u16));
++#else
++	common->dev_oper_mode = dev_oper_mode;
++#endif
+ 
+ 	if (rsi_create_kthread(common,
+ 			       &common->tx_thread,
+@@ -578,9 +592,11 @@ void rsi_91x_deinit(struct rsi_hw *adapter)
+ 	}
+ 	rsi_coex_deinit(common);
+ #endif
++#ifdef CONFIG_RSI_MULTI_MODE
+ 	rsi_dbg(ERR_ZONE, "%s: reset drv instance: %d\n",
+ 			__func__, adapter->drv_instance_index);
+ 	DRV_INSTANCE_SET(adapter->drv_instance_index, 0);
++#endif
+ 	common->init_done = false;
+ 
+ 	kfree(common);
+diff --git a/drivers/net/wireless/rsi/rsi_91x_mgmt.c b/drivers/net/wireless/rsi/rsi_91x_mgmt.c
+index 0829c73..fbf8795 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_mgmt.c
++++ b/drivers/net/wireless/rsi/rsi_91x_mgmt.c
+@@ -938,7 +938,7 @@ static int rsi_mgmt_pkt_to_core(struct rsi_common *common,
+ 		"%s: rssi=%d channel=%d\n",
+ 		__func__, rx_params->rssi, rx_params->channel);
+ 	wlh = (struct ieee80211_hdr *)skb->data;
+-	rsi_dbg(INFO_ZONE, "RX Dot11 Mgmt Pkt Type: %s\n",
++	rsi_dbg(MGMT_RX_ZONE, "RX Dot11 Mgmt Pkt Type: %s\n",
+ 		dot11_pkt_type(wlh->frame_control));
+ 	rsi_indicate_pkt_to_os(common, skb);
+ 
+@@ -1366,7 +1366,17 @@ int rsi_send_common_dev_params(struct rsi_common *common)
+ 	dev_cfgs->unused_soc_gpio_bitmap =
+ 		cpu_to_le32(*(u32 *)&unused_soc_gpio_bitmap);
+ 
+-	dev_cfgs->opermode = common->oper_mode;
++	/*
++	 * For zigb functionality, send DEV_OPMODE_ZB_ALONE
++	 * as opermode to firmware, irrespective of router or
++	 * coordinator
++	 */
++	if (common->oper_mode == DEV_OPMODE_ZB_COORDINATOR ||
++	    common->oper_mode == DEV_OPMODE_ZB_ROUTER)
++		dev_cfgs->opermode = DEV_OPMODE_ZB_ALONE;
++	else
++		dev_cfgs->opermode = common->oper_mode;
++
+ 	dev_cfgs->wlan_rf_pwr_mode = common->wlan_rf_power_mode;
+ 	dev_cfgs->driver_mode = common->driver_mode;
+ 	dev_cfgs->region_code = NL80211_DFS_FCC;
+@@ -1578,18 +1588,18 @@ int rsi_band_check(struct rsi_common *common,
+ 			common->endpoint = EP_5GHZ_20MHZ;
+ 	}
+ 
+-	if (common->channel_width != prev_bw) {
+-		status = rsi_load_bootup_params(common);
++	if (common->endpoint != prev_ep) {
++		status = rsi_program_bb_rf(common);
+ 		if (status)
+ 			return status;
++	}
+ 
+-		status = rsi_load_radio_caps(common);
++	if (common->channel_width != prev_bw) {
++		status = rsi_load_bootup_params(common);
+ 		if (status)
+ 			return status;
+-	}
+ 
+-	if (common->endpoint != prev_ep) {
+-		status = rsi_program_bb_rf(common);
++		status = rsi_load_radio_caps(common);
+ 		if (status)
+ 			return status;
+ 	}
+@@ -1653,9 +1663,7 @@ int rsi_set_channel(struct rsi_common *common,
+ 		    struct ieee80211_channel *channel)
+ {
+ 	struct rsi_hw *adapter = common->priv;
+-#ifdef CONFIG_CARACALLA_BOARD
+ 	struct ieee80211_vif *vif = adapter->vifs[adapter->sc_nvifs - 1];
+-#endif
+ 	struct sk_buff *skb = NULL;
+ 	struct rsi_mac_frame *mgmt_frame;
+ 
+@@ -1687,6 +1695,12 @@ int rsi_set_channel(struct rsi_common *common,
+ 	mgmt_frame->desc_word[5] =
+ 		cpu_to_le16((char)(channel->max_antenna_gain));
+ #endif
++	if (vif->type == NL80211_IFTYPE_AP && adapter->auto_chan_sel) {
++		mgmt_frame->desc_word[2] = cpu_to_le16(TIMER_ENABLE);
++		mgmt_frame->desc_word[3] = cpu_to_le16(ACS_TIMEOUT_TYPE);
++		mgmt_frame->desc_word[3] |= cpu_to_le16(ACS_TIMEOUT_TIME << 8);
++		adapter->rsi_survey[adapter->idx].channel = channel;
++	}
+ 	mgmt_frame->desc_word[4] |=
+ 		cpu_to_le16(common->antenna_gain[0] << 8);
+ 	mgmt_frame->desc_word[5] =
+@@ -2472,11 +2486,12 @@ int rsi_send_rx_filter_frame(struct rsi_common *common, u16 rx_filter_word)
+ int rsi_send_ps_request(struct rsi_hw *adapter, bool enable)
+ {
+ 	struct rsi_common *common = adapter->priv;
+-	struct ieee80211_bss_conf *bss = &adapter->vifs[0]->bss_conf;
++	struct ieee80211_bss_conf *bss;
+ 	struct rsi_request_ps *ps = NULL;
+ 	struct rsi_ps_info *ps_info = NULL;
+ 	struct sk_buff *skb = NULL;
+ 	int frame_len = sizeof(*ps);
++	bool assoc;
+ 
+ 	skb = dev_alloc_skb(frame_len);
+ 	if (!skb)
+@@ -2513,7 +2528,16 @@ int rsi_send_ps_request(struct rsi_hw *adapter, bool enable)
+ 	ps->ps_sleep.sleep_duration =
+ 		cpu_to_le32(ps_info->deep_sleep_wakeup_period);
+ 
+-	if (bss->assoc)
++	if (adapter->sc_nvifs == 0) {
++		assoc = false;
++	} else {
++		bss = &adapter->vifs[0]->bss_conf;
++		if (bss->assoc)
++			assoc = true;
++		else
++			assoc = false;
++	}
++	if (assoc)
+ 		ps->ps_sleep.connected_sleep = CONNECTED_SLEEP;
+ 	else
+ 		ps->ps_sleep.connected_sleep = DEEP_SLEEP;
+@@ -3007,7 +3031,8 @@ int rsi_send_probe_request(struct rsi_common *common,
+ 	q_num = MGMT_SOFT_Q;
+ 	skb->priority = q_num;
+ 
+-	rsi_prepare_mgmt_desc(common,skb);
++	if(rsi_prepare_mgmt_desc(common,skb))
++		goto out;
+ 	skb_queue_tail(&common->tx_queue[MGMT_SOFT_Q], skb);
+ 	rsi_set_event(&common->tx_thread.event);
+ 	
+@@ -3025,16 +3050,31 @@ void rsi_scan_start(struct work_struct *work)
+ 	struct rsi_common *common =
+ 		container_of(work, struct rsi_common ,scan_work);
+ 	u8 ii, jj;
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
++	int status = 0;
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+ 	struct cfg80211_scan_info info;
+ #endif
++	struct rsi_hw *adapter = common->priv;
++	struct ieee80211_vif *vif = adapter->vifs[adapter->sc_nvifs - 1];
++
++	if (vif->type == NL80211_IFTYPE_AP) {
++		if (adapter->auto_chan_sel == ACS_DISABLE) {
++			adapter->auto_chan_sel = ACS_ENABLE;
++			rsi_dbg(INFO_ZONE, "Auto Channel selection scan start");
++		}
++		adapter->idx = 0;
++	}
+ 	
+ 	scan_req = common->scan_request;
+ 	if (!scan_req)
+ 		return;
+ 
+ 	common->scan_in_prog = true;
+-	
++	rsi_disable_ps(common->priv);
++	rsi_reset_event(&common->mgmt_cfm_event);
++	rsi_wait_event(&common->mgmt_cfm_event,
++		       msecs_to_jiffies(1000));
++
+ 	for (ii =0; ii < scan_req->n_channels ; ii++) {
+ 		if (common->iface_down)
+ 			break;
+@@ -3042,8 +3082,8 @@ void rsi_scan_start(struct work_struct *work)
+ 		if (!common->scan_in_prog)
+ 			break;
+ 		
+-		rsi_dbg(INFO_ZONE,
+-			"channle no: %d", scan_req->channels[ii]->hw_value);
++		rsi_dbg(INFO_ZONE, "Programming channel no: %d",
++			scan_req->channels[ii]->hw_value);
+ 		cur_chan = scan_req->channels[ii];
+ 
+ 		rsi_band_check(common, cur_chan);
+@@ -3058,7 +3098,9 @@ void rsi_scan_start(struct work_struct *work)
+ 			break;
+ 		}
+ 		rsi_reset_event(&common->chan_set_event);
+-		rsi_wait_event(&common->chan_set_event, msecs_to_jiffies(50));
++		status = rsi_wait_event(&common->chan_set_event, msecs_to_jiffies(50));
++		if (status < 0)
++			break;
+ 		
+ 		if (!common->scan_in_prog)
+ 			break;
+@@ -3068,7 +3110,7 @@ void rsi_scan_start(struct work_struct *work)
+ 		    (cur_chan->flags & IEEE80211_CHAN_RADAR)) {
+ 			/* DFS Channel */
+ 			/* Program passive scan duration */
+-		} else {
++		} else if (!adapter->auto_chan_sel) {
+ 			/* Send probe request */
+ 			for (jj = 0; jj < scan_req->n_ssids; jj++) {
+ 				rsi_send_probe_request(common, 
+@@ -3081,8 +3123,10 @@ void rsi_scan_start(struct work_struct *work)
+ 					return;
+ 				}
+ 				rsi_reset_event(&common->probe_cfm_event);
+-				rsi_wait_event(&common->probe_cfm_event,
++				status = rsi_wait_event(&common->probe_cfm_event,
+ 					       msecs_to_jiffies(50));
++				if (status < 0)
++					return;
+ 				rsi_reset_event(&common->probe_cfm_event);
+ 			}
+ 		}
+@@ -3090,14 +3134,22 @@ void rsi_scan_start(struct work_struct *work)
+ 			break;
+ 		if (common->iface_down)
+ 			break;
+-		rsi_wait_event(&common->chan_change_event, EVENT_WAIT_FOREVER);
++		status = rsi_wait_event(&common->chan_change_event, 
++					EVENT_WAIT_FOREVER);
++		if (status < 0)
++			break;
+ 		rsi_reset_event(&common->chan_change_event);
+ 	}
+ 
+ 	del_timer(&common->scan_timer);
+ 	common->scan_in_prog = false;
+-
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
++	if(vif->type != NL80211_IFTYPE_AP) {
++		rsi_enable_ps(common->priv);
++		rsi_reset_event(&common->mgmt_cfm_event);
++		rsi_wait_event(&common->mgmt_cfm_event,
++			       msecs_to_jiffies(1000));
++	}
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+ 	info.aborted = false;
+ 	ieee80211_scan_completed(common->priv->hw, &info);
+ #else	
+@@ -3163,9 +3215,12 @@ static int rsi_handle_ta_confirm(struct rsi_common *common, u8 *msg)
+ {
+ 	struct rsi_hw *adapter = common->priv;
+ 	u8 sub_type = (msg[15] & 0xff);
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
++#ifdef CONFIG_HW_SCAN_OFFLOAD
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+ 	struct cfg80211_scan_info info;
+ #endif
++#endif
++	struct ieee80211_vif *vif = adapter->vifs[adapter->sc_nvifs - 1];
+ 
+ 	rsi_dbg(MGMT_RX_ZONE, "%s: subtype=%d\n", __func__, sub_type);
+ 
+@@ -3347,9 +3402,8 @@ static int rsi_handle_ta_confirm(struct rsi_common *common, u8 *msg)
+ 					ieee80211_wake_queues(adapter->hw);
+ 					complete(&common->wlan_init_completion);
+ 					common->reinit_hw = false;
+-				} else {
++				} else
+ 					return rsi_mac80211_attach(common);
+-				}
+ 			}
+ 		} else {
+ 			rsi_dbg(INFO_ZONE,
+@@ -3365,6 +3419,30 @@ static int rsi_handle_ta_confirm(struct rsi_common *common, u8 *msg)
+ 
+ 	case SCAN_REQUEST:
+ 		rsi_dbg(INFO_ZONE, "Scan confirm.\n");
++		if (vif->type == NL80211_IFTYPE_AP &&
++		    adapter->auto_chan_sel) {
++			u8 id;
++			struct acs_stats_s *acs_data =
++				(struct acs_stats_s *)(&msg[FRAME_DESC_SZ]);
++
++			if (adapter->idx < MAX_NUM_CHANS) {
++				id = adapter->idx;
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
++				adapter->rsi_survey[id].time_busy =
++				    acs_data->chan_busy_time;
++				adapter->rsi_survey[id].time = ACS_TIMEOUT_TIME;
++#else
++				adapter->rsi_survey[id].channel_time_busy =
++				    acs_data->chan_busy_time;
++				adapter->rsi_survey[id].channel_time =
++				    ACS_TIMEOUT_TIME;
++#endif
++				adapter->rsi_survey[id].noise =
++				    -abs(acs_data->noise_floor_rssi);
++				adapter->idx++;
++			}
++		}
++
+ #ifdef CONFIG_HW_SCAN_OFFLOAD
+ 		rsi_set_event(&common->chan_set_event);
+ #endif
+@@ -3386,7 +3464,7 @@ static int rsi_handle_ta_confirm(struct rsi_common *common, u8 *msg)
+ 				common->bgscan_en = 0;
+ 		}
+ #ifdef CONFIG_HW_SCAN_OFFLOAD
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+ 		info.aborted = false;
+ 		ieee80211_scan_completed(adapter->hw, &info);
+ #else	
+@@ -3538,13 +3616,13 @@ int rsi_mgmt_pkt_recv(struct rsi_common *common, u8 *msg)
+ 		break;
+ 
+ 	case BEACON_EVENT_IND:
+-		rsi_dbg(INFO_ZONE, "Beacon event\n");
+ 		if (!common->init_done)
+ 			return -1;
+ 		if (common->iface_down)
+ 			return -1;
+ 		if (!common->beacon_enabled)
+ 			return -1;
++		rsi_dbg(INFO_ZONE, "Beacon event\n");
+ 		rsi_send_beacon(common);
+ 		break;
+ 
+diff --git a/drivers/net/wireless/rsi/rsi_91x_ps.c b/drivers/net/wireless/rsi/rsi_91x_ps.c
+index 15d3ee4..2638f32 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_ps.c
++++ b/drivers/net/wireless/rsi/rsi_91x_ps.c
+@@ -100,7 +100,7 @@ void rsi_default_ps_params(struct rsi_hw *adapter)
+ 	ps_info->num_bcns_per_lis_int = 0;
+ 	ps_info->dtim_interval_duration = 0;
+ 	ps_info->num_dtims_per_sleep = 0;
+-	ps_info->deep_sleep_wakeup_period = 200;
++	ps_info->deep_sleep_wakeup_period = 0;
+ }
+ EXPORT_SYMBOL_GPL(rsi_default_ps_params);
+ 
+diff --git a/drivers/net/wireless/rsi/rsi_91x_sdio.c b/drivers/net/wireless/rsi/rsi_91x_sdio.c
+index ef78d4a..2cea9a9 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_sdio.c
++++ b/drivers/net/wireless/rsi/rsi_91x_sdio.c
+@@ -1050,7 +1050,7 @@ static int rsi_sdio_ta_reset_ops(struct rsi_hw *adapter)
+ 		rsi_dbg(ERR_ZONE, "Unable to hold TA threads\n");
+ 		goto err;
+ 	}
+-	data = TA_SOFT_RST_CLR;
++	*data = TA_SOFT_RST_CLR;
+ 	/* Bringing TA out of reset */
+ 	if (rsi_sdio_write_register_multiple(adapter,
+ 					     TA_SOFT_RESET_REG |
+@@ -1065,7 +1065,7 @@ static int rsi_sdio_ta_reset_ops(struct rsi_hw *adapter)
+ 	 * in any chip or any project, then wait till TA goes to
+ 	 * hold by polling poll_status register.
+ 	 **/
+-	data = TA_PC_ZERO;
++	*data = TA_PC_ZERO;
+ 	/* Bringing TA out of reset */
+ 	if (rsi_sdio_write_register_multiple(adapter,
+ 					     TA_TH0_PC_REG |
+@@ -1236,11 +1236,21 @@ static int rsi_probe(struct sdio_func *pfunction,
+ 	common = adapter->priv;
+ 	adapter->rsi_host_intf = RSI_HOST_INTF_SDIO;
+ 	adapter->host_intf_ops = &sdio_host_intf_ops;
++#ifdef CONFIG_RSI_MULTI_MODE
+ 	if (rsi_opermode_instances(adapter)) {
+ 		rsi_dbg(ERR_ZONE, "%s: Invalid operating modes\n",
+ 			__func__);
+ 		goto fail_free_adapter;
+ 	}
++#else
++	adapter->priv->oper_mode = common->dev_oper_mode;
++	if (rsi_validate_oper_mode(common->dev_oper_mode)) {
++		rsi_dbg(ERR_ZONE, "%s: Invalid operating mode %d\n",
++			__func__, common->dev_oper_mode);
++		goto fail_free_adapter;
++	}
++
++#endif
+ 
+ 	if (rsi_init_sdio_interface(adapter, pfunction)) {
+ 		rsi_dbg(ERR_ZONE, "%s: Failed to init sdio interface\n",
+diff --git a/drivers/net/wireless/rsi/rsi_91x_sdio_ops.c b/drivers/net/wireless/rsi/rsi_91x_sdio_ops.c
+index 1d6c23b..8a64c9f 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_sdio_ops.c
++++ b/drivers/net/wireless/rsi/rsi_91x_sdio_ops.c
+@@ -83,7 +83,10 @@ void rsi_sdio_rx_thread(struct rsi_common *common)
+ 	bool done = false;
+ 
+ 	do {
+-		rsi_wait_event(&sdev->rx_thread.event, EVENT_WAIT_FOREVER);
++		status = rsi_wait_event(&sdev->rx_thread.event, 
++					EVENT_WAIT_FOREVER);
++		if (status < 0)
++			break;
+ 
+ 		if (atomic_read(&sdev->rx_thread.thread_done))
+ 			break;
+diff --git a/drivers/net/wireless/rsi/rsi_91x_usb.c b/drivers/net/wireless/rsi/rsi_91x_usb.c
+index d96727c..2b7aae7 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_usb.c
++++ b/drivers/net/wireless/rsi/rsi_91x_usb.c
+@@ -901,12 +901,21 @@ static int rsi_probe(struct usb_interface *pfunction,
+ 
+ 	common = adapter->priv;
+ 	adapter->rsi_host_intf = RSI_HOST_INTF_USB;
++#ifdef CONFIG_RSI_MULTI_MODE
+ 	if (rsi_opermode_instances(adapter)) {
+ 		rsi_dbg(ERR_ZONE, "%s: Invalid operating modes\n",
+ 			__func__);
+ 		goto err;
+ 	}
++#else
++	adapter->priv->oper_mode = common->dev_oper_mode;
++	if (rsi_validate_oper_mode(common->dev_oper_mode)) {
++		rsi_dbg(ERR_ZONE, "%s: Invalid operating mode %d\n",
++			__func__, common->dev_oper_mode);
++		goto err;
++	}
+ 
++#endif
+ 	status = rsi_init_usb_interface(adapter, pfunction);
+ 	if (status) {
+ 		rsi_dbg(ERR_ZONE, "%s: Failed to init usb interface\n",
+diff --git a/drivers/net/wireless/rsi/rsi_91x_usb_ops.c b/drivers/net/wireless/rsi/rsi_91x_usb_ops.c
+index a882eb8..c40359e 100644
+--- a/drivers/net/wireless/rsi/rsi_91x_usb_ops.c
++++ b/drivers/net/wireless/rsi/rsi_91x_usb_ops.c
+@@ -46,7 +46,10 @@ void rsi_usb_rx_thread(struct rsi_common *common)
+ 	int status, idx;
+ 
+ 	do {
+-		rsi_wait_event(&dev->rx_thread.event, EVENT_WAIT_FOREVER);
++		status = rsi_wait_event(&dev->rx_thread.event,
++					EVENT_WAIT_FOREVER);
++		if (status < 0)
++			break;
+ 		rsi_reset_event(&dev->rx_thread.event);
+ 
+ 		if (atomic_read(&dev->rx_thread.thread_done))
+diff --git a/drivers/net/wireless/rsi/rsi_hal.h b/drivers/net/wireless/rsi/rsi_hal.h
+index 521dd54..4f4978d 100644
+--- a/drivers/net/wireless/rsi/rsi_hal.h
++++ b/drivers/net/wireless/rsi/rsi_hal.h
+@@ -54,7 +54,7 @@
+ #define ZIGBEE_OPERMODE_MASK		0x3
+ 
+ #define TA_LOAD_ADDRESS			0x00
+-#define FIRMWARE_RSI9113		"rsi_91x.fw"
++#define FIRMWARE_RSI9113                "rsi_91x.fw"
+ #define FLASH_WRITE_CHUNK_SIZE		(4 * 1024)
+ #define USB_FLASH_READ_CHUNK_SIZE	((2 * 1024) - 4)
+ #define SDIO_FLASH_READ_CHUNK_SIZE	(2 * 1024)
+@@ -213,11 +213,13 @@ struct ta_metadata {
+ 	unsigned int address;
+ };
+ 
++#ifdef CONFIG_RSI_MULTI_MODE
+ extern atomic_t drv_instances[5];
+ #define DRV_INSTANCE(__x) (atomic_read(&drv_instances[(__x) - 1]))
+ #define DRV_INSTANCE_SET(__x, __y) \
+-	(atomic_set(&drv_instances[(__x) - 1], (__y)))
++	(atomic_set(&drv_instances[((__x)? (__x) - 1: 0)], (__y)))
+ #define MAX_INSTANCES 5
++#endif
+ 
+ #define RSI_BL_CTRL_LEN_MASK			0xFFFFFF
+ #define RSI_BL_CTRL_SPI_32BIT_MODE		BIT(27)
+@@ -247,6 +249,7 @@ struct bootload_ds {
+ int rsi_prepare_beacon(struct rsi_common *common, struct sk_buff *skb);
+ int rsi_deregister_bt(struct rsi_common *common);
+ int rsi_validate_oper_mode(u16 oper_mode);
++#ifdef CONFIG_RSI_MULTI_MODE
+ int rsi_opermode_instances(struct rsi_hw *adapter);
+-
++#endif
+ #endif
+diff --git a/drivers/net/wireless/rsi/rsi_main.h b/drivers/net/wireless/rsi/rsi_main.h
+index ecdfdc8..338628f 100644
+--- a/drivers/net/wireless/rsi/rsi_main.h
++++ b/drivers/net/wireless/rsi/rsi_main.h
+@@ -41,7 +41,7 @@
+ 
+ #include "rsi_ps.h"
+ 
+-#define DRV_VER				"RS9113.NBZ.NL.GNU.LNX.1.4.RC1"
++#define DRV_VER				"RS9113.NBZ.NL.GNU.LNX.1.4.RC4"
+ 
+ #define ERR_ZONE                        BIT(0) /* Error Msgs		*/
+ #define INFO_ZONE                       BIT(1) /* Generic Debug Msgs	*/
+@@ -64,6 +64,14 @@
+ #define FSM_BB_RF_PROG_SENT             8
+ #define FSM_MAC_INIT_DONE               9
+ 
++/* Auto Channel Selection defines*/
++#define MAX_NUM_CHANS		39
++#define ACS_ENABLE		1
++#define ACS_DISABLE		0
++#define TIMER_ENABLE		BIT(8)
++#define ACS_TIMEOUT_TYPE	15
++#define ACS_TIMEOUT_TIME	150
++
+ extern u16 rsi_zone_enabled;
+ extern __printf(2, 3) void rsi_dbg(u32 zone, const char *fmt, ...);
+ void rsi_hex_dump(u32 zone, char *msg_str, const u8 *msg, u32 len);
+@@ -488,7 +496,12 @@ struct rsi_common {
+ 	struct rsi_beacon_meas_params beacon_meas;
+ #endif
+ 	struct rsi_9116_features w9116_features;
++#ifdef CONFIG_RSI_MULTI_MODE
+ 	u16 dev_oper_mode[6];
++#else
++	u16 dev_oper_mode;
++#endif
++
+ };
+ 
+ enum host_intf {
+@@ -563,7 +576,17 @@ struct rsi_hw {
+ 	int  (*check_intr_status_reg)(struct rsi_hw *adapter);
+ 	u8 rrm_state;
+ 	u8 rrm_enq_state;
++#ifdef CONFIG_RSI_MULTI_MODE
+ 	int drv_instance_index;
++#endif
++	u8 auto_chan_sel;
++	u8 idx;
++	struct survey_info rsi_survey[MAX_NUM_CHANS];
++};
++
++struct acs_stats_s {
++	u16 chan_busy_time;
++	u8 noise_floor_rssi;
+ };
+ 
+ void rsi_print_version(struct rsi_common *common);
+diff --git a/drivers/net/wireless/rsi/rsi_zigb.h b/drivers/net/wireless/rsi/rsi_zigb.h
+old mode 100644
+new mode 100755
+-- 
+1.9.1
+
