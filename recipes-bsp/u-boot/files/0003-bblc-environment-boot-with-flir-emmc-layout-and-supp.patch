@@ -439,7 +439,7 @@ index 801d2cc..b15ecf7 100644
 +\
 +	"startM4=echo Starting M4 ...; " \
 +			"if run loadM4; then " \
-+				"bootaux {m4_addr};" \
++				"bootaux ${m4_addr};" \
 +			"fi;\0"
 +
 +
