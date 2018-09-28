@@ -14,5 +14,6 @@ SRC_URI_append = " \
     file://0016-Support-for-Evander-LCD-on-BBLC.patch \
     file://0017-otm1287a-display-output-enable-set-to-active-high-an.patch \
     file://0018-Add-bifrost-rpmsg-driver.patch \
+    file://0019-Update-Redpine-driver-version.patch \
     file://defconfig \
 "
