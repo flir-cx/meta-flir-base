@@ -1,0 +1,1817 @@
+From 26140455bd20dbb5854981d637d7179c609c2b1d Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Thu, 27 Sep 2018 15:33:45 +0200
+Subject: [PATCH 2/3] Add bifrost rpmsg driver
+
+---
+ arch/arm/boot/dts/imx7ulp-bblc.dts   |  41 +--
+ drivers/misc/Kconfig                 |   1 +
+ drivers/misc/Makefile                |   1 +
+ drivers/misc/bifrost/Kconfig         |  10 +
+ drivers/misc/bifrost/Makefile        |  15 +
+ drivers/misc/bifrost/bifrost.h       | 208 ++++++++++++
+ drivers/misc/bifrost/bifrost_api.h   | 272 +++++++++++++++
+ drivers/misc/bifrost/bifrost_cdev.c  | 623 +++++++++++++++++++++++++++++++++++
+ drivers/misc/bifrost/bifrost_main.c  | 166 ++++++++++
+ drivers/misc/bifrost/bifrost_rpmsg.c | 358 ++++++++++++++++++++
+ 10 files changed, 1663 insertions(+), 32 deletions(-)
+ create mode 100644 drivers/misc/bifrost/Kconfig
+ create mode 100755 drivers/misc/bifrost/Makefile
+ create mode 100644 drivers/misc/bifrost/bifrost.h
+ create mode 100644 drivers/misc/bifrost/bifrost_api.h
+ create mode 100644 drivers/misc/bifrost/bifrost_cdev.c
+ create mode 100644 drivers/misc/bifrost/bifrost_main.c
+ create mode 100644 drivers/misc/bifrost/bifrost_rpmsg.c
+
+diff --git a/arch/arm/boot/dts/imx7ulp-bblc.dts b/arch/arm/boot/dts/imx7ulp-bblc.dts
+index 36182f6..d0cf98b 100644
+--- a/arch/arm/boot/dts/imx7ulp-bblc.dts
++++ b/arch/arm/boot/dts/imx7ulp-bblc.dts
+@@ -15,11 +15,6 @@
+ 	model = "FLIR Low Cost Brassboard";
+ 	compatible = "flir,imx7ulp-bblc", "fsl,imx7ulp", "Generic DT based system";
+ 
+-	aliases {
+-		gpio4 = &rpmsg_gpio0;
+-		gpio5 = &rpmsg_gpio1;
+-	};
+-
+ 	chosen {
+ 		stdout-path = &lpuart4;
+ 	};
+@@ -75,31 +70,9 @@
+ 		pinctrl-1 = <&pinctrl_extcon_usb1>;
+ 	};
+ 
+-	rpmsg_gpio0: rpmsg-gpio0 {
+-		compatible = "fsl,imx-rpmsg-gpio";
+-		port_idx = <0>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		#interrupt-cells = <2>;
+-		interrupt-controller;
+-		interrupt-parent = <&rpmsg_gpio0>;
+-		status = "disabled";
+-	};
+-
+-	rpmsg_gpio1: rpmsg-gpio1 {
+-		compatible = "fsl,imx-rpmsg-gpio";
+-		port_idx = <1>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		#interrupt-cells = <2>;
+-		interrupt-controller;
+-		interrupt-parent = <&rpmsg_gpio1>;
+-		status = "disabled";
+-	};
+-
+ 	v4l2_cap_0 {
+ 		compatible = "fsl,imx7-rpmsg-capture";
+- 		status = "disabled";
++		status = "okay";
+ 	};
+ 	
+ 	// We use another PWM than evalkit - TPM5 channel 1
+@@ -305,15 +278,19 @@
+ 	status = "okay";
+ };
+ 
++&rpmsg_reserved{
++	reg = <0x7FF80000 0x80000>;
++};
++
+ &rpmsg{
+ 	/*
+ 	 * 64K for one rpmsg instance, default using 2 rpmsg instances:
+-	 * --0x9FF00000~0x9FF0FFFF: pmic,pm,audio,keys,gpio,sensor
+-	 * --0x9FF10000~0x9FF1FFFF: pingpong,virtual tty
++	 * --0x7FF80000~0x7FF8FFFF: pmic,pm,audio,keys,gpio,sensor
++	 * --0x7FF90000~0x7FF9FFFF: pingpong,virtual tty
+ 	 */
+ 	vdev-nums = <2>;
+-	reg = <0x9FF00000 0x20000>;
+-	status = "disabled";
++	reg = <0x7FF80000 0x20000>;
++	status = "okay";
+ };
+ 
+ &usbotg1 {
+diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+index 1a1cd2e..d7230e5 100644
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -798,4 +798,5 @@ source "drivers/misc/mic/Kconfig"
+ source "drivers/misc/genwqe/Kconfig"
+ source "drivers/misc/echo/Kconfig"
+ source "drivers/misc/cxl/Kconfig"
++source "drivers/misc/bifrost/Kconfig"
+ endmenu
+diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
+index 9c7cce2..82e8240 100644
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -55,6 +55,7 @@ obj-$(CONFIG_ECHO)		+= echo/
+ obj-$(CONFIG_VEXPRESS_SYSCFG)	+= vexpress-syscfg.o
+ obj-$(CONFIG_CXL_BASE)		+= cxl/
+ obj-$(CONFIG_PANEL)             += panel.o
++obj-$(CONFIG_FLIR_BIFROST_RPMSG) += bifrost/
+ 
+ lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
+ lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o
+diff --git a/drivers/misc/bifrost/Kconfig b/drivers/misc/bifrost/Kconfig
+new file mode 100644
+index 0000000..3cbed20
+--- /dev/null
++++ b/drivers/misc/bifrost/Kconfig
+@@ -0,0 +1,10 @@
++#
++# FVD (FLIR Video Driver) RPMSG version of Bifrost
++#
++
++config FLIR_BIFROST_RPMSG
++	bool "Support for FVD by RPMSG"
++	default n
++	help
++	  Select this option to enable support for FLIR VFD driver on RPMSG.
++	  Typically used when Cortex-M4 replaces FPGA
+diff --git a/drivers/misc/bifrost/Makefile b/drivers/misc/bifrost/Makefile
+new file mode 100755
+index 0000000..f4c3910
+--- /dev/null
++++ b/drivers/misc/bifrost/Makefile
+@@ -0,0 +1,15 @@
++#
++# Makefile to build Bifrost driver for Linux using `kbuild' build system
++#
++# Control build by adding one or many to ccflags-y:
++#  -DBIFROST_DEBUG: for debug outputs using printk()
++#
++
++ccflags-y := -Wall -Wstrict-prototypes -Werror
++
++bifrost-y := bifrost_main.o bifrost_cdev.o bifrost_rpmsg.o
++
++obj-$(CONFIG_FLIR_BIFROST_RPMSG) += bifrost.o
++
++
++
+diff --git a/drivers/misc/bifrost/bifrost.h b/drivers/misc/bifrost/bifrost.h
+new file mode 100644
+index 0000000..dcd1569
+--- /dev/null
++++ b/drivers/misc/bifrost/bifrost.h
+@@ -0,0 +1,208 @@
++/*
++ * Copyright (c) FLIR Systems AB.
++ *
++ * bifrost.h
++ *
++ *  Created on: Mar 1, 2010
++ *      Author: Jonas Romfelt <jonas.romfelt@flir.se>
++ *
++ * Internal header.
++ *
++ */
++
++#ifndef BIFROST_H_
++#define BIFROST_H_
++
++#include <linux/cdev.h>
++#include <linux/fs.h>
++#include <linux/list.h>
++#include <linux/sched.h>
++#include <linux/spinlock.h>
++#include <linux/timer.h>
++#include <linux/poll.h>
++#include <linux/proc_fs.h>
++#include <linux/version.h>
++#include <linux/interrupt.h>
++
++#include "bifrost_api.h"
++#include <linux/slab.h>
++/*
++ * Define driver information (displayed using modinfo)
++ */
++
++#define BIFROST_DEVICE_NAME "bifrost"
++
++#define BIFROST_VERSION_MAJOR 0
++#define BIFROST_VERSION_MINOR 1
++#define BIFROST_VERSION_MICRO 2
++#define BIFROST_VERSION_APPEND_STR "-alpha"
++#define BIFROST_VERSION_NUMBER ((BIFROST_VERSION_MAJOR * 10000) + \
++                                (BIFROST_VERSION_MINOR*100) + \
++                                (BIFROST_VERSION_MICRO))
++
++/*
++ * Misc
++ */
++#define BIFROST_EVENT_BUFFER_SIZE 20
++
++#define DMA_BUSY_BIT 0
++#define CIRCULAR_BUFFER_SIZE 10
++
++#define BIFROST_DMA_DIRECTION_UP 0 /* up-stream: FPGA-RAM -> CPU-RAM */
++#define BIFROST_DMA_DIRECTION_DOWN 1 /* down-stream: CPU-RAM -> FPGA-RAM */
++
++
++#ifndef VM_RESERVED
++#define VM_RESERVED (VM_DONTEXPAND | VM_DONTDUMP)
++#endif
++
++/*
++ * Debug macros
++ */
++#define BIFROST_DEBUG 1
++#ifndef BIFROST_DEBUG
++  #define INFO(fmt, args...)
++  #define NOTICE(fmt, args...)
++#else
++  #define INFO(fmt, args...) printk(KERN_INFO "%s %s:%d> " fmt, \
++                                    BIFROST_DEVICE_NAME, __FUNCTION__, \
++                                    __LINE__, ##args)
++  #define NOTICE(fmt, args...) printk(KERN_NOTICE "%s %s:%d> " fmt, \
++                                      BIFROST_DEVICE_NAME, __FUNCTION__, \
++                                      __LINE__, ##args)
++#endif
++#define ALERT(fmt, args...) printk(KERN_ALERT "%s %s:%d> " fmt, \
++                                   BIFROST_DEVICE_NAME, __FUNCTION__, \
++                                   __LINE__, ##args)
++
++/*
++ * Driver statistics
++ */
++struct bifrost_stats {
++        bool enabled;
++
++        /* file operations */
++        unsigned long opens;
++        unsigned long releases;
++        unsigned long polls;
++        unsigned long reads;
++        unsigned long writes;
++        unsigned long ioctls;
++        unsigned long llseeks;
++        unsigned long procfsreads;
++
++        /* data throughput */
++        unsigned long read_buf;         /* number of buffers read from driver */
++        unsigned long write_buf;        /* number of buffers written to driver */
++        unsigned long read_b;           /* number of bytes read from driver */
++        unsigned long write_b;          /* number of bytes written to driver */
++        unsigned long write_speed_avg;  /* write speed average in kB/s */
++        unsigned long write_speed_last; /* write speed for last access in kB/s */
++        unsigned long read_speed_avg;   /* read speed average in kB/s */
++        unsigned long read_speed_last;  /* read speed for last access in kB/s  */
++};
++
++/*
++ * place holder for timers
++ */
++struct timers {
++        struct timer_list debug;        /* periodic debug timer */
++};
++
++/*
++ * Device memory representation, used when memory-mapping a PCI BAR to CPU
++ * address space, making memory CPU accessible via the readb(), readw(),
++ * readl(), writeb() ... functions.
++ */
++struct device_memory {
++        int bar;                /* BAR number */
++        int enabled;            /* Memory successfully mapped */
++        unsigned long addr_bus; /* PCIe bus address */
++        unsigned long size;     /* Length of memory */
++        unsigned long flags;
++        void __iomem *addr;     /* Kernel logical address */
++        struct pci_dev *pdev;   /* Handle to PCI device struct */
++        spinlock_t lock;        /* Use this to make atomic changes */
++
++        /* Access functions */
++        void *handle;
++        int (*wr)(void *handle, u32 offset, u32 value);
++        int (*rd)(void *handle, u32 offset, u32 *value);
++};
++
++/*
++ * Bifrost device representation
++ */
++struct bifrost_device {
++        struct bifrost_info info;
++        struct list_head list;          /* list of user handles open to Bifrost */
++        spinlock_t lock_list;
++        struct bifrost_stats stats;     /* driver statistics */
++        int cdev_initialized;           /* set when cdev has been initialized */
++        struct cdev cdev;               /* char device structure */
++        struct proc_dir_entry *proc;    /* proc fs entry */
++        struct pci_dev *pdev;           /* PCI device structure */
++        int irq;                        /* PCIe MSI interrupt line */
++        struct timers timers;           /* timers */
++        struct device_memory regb[6];   /* FPGA register bank (PCIe => max 6 BARs) */
++        struct device_memory* regb_dma;   /* BAR used for DMA registers*/
++        struct device_memory ddr;       /* FPGA DDR memory */
++
++        /* rpmsg addons */
++	struct rpmsg_device *rpmsg_dev;
++        struct platform_device * pMemDev;
++        struct class *pClass;
++        struct completion completion;
++};
++
++/*
++ * The bifrost_event struct is exported to user-space, so we need
++ * a container for it in kernel-space so we don't pollute it
++ */
++struct bifrost_event_cont {
++        struct list_head node;
++        struct bifrost_event event;
++};
++
++/*
++ * User space handle, i.e. someone that have called open(). Allow driver to be opened
++ * by multiple users!
++ */
++struct bifrost_user_handle {
++        struct list_head node;            /* list of user handles open to Bifrost */
++        struct bifrost_device *dev;
++        wait_queue_head_t waitq;          /* wait queue used by poll */
++        u32 event_enable_mask;
++        u32 irq_forwarding_mask;
++        atomic_t use_count;
++
++        struct list_head event_list;
++        spinlock_t event_list_lock;
++        unsigned int event_list_count;
++};
++
++int bifrost_cdev_init(struct bifrost_device *dev);
++void bifrost_cdev_exit(struct bifrost_device *dev);
++
++void bifrost_create_event(struct bifrost_device *dev,
++                          struct bifrost_event *event);
++void bifrost_create_event_in_atomic(struct bifrost_device *dev,
++                                    struct bifrost_event *event);
++
++int bifrost_attach_msis_to_irq(int hw_irq, struct bifrost_device *dev);
++void bifrost_detach_msis(void);
++int bifrost_simulate_msi(unsigned int msi);
++int bifrost_dma_init(int hw_irq, struct bifrost_device *dev);
++void bifrost_dma_cleanup(struct bifrost_device *dev);
++
++int bifrost_rpmsg_init(struct bifrost_device *dev);
++void bifrost_rpmsg_exit(struct bifrost_device *dev);
++int do_rpmsg_xfer(struct bifrost_device *dev, struct bifrost_dma_transfer *xfer, int up_down);
++irqreturn_t FVDInterruptService(int irq, void *dev_id);
++int  bifrost_fvd_init(struct bifrost_device *dev);
++void bifrost_fvd_exit(struct bifrost_device *dev);
++int rpmsg_write_device_memory(void *handle, u32 offset, u32 value);
++int rpmsg_read_device_memory(void *handle, u32 offset, u32 *value);
++
++
++#endif /* BIFROST_H_ */
+diff --git a/drivers/misc/bifrost/bifrost_api.h b/drivers/misc/bifrost/bifrost_api.h
+new file mode 100644
+index 0000000..402889c
+--- /dev/null
++++ b/drivers/misc/bifrost/bifrost_api.h
+@@ -0,0 +1,272 @@
++/*
++ * Copyright (c) FLIR Systems AB.
++ *
++ * bifrost_api.h
++ *
++ *  Created on: Mar 1, 2010
++ *      Author: Jonas Romfelt <jonas.romfelt@flir.se>
++ *
++ * Public Bifrost driver interface
++ *
++ */
++
++#ifndef BIFROST_API_H_
++#define BIFROST_API_H_
++
++#ifdef __KERNEL__
++#include <linux/time.h>
++#else
++#include <sys/time.h>
++#endif
++#include <linux/ioctl.h>
++#include <linux/types.h>
++
++#define BIFROST_IOC_MAGIC 'B'
++
++struct bifrost_info {
++        struct {
++                __u8 major;
++                __u8 minor;
++                __u8 revision;
++        } version;
++        __u8 simulator; /* Set to 0 if simulator interface disabled */
++
++        /*
++         * TODO:
++         * - add stats here?
++         * - average IRQ servicing time?
++         */
++};
++
++struct bifrost_access {
++        __u32 bar;    /* BAR number */
++        __u32 offset; /* Register offset (within a BAR) */
++        __u32 value;  /* Value to read/write */
++};
++
++struct bifrost_access_range {
++        __u32 bar;    /* BAR number */
++        __u32 offset; /* Register offset (within a BAR) */
++        unsigned long values; /* User pointer to memory that can hold at least
++                                   `count' number of u32:s to read/write */
++        __u32 count;  /* Number of registers to access */  
++};
++
++struct bifrost_modify {
++        __u32 bar;    /* BAR number */
++        __u32 offset; /* Register offset */
++        __u32 value;  /* New modified value */
++        __u32 clear;  /* Clear these bits */
++        __u32 set;    /* Set these bits (higher prio than clear) */
++};
++
++struct bifrost_dma_transfer {
++        /*
++         * System (CPU) memory address.
++         *
++         * IMPORTANT! In simulator mode the system address should be
++         * an address in kernel virtual memory, otherwise it is expected to
++         * be a physical address in DMA'able memory.
++         */
++        unsigned long system;
++        __u32 device; /* Device (e.g. FPGA) memory offset. */
++        __u32 size;   /* Size of transfer in bytes. */
++};
++#define BIFROST_DMA_USER_BUFFER       (1<<0)   //buffer is allocated in user space, physical Non-Contiguous
++
++
++#define BIFROST_EVENT_TYPE_IRQ        (1 << 0)
++#define BIFROST_EVENT_TYPE_WRITE_REGB (1 << 1)
++#define BIFROST_EVENT_TYPE_READ_REGB  (1 << 2)
++#define BIFROST_EVENT_TYPE_DMA_DONE   (1 << 3)
++
++struct bifrost_dma {
++        __u32 id;
++        __s64 time;
++        __u64 cookie;
++};
++
++/*
++ * Used in bifrost_membus.c
++ * This struct is returned when FPGA has JPEGLS Frame to deliver
++ * irq_source = 4
++ */
++struct bifrost_membus_frame {
++        __u32 irq_source;      /* irq_source, note this is needed so we match
++                                    the event struct. */
++        __u32 frameNo;         /* Buffer number where we can find the frame. */
++        __u32 frameSize;       /* Size of the compressed frame. */
++        struct timespec time;  /* time stamp when we got the irq. */
++};
++
++/*
++ * Used in bifrost_membus.c
++ * When irq_source = 1: (FPGA Execute IRQ)
++ * This struct is sent when FPGA generates an
++ * "execute finished" IRQ.
++ * 'value' : now contains irq status (reg: 0x1c).
++ *
++ * When irq_source = 0x08  (DIO)
++ * This struct is sent when digital IO is changed
++ * 'value' : The digital IO state.
++ *
++ * When irq_source = 0x10 (HSI cable):
++ * This struct is sent when HSI cable is inserted/removed
++ * 'value' : now contains cable state.
++ *     0: cable disconnected.
++ *     1: cable connected (link is up).
++ */
++struct bifrost_membus_irqstatus {
++        __u32 irq_source;    /* irq_source, note this is needed so we match the
++                                  event struct. */
++        __u32 value;         /* FPGA irq status */
++};
++
++/*
++ * When using membus irq, the following irq_sources are defined:
++ * 0x01: Execute interrupt
++ * 0x02: HSI (BOB) interrupt
++ * 0x04: JPEGLS frame interrupt
++ * 0x08: Digital IO
++ * 0x10: HSI cable in/out.
++ */
++
++struct bifrost_event {
++        __u32 type;
++        union {
++                __u32 irq_source;
++                struct bifrost_access regb_access;
++                struct bifrost_dma dma;
++                struct bifrost_membus_irqstatus irqstatus;
++                struct bifrost_membus_frame frame;
++        } data;
++        struct {
++                struct timeval received;
++                struct timeval forwarded;
++        } timestamp;
++};
++
++struct bifrost_simulator_memory {
++        unsigned long address; /* User space address to malloc'd memory. */
++        __u32 size;            /* Size of memory in bytes. */
++};
++
++struct bifrost_simulator_memory_transfer {
++        unsigned long system;    /* Kernel virtual address */
++        unsigned long simulator; /* User space address to malloc'd memory. */
++        int to;                  /* If to is set data is copied TO simulator
++                                  * FROM system, i.e. down stream. */
++        __u32 size;              /* Size of transfer in bytes. */
++};
++
++/*
++ * Bifrost ioctls
++ */
++
++#define BIFROST_IOCTL_INFO \
++        _IOR(BIFROST_IOC_MAGIC, 0, struct bifrost_info)
++
++/* Read FPGA register */
++#define BIFROST_IOCTL_READ_REGB \
++        _IOWR(BIFROST_IOC_MAGIC, 1, struct bifrost_access)
++
++/* Read multiple FPGA registers */
++#define BIFROST_IOCTL_READ_RANGE_REGB \
++        _IOWR(BIFROST_IOC_MAGIC, 4, struct bifrost_access_range)
++
++/* Read same FPGA register multiple times */
++#define BIFROST_IOCTL_READ_REPEAT_REGB \
++        _IOWR(BIFROST_IOC_MAGIC, 5, struct bifrost_access_range)
++
++/* Write FPGA register */
++#define BIFROST_IOCTL_WRITE_REGB \
++        _IOW(BIFROST_IOC_MAGIC, 2, struct bifrost_access)
++
++/* Write same FPGA register multiple times */
++#define BIFROST_IOCTL_WRITE_REPEAT_REGB \
++        _IOWR(BIFROST_IOC_MAGIC, 6, struct bifrost_access_range)
++
++/*
++ * Modify FPGA register, i.e. read register, clear bits, set bits and
++ * write new value to register
++ */
++#define BIFROST_IOCTL_MODIFY_REGB \
++        _IOWR(BIFROST_IOC_MAGIC, 3, struct bifrost_modify)
++
++/* Start up-stream DMA transfer (to CPU) */
++#define BIFROST_IOCTL_START_DMA_UP \
++        _IOW(BIFROST_IOC_MAGIC, 10, struct bifrost_dma_transfer)
++
++/* Start down-stream DMA transfer (from CPU) */
++#define BIFROST_IOCTL_START_DMA_DOWN \
++        _IOW(BIFROST_IOC_MAGIC, 11, struct bifrost_dma_transfer)
++
++
++/* Start down-stream DMA transfer (from CPU), extra flag for buffer allocated in user space */
++#define BIFROST_IOCTL_START_DMA_DOWN_USER \
++        _IOW(BIFROST_IOC_MAGIC, 12, struct bifrost_dma_transfer)
++
++/* Start up-stream DMA transfer (to CPU),     extra flag for buffer allocated in user space */
++#define BIFROST_IOCTL_START_DMA_UP_USER \
++        _IOW(BIFROST_IOC_MAGIC, 13, struct bifrost_dma_transfer)
++
++
++
++/*
++ * Bifrost Events
++ */
++
++/* Set event enable mask */
++#define BIFROST_IOCTL_ENABLE_EVENT \
++        _IOW(BIFROST_IOC_MAGIC, 20, __u32)
++
++/*
++ * Set IRQ forwarding mask, takes an interrupt mask of irqs to forward
++ * to user space via events
++ */
++#define BIFROST_IOCTL_IRQ_FORWARDING \
++        _IOW(BIFROST_IOC_MAGIC, 21, __u32)
++
++/* Dequeue and read event from event-queue */
++#define BIFROST_IOCTL_DEQUEUE_EVENT \
++        _IOR(BIFROST_IOC_MAGIC, 22, struct bifrost_event)
++
++/*
++ * Bifrost Simulator
++ */
++
++/*
++ * Setup simulated memory, client should supply size of the allocated
++ * memory
++ */
++#define BIFROST_IOCTL_SETUP_SIMULATOR_MEMORY \
++        _IOW(BIFROST_IOC_MAGIC, 50, struct bifrost_simulator_memory)
++
++/*
++ * Simulate a DMA transfer, i.e. copy data to/from simulated device
++ * memory and system DMA'able buffer
++ */
++#define BIFROST_IOCTL_SIMULATE_DMA_TRANSFER \
++        _IOW(BIFROST_IOC_MAGIC, 51, struct bifrost_simulator_memory_transfer)
++
++/* Simulate IRQ, only available when driver loaded with test enabled */
++#define BIFROST_IOCTL_SIMULATE_IRQ \
++        _IOW(BIFROST_IOC_MAGIC, 52, __u32)
++
++/*
++ * By default, all registers are read/writable and does not trigger
++ * any events.
++ */
++#define BIFROST_REGB_MODE_READABLE    (1 << 0) /* register is readable */
++#define BIFROST_REGB_MODE_WRITABLE    (1 << 1) /* register is writable */
++#define BIFROST_REGB_MODE_WRITE_EVENT (1 << 2) /* event on write */
++#define BIFROST_REGB_MODE_READ_EVENT  (1 << 3) /* event on read */
++
++/* Set simulated register mode flags mask, with access.value set to mode */
++#define BIFROST_IOCTL_SET_REGB_MODE \
++        _IOW(BIFROST_IOC_MAGIC, 52, struct bifrost_access)
++
++#define BIFROST_IOCTL_RESET_DMA \
++        _IO(BIFROST_IOC_MAGIC, 53)
++
++#endif /* BIFROST_API_H_ */
+diff --git a/drivers/misc/bifrost/bifrost_cdev.c b/drivers/misc/bifrost/bifrost_cdev.c
+new file mode 100644
+index 0000000..7c8e2770
+--- /dev/null
++++ b/drivers/misc/bifrost/bifrost_cdev.c
+@@ -0,0 +1,623 @@
++/*
++ * Copyright (c) FLIR Systems AB.
++ *
++ * bifrost_cdev.c
++ *
++ *  Created on: Mar 1, 2010
++ *      Author: Jonas Romfelt <jonas.romfelt@flir.se>
++ *              Tommy Karlsson
++ *
++ * Character device parts of driver.
++ *
++ */
++
++#include <linux/module.h>
++#include <linux/jiffies.h>
++#include <linux/mm.h>
++
++#include "bifrost.h"
++
++static struct file_operations bifrost_fops;
++static dev_t bifrost_dev_no;
++
++
++/**
++ * Initialize character device support of driver
++ *
++ * IMPORTANT! Do not call this function before the driver is ready to handle
++ * all operations on the device. It will go "live" after this function
++ * returns.
++ *
++ * @param dev The handle to bifrost device instance.
++ * @return 0 on success.
++ */
++int bifrost_cdev_init(struct bifrost_device *dev)
++{
++        int rc;
++
++        INFO("\n");
++
++        /*
++         * Register device number series and name, makes it appear
++         * in /proc/devices
++         */
++        rc = alloc_chrdev_region(&bifrost_dev_no, 0, 1, BIFROST_DEVICE_NAME);
++        if (rc < 0) {
++                ALERT("register_chrdev_region() failed: %d\n", rc);
++                return rc;
++        }
++
++        /* Init char device structure */
++        cdev_init(&dev->cdev, &bifrost_fops);
++        dev->cdev.owner = THIS_MODULE;
++
++        /* Register char device to kernel, and go "live" */
++        rc = cdev_add(&dev->cdev, bifrost_dev_no, 1);
++        if (rc) {
++                unregister_chrdev_region(bifrost_dev_no, 1);
++                ALERT("cdev_add() failed: %d\n", rc);
++                return rc;
++        }
++
++        dev->cdev_initialized = 1;
++
++        return 0;
++}
++
++/**
++ * Clean up character device parts from driver
++ *
++ * @param dev The handle to bifrost device instance.
++ */
++void __exit bifrost_cdev_exit(struct bifrost_device *dev)
++{
++        INFO("cdev_initialized=%d\n", dev->cdev_initialized);
++        if (dev->cdev_initialized == 0)
++                return;
++
++        cdev_del(&dev->cdev);
++        unregister_chrdev_region(bifrost_dev_no, 1);
++}
++
++/**
++ * Handler for file operation open().
++ *
++ * @param inode
++ * @param file
++ * @return 0 on success.
++ */
++static int bifrost_open(struct inode *inode, struct file *file)
++{
++        struct bifrost_device *dev;
++        struct bifrost_user_handle *hnd;
++
++        INFO("\n");
++
++        /* get struct that contains this cdev */
++        dev = container_of(inode->i_cdev, struct bifrost_device, cdev);
++
++        hnd = kzalloc(sizeof(struct bifrost_user_handle), GFP_KERNEL);
++        if (hnd == NULL) {
++                ALERT("Unable to allocate user handle struct\n");
++                return -ENOMEM;
++        }
++
++        /* initialize struct members */
++        hnd->dev = dev;
++        INIT_LIST_HEAD(&hnd->event_list);
++        spin_lock_init(&hnd->event_list_lock);
++        hnd->event_list_count = 0;
++        init_waitqueue_head(&hnd->waitq);
++
++        /*
++         * Add this handle _first_ to list of user handles. Lock necessary
++         * since the list may be used by interrupt handler
++         */
++        spin_lock(&dev->lock_list);
++        list_add(&hnd->node, &dev->list);
++        spin_unlock(&dev->lock_list);
++
++        /* allow access to user handle via file struct data pointer */
++        file->private_data = hnd;
++
++        return 0;
++}
++
++/**
++ * Handler for file operation close(). Will remove the user handle.
++ *
++ * @param inode
++ * @param file
++ * @return 0 on success.
++ */
++static int bifrost_release(struct inode *inode, struct file *file)
++{
++        struct bifrost_user_handle *hnd = file->private_data;
++        struct bifrost_device *dev = hnd->dev;
++        struct bifrost_event_cont *p;
++        struct list_head *pos, *tmp;
++
++        INFO("\n");
++
++        /*
++         * Remove this handle from list of user handles. Lock necessary
++         * since the list may be used by interrupt handler
++         */
++        spin_lock(&dev->lock_list);
++        list_del(&hnd->node);
++        spin_unlock(&dev->lock_list);
++
++        spin_lock(&hnd->event_list_lock);
++        list_for_each_safe(pos, tmp, &hnd->event_list) {
++                p = list_entry(pos, struct bifrost_event_cont, node);
++                list_del(&p->node);
++                kfree(p);
++        }
++        spin_unlock(&hnd->event_list_lock);
++
++        kfree(hnd);
++        return 0;
++}
++
++/**
++ * Handler for file operation poll()/select(). Used to signal that events are available.
++ *
++ * @param file
++ * @param wait
++ * @return poll mask.
++ */
++static unsigned int bifrost_poll(struct file *file, poll_table *wait)
++{
++        struct bifrost_user_handle *hnd = file->private_data;
++        unsigned int v;
++        INFO("\n");
++
++        poll_wait(file, &hnd->waitq, wait);
++
++        spin_lock(&hnd->event_list_lock);
++        v = list_empty(&hnd->event_list) ? 0 : (POLLIN | POLLRDNORM);
++        spin_unlock(&hnd->event_list_lock);
++
++        return v;
++}
++
++/**
++ * Handler for file operation mmap(). Will map common DMA'able scratch buffer.
++ *
++ * @param file
++ * @param vma
++ * @return 0 on success.
++ */
++static int bifrost_mmap(struct file *file, struct vm_area_struct *vma)
++{
++	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
++				vma->vm_end - vma->vm_start,
++				vma->vm_page_prot)) {
++		pr_err("mmap failed!\n");
++		return -ENOBUFS;
++	}
++	return 0;
++}
++
++static struct bifrost_event_cont *dequeue_event(struct bifrost_user_handle *h)
++{
++        struct bifrost_event_cont *p;
++
++        spin_lock(&h->event_list_lock);
++        if (list_empty(&h->event_list)) {
++                spin_unlock(&h->event_list_lock);
++                return NULL;
++        }
++        p = list_first_entry(&h->event_list, struct bifrost_event_cont, node);
++        list_del(&p->node);
++        h->event_list_count--;
++        spin_unlock(&h->event_list_lock);
++
++        return p;
++}
++
++static int enqueue_event(struct bifrost_user_handle *h,
++                         struct bifrost_event_cont *p)
++{
++        spin_lock(&h->event_list_lock);
++        if (h->event_list_count >= BIFROST_EVENT_BUFFER_SIZE) {
++                spin_unlock(&h->event_list_lock);
++                kfree(p);
++                return -ENOSPC;
++        }
++        list_add_tail(&p->node, &h->event_list);
++        h->event_list_count++;
++        spin_unlock(&h->event_list_lock);
++
++        return 0;
++}
++
++static int enqueue_on_this_handle(struct bifrost_user_handle *h,
++                                  struct bifrost_event *e)
++{
++        if (!(e->type & h->event_enable_mask)) {
++                return 0; /* Nothing to do for this user */
++        }
++        if (e->type == BIFROST_EVENT_TYPE_IRQ) {
++                if (!(h->irq_forwarding_mask & e->data.irq_source))
++                        return 0; /* Nothing to do for this user */
++        } else if (e->type == BIFROST_EVENT_TYPE_DMA_DONE) {
++                if (h != (void*)(unsigned long)e->data.dma.cookie)
++                        return 0; /* Nothing to do for this user */
++        }
++
++        return 1;
++}
++
++static struct bifrost_event_cont *duplicate_event(struct bifrost_event *e,
++                                                  gfp_t flags)
++{
++        struct bifrost_event_cont *p;
++
++        p = kmalloc(sizeof(*p), flags);
++        if (p == NULL)
++                return NULL;
++
++        memcpy(&p->event, e, sizeof(*e));
++        return p;
++}
++
++/**
++ * Create events to user handle subscribers.
++ *
++ * TODO for read/write REGB events add filter so that producer of event
++ * does not receive an event!
++ *
++ * @param dev The device handle.
++ * @param event The event data.
++ */
++void bifrost_create_event(struct bifrost_device *dev,
++                          struct bifrost_event *event)
++{
++        struct bifrost_user_handle *hnd;
++        struct list_head *pos, *tmp;
++        struct bifrost_event_cont *p;
++
++        do_gettimeofday(&event->timestamp.received);
++
++        spin_lock(&dev->lock_list);
++        list_for_each_safe(pos, tmp, &dev->list) {
++                hnd = list_entry(pos, struct bifrost_user_handle, node);
++                if (enqueue_on_this_handle(hnd, event)) {
++                        p = duplicate_event(event, GFP_ATOMIC);
++                        if (p != NULL) {
++                                enqueue_event(hnd, p);
++                                wake_up_interruptible(&hnd->waitq);
++                        } else {
++                                ALERT("dropped event type=%d", event->type);
++                        }
++                }
++        }
++        spin_unlock(&dev->lock_list);
++}
++
++
++#define NO_ACCESS 0
++#define RD_ACCESS 0x1 /* Read */
++#define WR_ACCESS 0x2 /* Write */
++#define EV_ACCESS 0x4 /* Events */
++
++static int check_bar_access(struct bifrost_device *dev, int bar, int access,
++			    unsigned int offset)
++{
++        /* In normal rpmsg mode, user-space doesn't have access to BAR2-5 */
++        const static int user_space_rpmsg_access[6] = {
++                RD_ACCESS | WR_ACCESS | EV_ACCESS, /* BAR0 */
++                RD_ACCESS | WR_ACCESS | EV_ACCESS, /* BAR1 */
++                0, /* BAR2 */
++                0, /* BAR3 */
++                0, /* BAR4 */
++                0, /* BAR5 */
++        };
++
++        int v, mask;
++
++        if (bar >= ARRAY_SIZE(user_space_rpmsg_access)) {
++                v = -EINVAL;
++                goto e_exit;
++        }
++        if (!dev->regb[bar].enabled) {
++                v = -EFAULT; /* BAR is not mapped into memory */
++                goto e_exit;
++        }
++        mask = (access & user_space_rpmsg_access[bar]);
++        if (access != mask) {
++                v = -EACCES; /* User hasn't sufficient access rights */
++                goto e_exit;
++        }
++	if (offset >= dev->regb[bar].size) {
++		v = -EFAULT; /* Offset is out-of-range */
++		goto e_exit;
++	}
++        return 0;
++
++  e_exit:
++        ALERT("BAR%d not accessible from user-space (errno=%d)\n", bar, v);
++        return v;
++}
++
++static int do_modify_regb(struct bifrost_device *dev, int bar, u32 offset,
++                          u32 clear, u32 set, u32 *value)
++{
++        struct device_memory *mem;
++        int rc;
++        u32 v;
++
++        rc = check_bar_access(dev, bar, (RD_ACCESS | WR_ACCESS), offset);
++        if (rc < 0)
++                return rc;
++
++        mem = &dev->regb[bar];
++
++        /*
++         * Note: these registers are only accessed from user-space and
++         *       never from ISRs etc. so a spin_lock/unlock should be
++         *       enough...
++         */
++        spin_lock(&mem->lock);
++        rc = mem->rd(mem->handle, offset, &v);
++        if (rc < 0)
++                goto e_exit;
++        v = (v & ~clear) | set;
++        rc = mem->wr(mem->handle, offset, v);
++        if (rc < 0)
++                goto e_exit;
++        spin_unlock(&mem->lock);
++        *value = v;
++
++        return 0;
++
++  e_exit:
++        spin_unlock(&mem->lock);
++        return rc;
++}
++
++static int do_read_regb(struct bifrost_device *dev, int bar,
++                        unsigned int offset, unsigned int *value)
++{
++        int v;
++
++        v = check_bar_access(dev, bar, RD_ACCESS, offset);
++        if (v < 0)
++                return v;
++
++        v = dev->regb[bar].rd(dev->regb[bar].handle, offset, value);
++        if (v < 0)
++                return v;
++
++        return 0;
++}
++
++static int do_write_regb(struct bifrost_device *dev, int bar,
++                         unsigned int offset, unsigned int value)
++{
++        int v;
++
++        v = check_bar_access(dev, bar, WR_ACCESS, offset);
++        if (v < 0)
++                return v;
++
++        v = dev->regb[bar].wr(dev->regb[bar].handle, offset, value);
++        if (v < 0)
++                return v;
++
++        return 0;
++}
++
++/**
++ * Handler for file operation ioctl().
++ *
++ * @param inode
++ * @param cmd The IOCTL command provided by user space.
++ * @param arg The IOCTL argument provided by user space.
++ * @return 0 on success.
++ */
++static long bifrost_unlocked_ioctl(struct file *file, unsigned int cmd,
++                                   unsigned long arg)
++{
++        struct bifrost_user_handle *hnd = file->private_data;
++        struct bifrost_device *dev = hnd->dev;
++        void __user *uarg = (void __user *)arg;
++        int rc = 0,flags=0;
++
++        dev->stats.ioctls++;
++
++        switch (cmd) {
++        case BIFROST_IOCTL_INFO:
++        {
++                INFO("BIFROST_IOCTL_INFO\n");
++                if (copy_to_user(uarg, &dev->info, sizeof(dev->info)))
++                        return -EFAULT;
++                break;
++        }
++
++        case BIFROST_IOCTL_READ_REGB:
++        {
++                struct bifrost_access a;
++
++                if (copy_from_user(&a, uarg, sizeof(a)))
++                        return -ENOMEM;
++                rc = do_read_regb(dev, a.bar, a.offset, &a.value);
++                if (rc < 0)
++                        return rc;
++                if (copy_to_user(uarg, &a, sizeof(a)))
++                        return -EFAULT;
++                break;
++        }
++
++        case BIFROST_IOCTL_READ_RANGE_REGB:
++        case BIFROST_IOCTL_READ_REPEAT_REGB:
++        {
++                u32 i, *buf;
++                void __user *user_ptr;
++                struct bifrost_access_range a;
++                int incr = (cmd == BIFROST_IOCTL_READ_RANGE_REGB) ? 4 : 0;
++
++                if (copy_from_user(&a, uarg, sizeof(a)))
++                        return -ENOMEM;
++
++                user_ptr = (void __user *)a.values;
++                buf = kmalloc(sizeof(u32) * a.count, GFP_KERNEL);
++                if (NULL == buf)
++                        return -ENOMEM;
++
++                for (i = 0; i < a.count; ++i) {
++                        rc = do_read_regb(dev, a.bar, a.offset + i * incr, &buf[i]);
++                        if (rc < 0) {
++                                kfree(buf);
++                                return rc;
++                        }
++                }
++
++                if (copy_to_user(user_ptr, (void *)buf, sizeof(u32) * a.count))
++                        rc = -EFAULT;
++
++                kfree(buf);
++                break;
++        }
++
++        case BIFROST_IOCTL_WRITE_REGB:
++        {
++                struct bifrost_access a;
++
++                if (copy_from_user(&a, uarg, sizeof(a)))
++                        return -ENOMEM;
++
++                rc = do_write_regb(dev, a.bar, a.offset, a.value);
++                if (rc < 0)
++                        return rc;
++                break;
++        }
++
++        case BIFROST_IOCTL_WRITE_REPEAT_REGB:
++        {
++                u32 i, *buf;
++                void __user *user_ptr;
++                struct bifrost_access_range a;
++
++                if (copy_from_user(&a, uarg, sizeof(a)))
++                        return -ENOMEM;
++
++                user_ptr = (void __user *)a.values;
++                buf = kmalloc(sizeof(u32) * a.count, GFP_KERNEL);
++                if (NULL == buf)
++                        return -ENOMEM;
++                if (copy_from_user((void *)buf, user_ptr, sizeof(u32) * a.count))
++                        rc = -EFAULT;
++
++                for (i = 0; i < a.count; ++i) {
++                        rc = do_write_regb(dev, a.bar, a.offset, buf[i]);
++                        if (rc < 0) {
++                                kfree(buf);
++                                return rc;
++                        }
++                }
++
++                kfree(buf);
++                break;
++        }
++
++        case BIFROST_IOCTL_MODIFY_REGB:
++        {
++                struct bifrost_modify m;
++
++                if (copy_from_user(&m, uarg, sizeof(m)))
++                        return -EFAULT;
++                rc = do_modify_regb(dev, m.bar, m.offset, m.clear, m.set,
++                                    &m.value);
++                if (rc < 0)
++                        return rc;
++                if (copy_to_user(uarg, &m, sizeof(m)))
++                        return -EFAULT;
++                break;
++        }
++
++        case BIFROST_IOCTL_START_DMA_UP_USER:
++        case BIFROST_IOCTL_START_DMA_DOWN_USER:
++            flags =  BIFROST_DMA_USER_BUFFER;
++        case BIFROST_IOCTL_START_DMA_UP:
++        case BIFROST_IOCTL_START_DMA_DOWN:
++        {
++                struct bifrost_dma_transfer xfer;
++                int dir;
++
++                if (cmd == BIFROST_IOCTL_START_DMA_DOWN || cmd== BIFROST_IOCTL_START_DMA_DOWN_USER)
++                        dir = BIFROST_DMA_DIRECTION_DOWN;
++                else
++                        dir = BIFROST_DMA_DIRECTION_UP;
++
++                if (copy_from_user(&xfer, uarg, sizeof(xfer)))
++                        return -EFAULT;
++
++                /*
++                 * Note: the user handle is used as cookie for DMA done event
++                 * matching.
++                 */
++                rc = do_rpmsg_xfer(dev, &xfer, dir);
++                if (rc >= 0) {
++                        INFO("BIFROST_DMA_TRANSFER_%s: sys=%08lx, dev=%08x, "
++                             "len=%d\n",
++                             dir == BIFROST_DMA_DIRECTION_DOWN ? "DOWN" : "UP",
++                             xfer.system, xfer.device, xfer.size);
++                }
++                break;
++        }
++
++        case BIFROST_IOCTL_ENABLE_EVENT:
++        {
++                u32 mask = (u32)arg;
++
++                hnd->event_enable_mask = mask;
++                INFO("BIFROST_IOCTL_ENABLE_EVENT mask %#08x\n", mask);
++                break;
++        }
++
++        case BIFROST_IOCTL_IRQ_FORWARDING:
++        {
++                u32 mask = (u32)arg;
++
++                hnd->irq_forwarding_mask = mask;
++                INFO("BIFROST_IOCTL_IRQ_FORWARDING mask %#08x\n", mask);
++                break;
++        }
++
++        case BIFROST_IOCTL_DEQUEUE_EVENT:
++        {
++                struct bifrost_event_cont *p;
++
++                INFO("BIFROST_IOCTL_DEQUEUE_EVENT\n");
++                p = dequeue_event(hnd);
++                if (p == NULL)
++                        return -EINVAL;
++                do_gettimeofday(&p->event.timestamp.forwarded);
++                if (copy_to_user(uarg, &p->event, sizeof(p->event)) != 0) {
++                        kfree(p);
++                        return -EFAULT;
++                }
++                kfree(p);
++                break;
++        }
++
++        default:
++                return -ENOTTY;
++        }
++
++        return rc;
++}
++
++/**
++ * Defines the file operation supported by this driver.
++ */
++static struct file_operations bifrost_fops = {
++        .owner = THIS_MODULE,
++        .open = bifrost_open,
++        .release = bifrost_release,
++        .mmap = bifrost_mmap,
++        .poll = bifrost_poll,
++        .unlocked_ioctl = bifrost_unlocked_ioctl,
++};
+diff --git a/drivers/misc/bifrost/bifrost_main.c b/drivers/misc/bifrost/bifrost_main.c
+new file mode 100644
+index 0000000..4913396
+--- /dev/null
++++ b/drivers/misc/bifrost/bifrost_main.c
+@@ -0,0 +1,166 @@
++/*
++ * Copyright (c) FLIR Systems AB.
++ *
++ * bifrost_main.c
++ *
++ *  Created on: Mar 1, 2010
++ *      Author: Jonas Romfelt <jonas.romfelt@flir.se>
++ *
++ * Main driver file that implements entry and exit points.
++ *
++ */
++
++#include <linux/kernel.h>
++#include <linux/moduleparam.h>
++#include <linux/stat.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/poll.h>
++#include <linux/errno.h>
++#include <linux/mm.h>
++#include <linux/interrupt.h>
++#include <linux/time.h>
++
++#include <asm/uaccess.h>
++#include <asm/byteorder.h>
++#include <asm/atomic.h>
++
++#include "bifrost.h"
++
++struct bifrost_device *bdev;
++
++#include <linux/mempool.h>
++#include <linux/slab.h>
++#include <linux/workqueue.h>
++
++struct bifrost_work {
++        struct work_struct work;
++        struct bifrost_device *dev;
++        struct bifrost_event event;
++};
++
++static mempool_t *work_pool;
++static struct workqueue_struct *work_queue;
++
++static void *mempool_alloc_work(gfp_t flags, void *pool_data)
++{
++        (void)pool_data;
++        return kmalloc(sizeof(struct bifrost_work), flags);
++}
++
++static void mempool_free_work(void *work, void *pool_data)
++{
++        (void)pool_data;
++        kfree(work);
++}
++
++static void work_create_event(struct work_struct *work)
++{
++        struct bifrost_work *w;
++
++        w = container_of(work, struct bifrost_work, work);
++        bifrost_create_event(w->dev, &w->event);
++        mempool_free(w, work_pool);
++}
++
++void bifrost_create_event_in_atomic(struct bifrost_device *dev,
++                                    struct bifrost_event *event)
++{
++        struct bifrost_work *w;
++
++        w = mempool_alloc(work_pool, GFP_ATOMIC);
++        if (w == NULL) {
++                ALERT("dropped event type=%d", event->type);
++                return;
++        }
++
++        INIT_WORK(&w->work, work_create_event);
++        w->dev = dev;
++        memcpy(&w->event, event, sizeof(*event));
++        queue_work(work_queue, &w->work);
++}
++
++/*
++ * Entry point to driver.
++ */
++static int __init bifrost_init(void)
++{
++        if ((bdev = kzalloc(sizeof(struct bifrost_device), GFP_KERNEL)) == NULL) {
++                ALERT("failed to allocate BIFROST_DEVICE\n");
++                return -ENOMEM;
++        }
++
++        bdev->info.version.major = BIFROST_VERSION_MAJOR;
++        bdev->info.version.minor = BIFROST_VERSION_MINOR;
++        bdev->info.version.revision = BIFROST_VERSION_MICRO;
++
++        INIT_LIST_HEAD(&bdev->list);
++        spin_lock_init(&bdev->lock_list);
++
++        work_pool = mempool_create(20, mempool_alloc_work, mempool_free_work,
++                                   NULL);
++        if (work_pool == NULL)
++                return -ENOMEM;
++
++        work_queue = create_singlethread_workqueue("bifrost");
++        if (work_queue == NULL) {
++                mempool_destroy(work_pool);
++                return -ENOMEM;
++        }
++
++        /*
++         * Setup /proc file system entry. Create an read-only entry in
++         * proc root with a file name same as the device (use NULL as
++         * parent dir)
++         */
++
++	if (bifrost_rpmsg_init(bdev) != 0)
++	{
++	    bifrost_rpmsg_exit(bdev);
++	    goto err_pci;
++	}
++
++        INFO("init done\n");
++        return 0;
++
++  err_pci:
++        remove_proc_entry(BIFROST_DEVICE_NAME, NULL);
++        flush_workqueue(work_queue);
++        destroy_workqueue(work_queue);
++        mempool_destroy(work_pool);
++        kfree(bdev);
++        ALERT("init failed\n");
++        return -1;
++}
++
++/**
++ * Exit point from driver.
++ */
++static void __exit bifrost_exit(void)
++{
++        INFO("exit\n");
++
++        bifrost_cdev_exit(bdev);
++
++        bifrost_rpmsg_exit(bdev);
++
++        flush_workqueue(work_queue);
++        destroy_workqueue(work_queue);
++        mempool_destroy(work_pool);
++        kfree(bdev);
++}
++
++/*
++ * Specify kernel module enter and exit points
++ */
++
++module_init(bifrost_init);
++module_exit(bifrost_exit);
++
++/*
++ * Specify kernel module info
++ */
++
++MODULE_LICENSE("GPL");
++MODULE_AUTHOR("Peter Fitger <peter.fitger@flir.se>");
++MODULE_DESCRIPTION("FLIR FPGA driver");
+diff --git a/drivers/misc/bifrost/bifrost_rpmsg.c b/drivers/misc/bifrost/bifrost_rpmsg.c
+new file mode 100644
+index 0000000..4c98d20
+--- /dev/null
++++ b/drivers/misc/bifrost/bifrost_rpmsg.c
+@@ -0,0 +1,358 @@
++/*
++ * Copyright (c) FLIR Systems AB.
++ *
++ * bifrost_rpmsg.c
++ *
++ *  Created on: June 26, 2018
++ *      Author: Peter Fitger <peter.fitger@flir.se>
++ *
++ * RPMSG bus parts of driver.
++ *
++ */
++
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/rpmsg.h>
++
++#include "bifrost.h"
++
++extern struct bifrost_device *bdev;
++
++irqreturn_t FVDIRQ1Service(int irq, void *dev_id);
++irqreturn_t FVDIRQ2Service(int irq, void *dev_id);
++
++#define FPGA_IRQ_0      ((3-1)*32 + 16)
++#define FPGA_IRQ_1      ((3-1)*32 + 17) // GPIO3.17
++#define FPGA_IRQ_2      ((3-1)*32 + 18) // GPIO3.18
++
++enum msg_type {
++	REG_M4_WRITE,	// To M4, reg+value
++	REG_M4_READ,	// To M4, reg, From M4 reg+value
++	M4_EXEC_IRQ,	// From M4, value = irq status
++	M4_HW_IRQ,	// From M4, value = irq num
++};
++
++struct m4_msg {
++	uint32_t type;
++	uint32_t reg;
++	uint32_t value;
++};
++
++static uint32_t recv_reg;
++static uint32_t recv_value;
++
++int rpmsg_write_device_memory(void *handle, u32 offset, u32 value)
++{
++	struct m4_msg msg;
++
++	msg.type = REG_M4_WRITE;
++        msg.reg = offset;
++        msg.value = value;
++
++        return rpmsg_send(bdev->rpmsg_dev->ept, &msg, sizeof(msg));
++}
++
++int rpmsg_read_device_memory(void *handle, u32 offset, u32 *value)
++{
++	struct m4_msg msg;
++
++	msg.type = REG_M4_READ;
++        msg.reg = offset;
++        recv_reg = 0;
++
++        if (bdev->rpmsg_dev && bdev->rpmsg_dev->ept)
++        	rpmsg_send(bdev->rpmsg_dev->ept, &msg, sizeof(msg));
++        else
++        	pr_info("Endpoint missing %p %p!\n", bdev, bdev->rpmsg_dev);
++
++        wait_for_completion_timeout(&bdev->completion, msecs_to_jiffies(1000));
++
++        if (recv_reg != offset)
++        	return -EIO;
++        *value = recv_value;
++
++        return 0;
++}
++
++static void init_device_memory(int n, struct device_memory *mem)
++{
++        memset(mem, 0, sizeof(*mem));
++
++        mem->bar = n;
++        mem->addr_bus = 0;
++        mem->flags = 0;
++        mem->size = SZ_4K;
++        mem->handle = mem;
++        mem->rd = rpmsg_read_device_memory;
++        mem->wr = rpmsg_write_device_memory;
++        spin_lock_init(&mem->lock);
++}
++
++static int map_device_memory(struct device_memory *mem)
++{
++        if (mem->size == 0)
++                return -EINVAL; /* Nothing to I/O map */
++        if (mem->bar >= 2)
++                return -EINVAL; /* Only two chip selects active */
++
++        mem->enabled = 1;
++
++        return 0;
++}
++
++static void unmap_device_memory(struct device_memory *mem)
++{
++	mem->enabled = 0;
++}
++
++static int setup_io_regions(struct bifrost_device *bifrost)
++{
++        int n, nbars;
++
++        for (nbars = 0, n = 0; n < ARRAY_SIZE(bifrost->regb); n++) {
++                init_device_memory(n, &bifrost->regb[n]);
++                if (map_device_memory(&bifrost->regb[n]) == 0)
++                        nbars++;
++        }
++
++        return nbars;
++}
++
++static void remove_io_regions(struct bifrost_device *bifrost)
++{
++        int n;
++
++        for (n = 0; n < ARRAY_SIZE(bifrost->regb); n++)
++                unmap_device_memory(&bifrost->regb[n]);
++}
++
++
++/**
++ * Handle received RPMSG
++ */
++
++static int rpmsg_bifrost_callback(struct rpmsg_device *dev, void *data, int len,
++		void *priv, u32 src)
++{
++	struct m4_msg *msg = data;
++
++	switch (msg->type) {
++	case REG_M4_READ:
++		recv_reg = msg->reg;
++		recv_value = msg->value;
++		complete(&bdev->completion);
++		break;
++
++	case M4_HW_IRQ:
++		break;
++
++	case M4_EXEC_IRQ:
++		break;
++
++	default:
++		break;
++	}
++
++	return 0;
++}
++
++/**
++ * Set up Lepton-M4 interface
++ */
++
++static int rpmsg_bifrost_probe(struct rpmsg_device *dev)
++{
++	dev_info(&dev->dev, "new channel: 0x%x -> 0x%x!\n", dev->src, dev->dst);
++
++	bdev->rpmsg_dev = dev;
++	return 0;
++}
++
++static struct rpmsg_device_id rpmsg_driver_bifrost_id_table[] = {
++	{ .name	= "rpmsg-client-bifrost" },
++	{ },
++};
++MODULE_DEVICE_TABLE(rpmsg, rpmsg_driver_bifrost_id_table);
++
++static struct rpmsg_driver rpmsg_bifrost_client = {
++	.drv.name	= KBUILD_MODNAME,
++	.id_table	= rpmsg_driver_bifrost_id_table,
++	.probe		= rpmsg_bifrost_probe,
++	.callback	= rpmsg_bifrost_callback,
++};
++
++int __init bifrost_rpmsg_init(struct bifrost_device *dev)
++{
++        int rc;
++
++        rc = register_rpmsg_driver(&rpmsg_bifrost_client);
++	if (rc)
++		return rc;
++
++        /* Gain CPU access to FPGA register map */
++        rc = setup_io_regions(dev);
++        if (rc < 2)
++                goto err_pci_iomap_regb;
++
++        /* Run post init and make driver accessible */
++        if (bifrost_cdev_init(dev) != 0)
++                goto err_pci_iomap_regb;
++
++        if (bifrost_fvd_init(dev) != 0)
++                goto err_pci_iomap_regb;
++
++	init_completion(&bdev->completion);
++
++        return 0;
++
++        /* stack-like cleanup on error */
++  err_pci_iomap_regb:
++        remove_io_regions(dev);
++        return -ENODEV;
++}
++
++int  bifrost_fvd_init(struct bifrost_device *dev)
++{
++        // Register platform driver
++        dev->pMemDev = platform_device_alloc(BIFROST_DEVICE_NAME, 1);
++        if (dev->pMemDev == NULL) {
++                ALERT("Registering rpmsg driver failed\n");
++                goto err_platform_alloc;
++        }
++        platform_device_add(dev->pMemDev);
++
++        dev->pClass = class_create(THIS_MODULE, BIFROST_DEVICE_NAME);
++        device_create(dev->pClass, NULL, dev->cdev.dev, NULL, "bif0");
++
++        return 0;
++
++err_platform_alloc:
++        return -ENODEV;
++
++}
++
++void bifrost_fvd_exit(struct bifrost_device *dev)
++{
++        INFO("\n");
++
++        device_destroy(dev->pClass, dev->cdev.dev);
++        class_destroy(dev->pClass);
++        platform_device_unregister(dev->pMemDev);
++}
++
++void bifrost_rpmsg_exit(struct bifrost_device *dev)
++{
++        INFO("\n");
++
++        remove_io_regions(dev);
++        bifrost_fvd_exit(dev);
++}
++
++////////////////////////////////////////////////////////
++//
++// WriteSDRAM
++//
++////////////////////////////////////////////////////////
++static void WriteSDRAM(struct bifrost_device *dev,
++                 u32 pSrc,
++                 u32 addr,    // SDRAM byte offset
++                 u32 sz)  // Number of bytes to write
++{
++	memcpy((void *)addr, (void *)pSrc, sz);
++}
++
++////////////////////////////////////////////////////////
++//
++// ReadSDRAM
++//
++////////////////////////////////////////////////////////
++static void ReadSDRAM(struct bifrost_device *dev,
++                       u32 pDst,
++                       u32 addr,  // SDRAM byte offset
++                       u32 sz)    // Number of bytes to read
++{
++	memcpy((void *)pDst, (void *)addr, sz);
++}
++
++int do_rpmsg_xfer(struct bifrost_device *dev,
++                     struct bifrost_dma_transfer *xfer,
++                     int up_down)
++{
++        switch (up_down) {
++        case BIFROST_DMA_DIRECTION_DOWN: /* system memory -> FPGA memory */
++                WriteSDRAM(dev, xfer->system, xfer->device, xfer->size);
++                break;
++        case BIFROST_DMA_DIRECTION_UP: /* FPGA memory -> system memory */
++                ReadSDRAM(dev, xfer->system, xfer->device, xfer->size);
++                break;
++        default:
++                return -EINVAL;
++        }
++        return 0;
++}
++
++/////////////////////////////////////////////////
++// This is the interrupt service thread
++/////////////////////////////////////////////////
++irqreturn_t FVDInterruptService(int irq, void *dev_id)
++{
++        struct bifrost_device *dev = (struct bifrost_device *)dev_id;
++        struct bifrost_event event;
++        u32 exec_status;
++
++        INFO("Irq %d\n", irq);
++        memset(&event, 0, sizeof(event));
++
++        // Clear interrupt by reading Execute Status Register
++        rpmsg_read_device_memory(dev->regb[0].handle, 0x1C, &exec_status);
++
++        // Indicate completion
++        event.type = BIFROST_EVENT_TYPE_IRQ;
++        event.data.irq_source = 1;
++        event.data.irqstatus.value = exec_status;
++        bifrost_create_event_in_atomic(dev, &event);
++
++        return IRQ_HANDLED;
++}
++
++//////////////////////////////////////////////////////////
++// This is the interrupt service thread for HostIntr_n(1)
++//////////////////////////////////////////////////////////
++irqreturn_t FVDIRQ1Service(int irq, void *dev_id)
++{
++        struct bifrost_device *dev = (struct bifrost_device *)dev_id;
++        struct bifrost_event event;
++        u32 vector, mask;
++
++        memset(&event, 0, sizeof(event));
++
++        INFO("Irq1 %d\n", irq);
++
++        // Read interrupt mask
++        rpmsg_read_device_memory(dev->regb[0].handle, 0x38, &mask);
++
++        // Read interrupt vector
++        rpmsg_read_device_memory(dev->regb[0].handle, 0x37, &vector);
++
++        return IRQ_HANDLED;
++}
++//////////////////////////////////////////////////////////
++// This is the interrupt service thread for HostIntr_n(2)
++//////////////////////////////////////////////////////////
++irqreturn_t FVDIRQ2Service(int irq, void *dev_id)
++{
++        struct bifrost_device *dev = (struct bifrost_device *)dev_id;
++        struct bifrost_event event;
++
++        memset(&event, 0, sizeof(event));
++
++        // Indicate completion
++        event.type = BIFROST_EVENT_TYPE_IRQ;
++        event.data.irq_source = 0x20;
++        getnstimeofday(&event.data.frame.time);
++        bifrost_create_event_in_atomic(dev, &event);
++
++        return IRQ_HANDLED;
++}
++
++
+-- 
+1.9.1
+
