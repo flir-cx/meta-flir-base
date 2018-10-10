@@ -1,8 +1,8 @@
-From eca8e0eba389ae9e378541c5ac820911eb150976 Mon Sep 17 00:00:00 2001
+From d4c3f603398f38aec4215e01e02021da839a7d60 Mon Sep 17 00:00:00 2001
 From: Felix Hammarstrand <felix.hammarstrand@flir.se>
 Date: Wed, 29 Aug 2018 10:30:23 +0200
-Subject: [PATCH] bblc environment: boot with flir emmc layout and supporting
- commands
+Subject: [PATCH 3/3] bblc environment: boot with flir emmc layout and
+ supporting commands
 
 - recboot command to boot preloaded, to ram, kernel, device tree and ramfs
 	works with imx_usb loader
@@ -65,7 +65,7 @@ index aa36077..8273432 100644
 +CONFIG_AUTOBOOT=y
 +CONFIG_BOOTDELAY=0
 diff --git a/include/configs/bblc.h b/include/configs/bblc.h
-index 801d2cc..b15ecf7 100644
+index 801d2cc..2a58dd7 100644
 --- a/include/configs/bblc.h
 +++ b/include/configs/bblc.h
 @@ -6,17 +6,12 @@
@@ -413,13 +413,13 @@ index 801d2cc..b15ecf7 100644
 +* Uses partition layout as created by yocto rootfs.sdcard file
 +*/
 +#define CONFIG_MMC_BOOT_LEGACY_ENV \
-+	"mmcroot=/dev/mmcblk0p2  rootwait rw\0" \
-+	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-+		"root=${mmcroot}\0" \
++	"mmcroot_sdcard=/dev/mmcblk0p2  rootwait rw\0" \
++	"mmcargs_sdcard=setenv bootargs console=${console},${baudrate} " \
++		"root=${mmcroot_sdcard}\0" \
 +\
-+	"mmcboot=echo Booting from mmc ...; " \
++	"mmcboot_sdcard=echo Booting from mmc ...; " \
 +		"if run loadimage; then " \
-+			"run mmcargs; " \
++			"run mmcargs_sdcard; " \
 +			"if run loadfdt; then " \
 +				"bootz ${loadaddr} - ${fdt_addr}; " \
 +			"fi;" \
