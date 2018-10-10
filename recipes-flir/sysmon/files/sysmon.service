@@ -1,0 +1,26 @@
+[Unit]
+Description=FLIR Watchdog service 
+After=appcore.service
+ConditionPathExists=/FLIR/usr/bin/sysmon
+
+[Service]
+Type=simple
+ExecStart=/FLIR/usr/bin/sysmon -d
+ExecStop=/usr/bin/killall -HUP sysmon
+#ExecStopPost=/bin/systemctl restart appcore
+WatchdogSec=15
+#KillMode=control-group
+NotifyAccess=all
+TimeoutStopSec=10
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
+# Time to sleep before restarting the service
+RestartSec=30
+Restart=always
+# We will allow maximum 3 restarts during 24 hours before reboot
+StartLimitInterval=24hours
+StartLimitBurst=3
+StartLimitAction=reboot
+
+[Install]
+WantedBy=multi-user.target
+

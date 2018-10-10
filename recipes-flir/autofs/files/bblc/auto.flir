@@ -1,0 +1,1 @@
+*   -fstype=ext4,rw,nosuid,nodev :/dev/flirfs/&

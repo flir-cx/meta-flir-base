@@ -1,0 +1,3 @@
+/media/autofs	/etc/auto.flir	--timeout=1
++dir:/etc/auto.master.d
++auto.master

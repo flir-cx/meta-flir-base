@@ -1,0 +1,29 @@
+From a346f5ad0067f169cefe6c4d0b817756a281f4bd Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@flir.se>
+Date: Fri, 19 Sep 2014 12:44:53 +0200
+Subject: [PATCH 2/3] Added libm to bin build
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Ulf Palmér <ulf.palmer@flir.se>
+---
+ Makefile.incl | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile.incl b/Makefile.incl
+index 47b68e6..e20c78e 100755
+--- a/Makefile.incl
++++ b/Makefile.incl
+@@ -117,7 +117,7 @@ bin:  $(TARGETDIR)/$(BIN)
+ 
+ $(TARGETDIR)/$(BIN): $(TARGETDIR) $(OBJECTS)
+ 	echo LD $@
+-	$(CC) $(INCLUDES)  $(LDFLAGS) -o $(TARGETDIR)/$(BIN) $(OBJECTS) -Xlinker --start-group $(LINKLIBS) $(LINKSTATICLIBS) -Xlinker --end-group -lc -lstdc++ -lpthread -ldl -lrt
++	$(CC) $(INCLUDES)  $(LDFLAGS) -o $(TARGETDIR)/$(BIN) $(OBJECTS) -Xlinker --start-group $(LINKLIBS) $(LINKSTATICLIBS) -Xlinker --end-group -lc -lstdc++ -lpthread -ldl -lrt -lm
+ endif
+ 
+ clean::
+-- 
+1.8.3.2
+

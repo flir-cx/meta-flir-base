@@ -1,0 +1,10 @@
+[Unit]
+Description=FLIR Watchdog service start timer
+
+[Timer]
+OnBootSec=1min
+Unit=sysmon.service
+
+[Install]
+WantedBy=multi-user.target
+

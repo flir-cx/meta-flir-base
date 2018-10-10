@@ -1,0 +1,150 @@
+From: Mats Karrman <mats.karrman@flir.se>
+Date: Fri, 7 Jul 2017 16:37:25 +0100
+Subject: Control LED according to mount/unmount if so configured
+
+Patch based on previous version by Bo Svangard.
+---
+ daemon/Makefile    |  4 ++--
+ daemon/automount.c |  7 +++++--
+ daemon/direct.c    |  3 +++
+ daemon/indirect.c  |  3 +++
+ daemon/ledctrl.c   | 52 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 65 insertions(+), 4 deletions(-)
+ create mode 100644 daemon/ledctrl.c
+
+diff -pruN a/daemon/Makefile b/daemon/Makefile
+--- a/daemon/Makefile	2017-07-07 10:54:29.104935747 +0200
++++ b/daemon/Makefile	2017-07-07 16:30:45.752519607 +0200
+@@ -6,9 +6,9 @@
+ include ../Makefile.rules
+ 
+ SRCS = automount.c indirect.c direct.c spawn.c module.c mount.c \
+-	lookup.c state.c flag.c df.c
++	lookup.c state.c flag.c df.c ledctrl.c
+ OBJS = automount.o indirect.o direct.o spawn.o module.o mount.o \
+-	lookup.o state.o flag.o df.o
++	lookup.o state.o flag.o df.o ledctrl.c
+ 
+ version := $(shell cat ../.version)
+ 
+diff -pruN a/daemon/automount.c b/daemon/automount.c
+--- a/daemon/automount.c	2017-07-07 11:05:37.856921954 +0200
++++ b/daemon/automount.c	2017-07-07 16:29:45.296520854 +0200
+@@ -41,6 +41,7 @@
+ 
+ #include "automount.h"
+ #include "df.h"
++int ledctrl(int on);
+ #if defined(LIBXML2_WORKAROUND) || defined(TIRPC_WORKAROUND)
+ #include <dlfcn.h>
+ #ifdef WITH_LDAP
+@@ -1048,9 +1049,11 @@ int do_expire(struct autofs_point *ap, c
+ 	pthread_cleanup_push(master_source_lock_cleanup, ap->entry);
+ 	master_source_readlock(ap->entry);
+ 	ret = umount_multi(ap, buf, 1);
+-	if (ret == 0)
++	if (ret == 0) {
+ 		info(ap->logopt, "expired %s", buf);
+-	else
++		if (ledctrl(0))
++			warn(ap->logopt, "Failed to turn off LED");
++	} else
+ 		warn(ap->logopt, "couldn't complete expire of %s", buf);
+ 	pthread_cleanup_pop(1);
+ 
+diff -pruN a/daemon/direct.c b/daemon/direct.c
+--- a/daemon/direct.c	2015-04-21 11:37:45.000000000 +0200
++++ b/daemon/direct.c	2017-07-07 16:29:50.476520747 +0200
+@@ -37,6 +37,7 @@
+ 
+ #define INCLUDE_PENDING_FUNCTIONS
+ #include "automount.h"
++int ledctrl(int on);
+ 
+ /* Attribute to create detached thread */
+ extern pthread_attr_t th_attr_detached;
+@@ -1271,6 +1272,8 @@ static void *do_mount_direct(void *arg)
+ 		if (close_fd)
+ 			ops->close(ap->logopt, mt.ioctlfd);
+ 		info(ap->logopt, "mounted %s", mt.name);
++		if (ledctrl(1))
++			warn(ap->logopt, "Failed to turn on LED");
+ 	} else {
+ 		/* TODO: get mount return status from lookup_nss_mount */
+ 		ops->send_fail(ap->logopt,
+diff -pruN a/daemon/indirect.c b/daemon/indirect.c
+--- a/daemon/indirect.c	2017-07-07 12:04:42.392848849 +0200
++++ b/daemon/indirect.c	2017-07-07 16:29:56.056520632 +0200
+@@ -37,6 +37,7 @@
+ #define INCLUDE_PENDING_FUNCTIONS
+ #include "automount.h"
+ #include "df.h"
++int ledctrl(int on);
+ 
+ /* Attribute to create detached thread */
+ extern pthread_attr_t th_attr_detached;
+@@ -779,6 +780,8 @@ static void *do_mount_indirect(void *arg
+ 				ap->ioctlfd, mt.wait_queue_token);
+ 		info(ap->logopt, "mounted %s", buf);
+ 		write_diskfree(buf);
++		if (ledctrl(1))
++			warn(ap->logopt, "Failed to turn on LED");
+ 	} else {
+ 		/* TODO: get mount return status from lookup_nss_mount */
+ 		ops->send_fail(ap->logopt,
+diff -pruN a/daemon/ledctrl.c b/daemon/ledctrl.c
+--- a/daemon/ledctrl.c	1970-01-01 01:00:00.000000000 +0100
++++ b/daemon/ledctrl.c	2017-07-07 16:29:34.756521071 +0200
+@@ -0,0 +1,52 @@
++/* ledctrl.c - LED control via sysfs leds attribute */
++
++#include <stdio.h>
++
++#ifdef LEDCTRL_LEDS_ATTR
++
++#define STRIZE(x) _STR(x)
++#define _STR(x)   #x
++
++static char ledctrl_brightness_path[] = \
++	"/sys/class/leds/" STRIZE(LEDCTRL_LEDS_ATTR) "/brightness";
++static char ledctrl_trigger_path[] = \
++	"/sys/class/leds/" STRIZE(LEDCTRL_LEDS_ATTR) "/trigger";
++static char ledctrl_trigger[] = \
++	STRIZE(LEDCTRL_TRIGGER);
++
++static int ledctrl_write_attr(const char *path, const char *str)
++{
++	FILE *fd;
++
++	fd = fopen(path, "w");
++	if (!fd) {
++		return 1;
++	} else {
++		fprintf(fd, str);
++		fclose(fd);
++	}
++
++	return 0;
++}
++
++#endif
++
++int ledctrl(int on)
++{
++#ifdef LEDCTRL_LEDS_ATTR
++	int ret = 0;
++
++	if (on) {
++		ret |= ledctrl_write_attr(ledctrl_trigger_path, "none");
++		ret |= ledctrl_write_attr(ledctrl_brightness_path, "255");
++	} else {
++		ret |= ledctrl_write_attr(ledctrl_brightness_path, "0");
++		ret |= ledctrl_write_attr(ledctrl_trigger_path, ledctrl_trigger);
++	}
++
++	return ret;
++#else
++	(void)on;
++	return 0;
++#endif
++}

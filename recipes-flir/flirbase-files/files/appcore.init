@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# S90appcore
+#
+PATH=$PATH:/FLIR/usr/bin
+export LD_LIBRARY_PATH=/FLIR/usr/lib
+
+# This goes in /etc/init.d/ and gets run at boot-time.
+astart() {
+	echo " setting mqueue msgsize_max"
+	echo 512 >/proc/sys/fs/mqueue/msgsize_max
+	echo " starting appcore application"
+	appcore &
+}
+
+astop() {
+    echo "should stop appcore"
+    killall -HUP appcore 
+}
+
+case "$1" in
+
+    start)
+    	astart
+    ;;
+
+    stop)
+    	astop
+    ;;
+
+    restart)
+    	astop
+	sleep 10
+	astart
+    ;;
+
+    *)
+    echo "usage: $0 { start |  stop | restart }" >&2
+    exit 1
+    ;;
+
+esac

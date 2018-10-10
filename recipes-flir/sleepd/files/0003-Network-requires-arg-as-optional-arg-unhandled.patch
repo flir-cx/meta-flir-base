@@ -1,0 +1,38 @@
+From 06d467b65c3bc65fa92cee30d0b246d7eb860f8b Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Wed, 23 Sep 2015 15:41:58 +0200
+Subject: [PATCH] Network requires arg as optional arg unhandled
+
+Signed-off-by: Peter Fitger <peter.fitger@flir.se>
+---
+ sleepd.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/sleepd.c b/sleepd.c
+index d8cda3d..40b58c1 100644
+--- a/sleepd.c
++++ b/sleepd.c
+@@ -144,7 +144,7 @@ void parse_command_line (int argc, char **argv) {
+ 	char rx_statfile[44];
+ 
+ 	while (c != -1) {
+-		c=getopt_long(argc,argv, "s:d:nvu:U:l:wIi:Ee:hac:b:AN::r:t:H", long_options, NULL);
++		c=getopt_long(argc,argv, "s:d:nvu:U:l:wIi:Ee:hac:b:AN:r:t:H", long_options, NULL);
+ 		switch (c) {
+ 			case 's':
+ 				sleep_command=strdup(optarg);
+@@ -277,9 +277,10 @@ void parse_command_line (int argc, char **argv) {
+ 	if (use_events)
+ 		strncpy(eventData.events[event], "", 1);
+ 
+-	if (use_net)
++	if (use_net) {
+ 		strncpy(netdevtx[netcount], "", 1);
+ 		strncpy(netdevrx[netcount], "", 1);
++	}
+ 
+ 	if (noirq)
+ 		autoprobe=0;
+-- 
+2.1.0
+

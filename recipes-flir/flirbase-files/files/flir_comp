@@ -1,0 +1,166 @@
+_flir_comp() 
+{
+    # This function take 1 argument. 
+    # If the argument is '0' the function will only find 'directories'. Used for 'rcd'
+    # if the argument is '1' the function will find directories and key values, i.e. rls, rset
+
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts=""
+    rls_arg=""    # First part of argument before '.'
+    rls_grep=""   # the part after the last '.'
+
+    # example cur=appl.jo
+    # rls_args=appl
+    # rls_grep=jo
+
+    if [[ $cur == *.* ]]; then
+        rls_arg=${cur%.*}
+        rls_grep=${cur#$rls_arg.}
+    fi
+
+    # Do 'rls -l' to find our values. If in-argumen is '1' the we also want to 
+    # find the keyvalue
+    NODETYPE=exm   #default only find directories
+    if [ $1 == 1 ] ; then
+      NODETYPE=exmabidt
+    fi
+
+    if [[ ${cur:0:1} = '.' ]] ; then
+      # We are using an absolut path.
+      if [[ -z $rls_arg ]] ; then
+          rls_extra_arg="."
+      fi
+
+      
+      # The following is a bit hairy...
+      # When we do 'rls -l' we get some thing like this:
+      #  rw--r---r----- 0 root   root   <e> appl                             
+      #  rw----------1- 0 root   root   <e> calib        
+      #  rw--rw--rw---- 0 root   root   <a> systemOrigin          "TOP_LEFT" 
+      #           ["TOP_LEFT" "TOP_RIGHT" "BOTTOM_LEFT" "BOTTOM_RIGHT"]
+      #  rw--rw--rw---- 0 root   root   <b> partOfImgFlow               true 
+      #  rw--rw-------- 0 root   root   <a> position                   "out" 
+      # 
+      # To handle this we do:
+      # grep : find rows that starts 'rw-'
+      # awk -v : Replace multiple spaces with one 'tab', so 'cut' works better
+      # cut : extract only '<b> partOfImgFlow   true' part
+      # grep : if arg == '0' extract only directories, if arg '1' extract both directories and keys.
+      # awk : print only the name ( 'appl' )
+      rls_opts=`rls -l $rls_extra_arg$rls_arg | grep ^[rw-] | cut -c 17- | awk -v OFS="\t" '$1=$1' | cut -f3- | grep "^<[$NODETYPE]>" | awk '/<[exm]>/ { print $2"." } /<[abidt]>/ { print $2 }'`
+
+      # we found our values, add 'rls_arg' now.
+      # i.e. replace 'shutter' with '.image.flow.shutter' 
+      for v in $rls_opts 
+      do
+          opts="$opts $rls_arg.$v"
+      done
+
+      elif [[ ! -z $cur ]] || [[ -z $cut ]] && [[ ! $prev == *.* ]] ; then
+
+          # we are using relativ path
+          rls_opts=`rls -l ${rls_arg} | grep ^[rw-] | cut -c 17- | awk -v OFS="\t" '$1=$1' | cut -f3- | grep "^<[$NODETYPE]>" | awk '/<[exm]>/ { print $2"." } /<[abidt]>/ { print $2 }'`
+
+          #did we have any argument to 'rls'?
+          if [[ ! -z ${rls_arg} ]]; then 
+              #Yes, so we need to append the argument to our result string (opts)
+              for v in $rls_opts 
+              do
+                  opts="$opts $rls_arg.$v"
+              done
+          else
+          #No, arguments to rls, so use the result direct.
+              opts="$rls_opts"
+          fi 
+      fi
+  
+#     if [[ ${cur} == -* ]] ; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        # if we only have one result, check if it ends on '.'
+        # this mean that we found a directory and we tell
+        # bash NOT to add space after 'tab'
+        if [ ${#COMPREPLY[@]} == 1 ] ; then
+            len=${#COMPREPLY[0]}-1
+            lastchar=${COMPREPLY[0]:$len:1}
+# compopt is not present in bash 3.2.
+# replace with a call to complete -o nospace xxx ?
+#            if [ $lastchar == '.' ] ; then
+#               compopt -o nospace
+#            fi
+        fi
+
+        return 0
+#    fi
+}
+
+_rcd()
+{
+    _flir_comp 0
+}
+
+_rls()
+{
+    _flir_comp 1
+}
+
+_rset()
+{
+    _flir_comp 1
+}
+
+_rsubscr()
+{
+    _flir_comp 1
+}
+
+_rlet()
+{
+    _flir_comp 1
+}
+
+_rclone()
+{
+    _flir_comp 1
+}
+
+_rcreate()
+{
+    _flir_comp 1
+}
+
+_rdelete()
+{
+    _flir_comp 1
+}
+
+_rdump()
+{
+    _flir_comp 1
+}
+
+_rpoll()
+{
+    _flir_comp 1
+}
+
+_rverify()
+{
+    _flir_comp 1
+}
+
+complete -o nospace -F _rls rls
+complete -o nospace -F _rcd rcd
+complete -o nospace -F _rset rset
+complete -o nospace -F _rsubscr rsubscr
+complete -o nospace -F _rlet rlet
+complete -o nospace -F _rclone rclone
+complete -o nospace -F _rcreate rcreate
+complete -o nospace -F _rdelete rdelete
+complete -o nospace -F _rdump rdump
+complete -o nospace -F _rpoll rpoll
+complete -o nospace -F _rverify rverify
+
+alias rcd='source rcd.sh'

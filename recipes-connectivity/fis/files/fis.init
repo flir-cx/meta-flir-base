@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# S31fis
+#
+
+# This goes in /etc/init.d/ and gets run at boot-time.
+astart() {
+    echo "Starting fis service"
+    /usr/bin/fis &
+}
+
+astop() {
+    echo "Stopping fis service"
+    killall fis
+}
+
+case "$1" in
+
+    start)
+    	astart
+    ;;
+
+    stop)
+    	astop
+    ;;
+
+    restart)
+    	astop
+	sleep 2
+	astart
+    ;;
+
+    *)
+    echo "usage: $0 { start |  stop | restart }" >&2
+    exit 1
+    ;;
+
+esac

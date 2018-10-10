@@ -1,0 +1,25 @@
+From c42829a63b387a7e0dfd874da64aae49c3e58579 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bo=20Svang=C3=A5rd?= <bobo@larven.se>
+Date: Wed, 7 Dec 2016 12:45:36 +0100
+Subject: [PATCH] Change sleepd to use wakeupsources from other directory
+
+---
+ eventmonitor.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/eventmonitor.c b/eventmonitor.c
+index 49b28ec..ccd551c 100644
+--- a/eventmonitor.c
++++ b/eventmonitor.c
+@@ -40,7 +40,7 @@ void initializeIE(void) {
+ 		int result;
+ 		for (i=0; i<MAX_CHANNELS; i++) {
+ 			char devName[128];
+-			snprintf(devName, 127, "/dev/input/event%d",i);
++			snprintf(devName, 127, "/dev/input/wakeup/event%d",i);
+ 				result = access(devName, R_OK);
+ 				if (result == 0) {
+ 					strncpy(eventData.events[j], devName, 127);
+-- 
+1.9.1
+

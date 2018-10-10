@@ -1,0 +1,188 @@
+From: =?UTF-8?q?Bo=20Svang=C3=A5rd?= <bobo@larven.se>
+Date: Mon, 30 Jan 2017 11:01:25 +0100
+Subject: Write free diskspace to statfs file
+
+Patch merged with later fix and cleaned up by Mats K.
+---
+ daemon/Makefile    |  4 ++--
+ daemon/automount.c |  5 +++++
+ daemon/df.c        | 69 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ daemon/indirect.c  |  8 ++++++--
+ include/df.h       | 24 +++++++++++++++++++
+ 5 files changed, 106 insertions(+), 4 deletions(-)
+ create mode 100644 daemon/df.c
+ create mode 100644 include/df.h
+
+diff -pruN a/daemon/Makefile b/daemon/Makefile
+--- a/daemon/Makefile	2015-04-21 11:37:45.000000000 +0200
++++ b/daemon/Makefile	2017-07-07 10:54:29.104935747 +0200
+@@ -6,9 +6,9 @@
+ include ../Makefile.rules
+ 
+ SRCS = automount.c indirect.c direct.c spawn.c module.c mount.c \
+-	lookup.c state.c flag.c
++	lookup.c state.c flag.c df.c
+ OBJS = automount.o indirect.o direct.o spawn.o module.o mount.o \
+-	lookup.o state.o flag.o
++	lookup.o state.o flag.o df.o
+ 
+ version := $(shell cat ../.version)
+ 
+diff -pruN a/daemon/automount.c b/daemon/automount.c
+--- a/daemon/automount.c	2015-04-21 11:37:45.000000000 +0200
++++ b/daemon/automount.c	2017-07-07 11:05:37.856921954 +0200
+@@ -36,8 +36,11 @@
+ #include <dirent.h>
+ #include <sys/vfs.h>
+ #include <sys/utsname.h>
++#include <sys/statvfs.h>
++#include <sys/statfs.h>
+ 
+ #include "automount.h"
++#include "df.h"
+ #if defined(LIBXML2_WORKAROUND) || defined(TIRPC_WORKAROUND)
+ #include <dlfcn.h>
+ #ifdef WITH_LDAP
+@@ -1040,6 +1043,8 @@ int do_expire(struct autofs_point *ap, c
+ 
+ 	info(ap->logopt, "expiring path %s", buf);
+ 
++	write_diskfree(buf);
++
+ 	pthread_cleanup_push(master_source_lock_cleanup, ap->entry);
+ 	master_source_readlock(ap->entry);
+ 	ret = umount_multi(ap, buf, 1);
+diff -pruN a/daemon/df.c b/daemon/df.c
+--- a/daemon/df.c	1970-01-01 01:00:00.000000000 +0100
++++ b/daemon/df.c	2017-07-07 10:54:29.104935747 +0200
+@@ -0,0 +1,69 @@
++#include <sys/statvfs.h>
++#include <sys/statfs.h>
++#include <sys/file.h>
++#include "automount.h"
++#include <stdio.h>
++#include "df.h"
++
++struct df dfbuf[AUTOFS_MAX_MOUNTPOINTS];
++int df_firstempty=0;
++
++
++/** 
++ * Write statfs and statvfs structures to temporary file, which Appservices will
++ * read to get these structs on an autofs/automount enabled system
++ * 
++ * @param path 
++ * @param statvfsbuf 
++ * @param statfsbuf 
++ * @param ap 
++ * 
++ * @return 0 on success, else failure
++ */
++int write_diskfree(char *path)
++{
++	FILE *fd;
++	int i;
++
++	for(i=0; i < df_firstempty; i++){
++		if(strncmp(dfbuf[i].blockdev, path, sizeof(dfbuf[i].blockdev)) == 0){
++			//fprintf(stderr, "Matching pos %u mountpoint %s \n", i,path );
++			break;
++		}
++	}
++	//If blockdevice did not match any stored devices, make a new item!
++	if(i == df_firstempty){
++		df_firstempty++;
++		snprintf(dfbuf[i].blockdev,sizeof(dfbuf[i].blockdev), "%s", path);
++	}
++
++	statvfs(path, &dfbuf[i].statvfsbuf);
++	statfs(path, &dfbuf[i].statfsbuf);
++
++	fd = fopen("/tmp/statvfs","w");
++	int lock;
++	if(fd){
++		int j;
++		lock = flock(fileno(fd), LOCK_EX);
++		if(lock != 0){
++			fprintf(stderr, "Failed to aquire file lock\n");
++			fclose(fd);
++			return lock;
++		}
++
++		j= fwrite(dfbuf, 1, sizeof(dfbuf), fd);
++		j+=fwrite(&df_firstempty, 1, sizeof(df_firstempty), fd);
++
++		if(j != sizeof(dfbuf)+sizeof(df_firstempty)){
++			fprintf(stderr, "could not write all bytes to file statvfs\n");
++		}
++
++		lock = flock(fileno(fd), LOCK_UN);
++		if(lock != 0){
++			fprintf(stderr, "Failed to release lock\n");
++		}
++		fclose(fd);
++	}
++	return lock;
++
++}
+diff -pruN a/daemon/indirect.c b/daemon/indirect.c
+--- a/daemon/indirect.c	2015-04-21 11:37:45.000000000 +0200
++++ b/daemon/indirect.c	2017-07-07 12:04:42.392848849 +0200
+@@ -36,6 +36,7 @@
+ 
+ #define INCLUDE_PENDING_FUNCTIONS
+ #include "automount.h"
++#include "df.h"
+ 
+ /* Attribute to create detached thread */
+ extern pthread_attr_t th_attr_detached;
+@@ -550,9 +551,11 @@ void *expire_proc_indirect(void *arg)
+ 	pthread_cleanup_push(mnts_cleanup, mnts);
+ 	/* Are there any real mounts left */
+ 	for (next = mnts; next; next = next->next) {
+-		if (strcmp(next->fs_type, "autofs"))
++		if (strcmp(next->fs_type, "autofs")) {
+ 			count++;
+-		else {
++			info(ap->logopt, "mount points %s", next->path);
++			write_diskfree(next->path);
++		} else {
+ 			if (strstr(next->opts, "indirect"))
+ 				submnts++;
+ 			else
+@@ -775,6 +778,7 @@ static void *do_mount_indirect(void *arg
+ 		ops->send_ready(ap->logopt,
+ 				ap->ioctlfd, mt.wait_queue_token);
+ 		info(ap->logopt, "mounted %s", buf);
++		write_diskfree(buf);
+ 	} else {
+ 		/* TODO: get mount return status from lookup_nss_mount */
+ 		ops->send_fail(ap->logopt,
+diff -pruN a/include/df.h b/include/df.h
+--- a/include/df.h	1970-01-01 01:00:00.000000000 +0100
++++ b/include/df.h	2017-07-07 10:54:29.104935747 +0200
+@@ -0,0 +1,24 @@
++/*
++ * df.h
++ *
++ * Header file for diskfree writer modules
++ *
++ */
++
++#ifndef DF_H
++#define DF_H
++
++#include <sys/statvfs.h>
++#include <sys/statfs.h>
++#include "automount.h"
++
++#define AUTOFS_MAX_MOUNTPOINTS 10
++struct df {
++	char blockdev[100];
++	struct statvfs statvfsbuf;
++	struct statfs statfsbuf;
++};
++
++int write_diskfree(char *path);
++
++#endif

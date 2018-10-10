@@ -1,0 +1,75 @@
+#!/bin/sh
+#
+# preinit for BBLC
+# To be run as kernel init (kernel command line with init=/sbin/preinit 
+# to setup new rootfs
+# before calling standard init (systemd)
+
+ROOTFS_RW=mmcblk0p4
+
+echo "preinit - prepare and boot overlay rootfs" >/dev/kmsg
+
+# We need /proc to be able to find mtab (which mount -o remount uses)
+mount -t proc none /proc
+
+# We do need /tmp for aufs mount to work
+mount -t tmpfs tmpfs /tmp
+
+# And we also use /tmp for temporary mount points
+mkdir -p /tmp/aufs/rofs
+mkdir -p /tmp/aufs/rwfs
+# Try to mount the rootfsrw volume as our overlay
+mount /dev/${ROOTFS_RW} /tmp/aufs/rwfs
+if test $? -ne 0 ; then
+   echo "preinit: mount ${ROOTFS_RW} failed (not ext4 formatted?)" >/dev/kmsg
+   echo "preinit: starting init with original rootfs" >/dev/kmsg
+   umount -l /proc
+   umount /tmp/aufs/rwfs
+   umount /tmp/aufs/rofs
+   rm -rf /tmp/*
+   umount /tmp
+
+   exec /sbin/init
+#  No return
+fi
+
+# Setup our current (ext4) rootfs on temporary rofs mount point
+mount --bind / /tmp/aufs/rofs
+
+mkdir -p /tmp/aufs/rwfs/upper/
+mkdir -p /tmp/aufs/rwfs/workdir/
+
+# mount the new overlayfs rootfs on /aufs
+mount -t overlay -o lowerdir=/tmp/aufs/rofs,upperdir=/tmp/aufs/rwfs/upper,workdir=/tmp/aufs/rwfs/workdir none /aufs
+
+
+# if the aufs mount did not succeed
+if test $? -ne 0 ; then
+   echo "preinit:overlayfs mount failed, starting init with original rootfs" >/dev/kmsg
+   umount -l /proc
+   umount /tmp/aufs/rwfs
+   umount /tmp/aufs/rofs
+   rm -rf /tmp/*
+   umount /tmp
+
+   exec /sbin/init
+#  No return
+fi
+
+echo "preinit: overlay rootfs mount successful" > /dev/kmsg
+
+# Expose our aufs parts as mount points in new rootfs 
+# (mountpoints supposed to exist)
+mount --move /tmp/aufs/rwfs /aufs/aufs/rwfs
+mount --move /tmp/aufs/rofs /aufs/aufs/rofs
+mount -o remount,ro /aufs/aufs/rofs
+
+# Some cleanup
+umount -l /proc
+#umount /tmp
+
+echo "preinit:continue boot with /sbin/init in overlay rootfs" >/dev/kmsg
+
+# change root and start systemd
+exec /usr/sbin/chroot /aufs /sbin/init
+# No return

@@ -1,0 +1,1 @@
+alias rpwd='echo ${RPWD}'
