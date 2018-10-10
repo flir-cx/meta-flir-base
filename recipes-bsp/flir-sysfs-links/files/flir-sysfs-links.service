@@ -1,0 +1,15 @@
+[Unit]
+Description=First boot creation of FLIR sysfs links
+DefaultDependencies=no
+Conflicts=shutdown.target
+After=systemd-remount-fs.service
+Before=systemd-sysusers.service sysinit.target shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/set-sysfs-links.sh
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,11 @@
+[Unit]
+Description=Simple script to start updonmount service
+
+[Service]
+Type=forking
+ExecStart=/sbin/updonmount.sh
+ExecStop=/bin/kill -HUP $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

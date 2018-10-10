@@ -1,0 +1,18 @@
+# combtab file for BBLC
+# This file should be present as different filenames in 
+# appkit, prodkit, userwebkit and OS project directory 
+TYPE combtab
+#unique file identifier
+DATE	2018-10-08
+# Newest date for any combtab file identifies file to use.
+# We cannot rely on file date because that might change when transfering files 
+KITS osimgkit, appkit, userwebkit, webaccesskit, prodkit
+# KITS line identifies resource branch for columns used in file. comma separated.
+SHORT os, app, web, wacc, prod
+# SHORT line identifies kits in the concatenated fullver resource. comma separated.
+COMBINATIONS
+# this line identifies that table starts. 
+# table lines comma separated as KITS above
+# KITS   osimgkit,      appkit, userwebkit, webaccesskit, prodkit
+0.0,	 *,	        *,	 *,         *,         *
+# main releases

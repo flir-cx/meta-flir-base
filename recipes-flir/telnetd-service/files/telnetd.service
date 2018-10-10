@@ -1,0 +1,11 @@
+[Unit]
+Description=telnetd service (only to activate on demand)
+After=
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStart=/usr/sbin/telnetd
+ExecStop=/usr/bin/killall telnetd
+
+[Install]

@@ -1,0 +1,13 @@
+[Unit]
+Description=screen detached output service
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStart=/usr/bin/screen -A -d -m -S autoscreen
+ExecStop=/usr/bin/screen -S autoscreen -X quit
+Environment="LD_LIBRARY_PATH=/FLIR/usr/lib" "PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/root/bin:/FLIR/usr/bin"
+
+[Install]
+
+
