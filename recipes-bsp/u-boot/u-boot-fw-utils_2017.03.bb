@@ -9,17 +9,19 @@ DEPENDS = "mtd-utils"
 # repo during parse
 
 NXP_REPO_MIRROR ?= "nxp/"
-SRCBRANCH = "${NXP_REPO_MIRROR}imx_v2017.03_4.9.11_1.0.0_ga"
+SRCBRANCH = "imx_v2017.03_4.9.88_2.0.0_ga"
+#SRCBRANCH = "${NXP_REPO_MIRROR}imx_v2017.03_4.9.11_1.0.0_ga"
 UBOOT_SRC ?= "git://source.codeaurora.org/external/imx/uboot-imx.git;protocol=https"
 SRC_URI = "${UBOOT_SRC};branch=${SRCBRANCH}"
-SRCREV = "a2fea67d3eb3092f19f250d53a4a27fa1a0c815f"
+SRCREV = "b76bb1bf9fd21e21006d79552e28855ac43ad43c"
+#SRCREV = "a2fea67d3eb3092f19f250d53a4a27fa1a0c815f"
 
 #PV = "v2016.03+git${SRCPV}"
 
 S = "${WORKDIR}/git"
 
 INSANE_SKIP_${PN} = "already-stripped"
-EXTRA_OEMAKE_class-target = 'CROSS_COMPILE=${TARGET_PREFIX} CC="${CC} ${CFLAGS} ${LDFLAGS}" V=1'
+EXTRA_OEMAKE_class-target = 'CROSS_COMPILE=${TARGET_PREFIX} CC="${CC} ${CFLAGS} ${LDFLAGS}" HOSTCC="${BUILD_CC} ${BUILD_CFLAGS} ${BUILD_LDFLAGS}" V=1'
 EXTRA_OEMAKE_class-cross = 'ARCH=${TARGET_ARCH} CC="${CC} ${CFLAGS} ${LDFLAGS}" V=1'
 
 inherit uboot-config
@@ -43,7 +45,13 @@ do_install_class-cross () {
 	install -m 755 ${S}/tools/env/fw_printenv ${D}${bindir_cross}/fw_setenv
 }
 
-SYSROOT_DIRS_append_class-cross = " ${bindir_cross}"
+SYSROOT_PREPROCESS_FUNCS_class-cross = "uboot_fw_utils_cross"
+uboot_fw_utils_cross() {
+    sysroot_stage_dir ${D}${bindir_cross} ${SYSROOT_DESTDIR}${bindir_cross}
+}
+
+PROVIDES += "u-boot-fw-utils"
+RPROVIDES_${PN} += "u-boot-fw-utils"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 BBCLASSEXTEND = "cross"

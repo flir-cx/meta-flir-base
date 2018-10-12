@@ -82,6 +82,7 @@ IMAGE_INSTALL = " \
     systemd-compat-units \
     telnetd-service \
     tzdata \
+    u-boot-fw-utils \
     u-boot-script \
     udev \
     udev-extraconf \

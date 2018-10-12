@@ -1,0 +1,41 @@
+From 7e99e14d4ba2533a07adc3d97e06cadc41d12908 Mon Sep 17 00:00:00 2001
+From: Michael Heimpold <mhei@heimpold.de>
+Date: Mon, 20 May 2013 21:34:42 +0200
+Subject: [PATCH] tools/fw_env: use fsync to ensure that data is physically
+ stored
+
+Closing a file descriptor does not guarantee that the data has been
+successfully saved to disk, as the kernel might defer the write.
+
+Signed-off-by: Michael Heimpold <mhei@heimpold.de>
+---
+ tools/env/fw_env.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/tools/env/fw_env.c b/tools/env/fw_env.c
+index 2861656..c9c79e0 100644
+--- a/tools/env/fw_env.c
++++ b/tools/env/fw_env.c
+@@ -1088,7 +1088,19 @@ static int flash_io (int mode)
+ 
+ 		rc = flash_write (fd_current, fd_target, dev_target);
+ 
++		if (fsync (fd_current)) {
++			fprintf (stderr,
++				 "fsync failed on %s: %s\n",
++				 DEVNAME (dev_current), strerror (errno));
++		}
++
+ 		if (HaveRedundEnv) {
++			if (fsync (fd_target)) {
++				fprintf (stderr,
++					 "fsync failed on %s: %s\n",
++					 DEVNAME (dev_current), strerror (errno));
++			}
++
+ 			if (close (fd_target)) {
+ 				fprintf (stderr,
+ 					"I/O error on %s: %s\n",
+-- 
+1.9.1
+
