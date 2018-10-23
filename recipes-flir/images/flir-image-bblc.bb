@@ -62,8 +62,6 @@ IMAGE_INSTALL = " \
     libevdev \
     mmc-utils \
     mtd-utils \
-    mtd-utils-jffs2 \
-    mtd-utils-ubifs \
     nano \
     ncurses-libpanelw \
     opkg \
