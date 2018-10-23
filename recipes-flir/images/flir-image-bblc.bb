@@ -34,15 +34,12 @@ IMAGE_INSTALL = " \
     e2fsprogs \
     exfat-utils \        
     firmware-redpine \
-    fis-service \
-    fis-worker \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
     flirmisc \
     fliruseradd \
     ftpd-service \
-    fulverify \
     getherload \
     glibmm \
     gstreamer1.0-plugins-bad \
@@ -59,7 +56,6 @@ IMAGE_INSTALL = " \
     kernel-module-g-ether \
     kernel-module-g-mass-storage \
     kmod \
-    lepton-m4 \
     libevdev \
     mmc-utils \
     mtd-utils \
@@ -85,7 +81,6 @@ IMAGE_INSTALL = " \
     u-boot-script \
     udev \
     udev-extraconf \
-    updonmount \
 "
 
 IMAGE_PREPROCESS_COMMAND += "rootfs_update_timestamp ;\
