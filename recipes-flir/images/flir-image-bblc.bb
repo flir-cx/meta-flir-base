@@ -51,6 +51,7 @@ IMAGE_INSTALL = " \
     gstreamer1.0-plugins-base-videorate \
     gstreamer1.0-rtsp-server \
     i2c-tools \
+    imx-gst1.0-plugin \
     kernel \
     kernel-devicetree \
     kernel-image \
