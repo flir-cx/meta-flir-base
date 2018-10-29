@@ -49,6 +49,7 @@ IMAGE_INSTALL = " \
     gstreamer1.0-rtsp-server \
     i2c-tools \
     imx-gst1.0-plugin \
+    iputils-ping \
     kernel \
     kernel-devicetree \
     kernel-image \
@@ -67,6 +68,7 @@ IMAGE_INSTALL = " \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     parted \
+    rndisload \
     screen \
     screen-service \
     sleepd \
@@ -81,6 +83,7 @@ IMAGE_INSTALL = " \
     u-boot-script \
     udev \
     udev-extraconf \
+    wifi-test-suite \
 "
 
 IMAGE_PREPROCESS_COMMAND += "rootfs_update_timestamp ;\
