@@ -1,0 +1,29 @@
+From 2265bae0daa63c00843cfb4780fceb52c3746299 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Wed, 4 Jul 2018 16:03:22 +0200
+Subject: [PATCH] Improved associate
+
+Signed-off-by: Peter Fitger <peter.fitger@flir.se>
+---
+ lib/wfa_cs.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/lib/wfa_cs.c b/lib/wfa_cs.c
+index c7e6c78..8057a69 100644
+--- a/lib/wfa_cs.c
++++ b/lib/wfa_cs.c
+@@ -154,7 +154,10 @@ int wfaStaAssociate(int len, BYTE *caCmdBuf, int *respLen, BYTE *respBuf)
+          *  use 'wpa_cli' command to force a 802.11 re/associate
+          *  (wpa_supplicant specific)
+          */
+-        sprintf(gCmdStr, "wpa_cli -i%s reassociate", ifname);
++        sprintf(gCmdStr, "wpa_cli -i%s disable_network 0", ifname);
++        sret = system(gCmdStr);
++
++	sprintf(gCmdStr, "wpa_cli -i%s enable_network 0", ifname);
+         sret = system(gCmdStr);
+     }
+ 
+-- 
+1.9.1
+

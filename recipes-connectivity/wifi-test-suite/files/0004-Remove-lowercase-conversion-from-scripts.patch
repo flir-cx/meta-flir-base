@@ -1,0 +1,77 @@
+From 4c85b82810e174075e9b7f7e737b194e0ae0be8e Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Wed, 15 Feb 2017 17:08:25 +0100
+Subject: [PATCH] Remove lowercase conversion from scripts
+
+---
+ scripts/dev_send_frame | 10 +++++-----
+ scripts/sta_reset_parm |  8 ++++----
+ 2 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/scripts/dev_send_frame b/scripts/dev_send_frame
+index 9e6afd3..9a2dea2 100644
+--- a/scripts/dev_send_frame
++++ b/scripts/dev_send_frame
+@@ -87,23 +87,23 @@ done
+ for (( i = 0 ; i < $# ;  ))  ##### for params in $* do loop
+ do
+     tmp=${array_list[$i]}
+-    if [ ${tmp,,} = "/interface" ] ; then
++    if [ ${tmp} = "/interface" ] ; then
+       
+       ((i++))
+       tmp=${array_list[$i]}  # find next arg
+-      interfacename=${tmp,,}
++      interfacename=${tmp}
+       #echo "find interface $tmp"
+     fi
+ 
+-    if [ ${tmp,,} = "/framename" ] ; then
++    if [ ${tmp} = "/framename" ] ; then
+       ((i++))
+       
+       tmp=${array_list[$i]}  # find next arg
+-      framename=${tmp,,}
++      framename=${tmp}
+       #echo "find frame name $tmp"
+     fi
+ 
+-    if [ ${tmp,,} = "/nframes" ] ; then
++    if [ ${tmp} = "/nframes" ] ; then
+       ((i++))
+       
+       nframes=${array_list[$i]}  # find next arg
+diff --git a/scripts/sta_reset_parm b/scripts/sta_reset_parm
+index 2aff1f1..9f9d41f 100644
+--- a/scripts/sta_reset_parm
++++ b/scripts/sta_reset_parm
+@@ -44,14 +44,14 @@ done
+ for (( i = 0 ; i < $# ;  ))  ##### for params in $* do loop
+ do
+     tmp=${array_list[$i]}
+-    if [ ${tmp,,} = "/interface" ] ; then
++    if [ ${tmp} = "/interface" ] ; then
+       ((i++))
+       tmp=${array_list[$i]}  # find next arg
+-      interfacename=${tmp,,}
++      interfacename=${tmp}
+       #echo "find interface $interfacename"
+     fi
+ 
+-    if [ ${tmp,,} = "/arp" ] ; then
++    if [ ${tmp} = "/arp" ] ; then
+       ((i++))
+       if [ $i = $# ] ; then
+          ipaddress="x"
+@@ -59,7 +59,7 @@ do
+          ##echo " find empty arp param $ipaddress D"
+       else
+         tmp=${array_list[$i]}  ## find next arg
+-        ipaddress=${tmp,,}
++        ipaddress=${tmp}
+       fi
+       ##echo "find ipaddress $ipaddress"
+     fi
+-- 
+1.9.1
+
