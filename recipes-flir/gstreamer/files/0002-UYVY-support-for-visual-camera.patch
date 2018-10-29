@@ -1,0 +1,24 @@
+From dec4ec48de97403cafc1e77f91e43568f14f143c Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Mon, 29 Oct 2018 10:04:55 +0100
+Subject: [PATCH] UYVY support for visual camera
+
+---
+ libs/v4l2_core/gstimxv4l2.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/libs/v4l2_core/gstimxv4l2.c b/libs/v4l2_core/gstimxv4l2.c
+index a801d3e..70dd87e 100755
+--- a/libs/v4l2_core/gstimxv4l2.c
++++ b/libs/v4l2_core/gstimxv4l2.c
+@@ -190,6 +190,7 @@ static IMXV4l2FmtMap g_imxv4l2fmt_maps_PXP[] = {
+ 
+ static IMXV4l2FmtMap g_imxv4l2fmt_maps_RPMSG[] = {
+   {GST_VIDEO_CAPS_MAKE("xRGB"), V4L2_PIX_FMT_RGB32, GST_VIDEO_FORMAT_xRGB, 32, 0},
++  {GST_VIDEO_CAPS_MAKE("UYVY"), V4L2_PIX_FMT_UYVY, GST_VIDEO_FORMAT_UYVY, 16, 0},
+ };
+ 
+ static guint g_camera_format[] = {
+-- 
+1.9.1
+
