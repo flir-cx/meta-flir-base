@@ -1,0 +1,25 @@
+From 7a98c6bff2a66d733dda839a02877a69e916215d Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Wed, 15 Feb 2017 17:07:21 +0100
+Subject: [PATCH] Increased MAX_PARAMS_BUFF
+
+---
+ inc/wfa_main.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/inc/wfa_main.h b/inc/wfa_main.h
+index 1fb174b..a0ba6d7 100644
+--- a/inc/wfa_main.h
++++ b/inc/wfa_main.h
+@@ -33,7 +33,7 @@
+ #endif
+ 
+ #define MAX_CMD_BUFF        1024
+-#define MAX_PARMS_BUFF      640
++#define MAX_PARMS_BUFF      700
+ 
+ #define MAX_TRAFFIC_BUF_SZ  1536
+ 
+-- 
+1.9.1
+

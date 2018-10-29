@@ -1,0 +1,42 @@
+From a9bbd2ce1c30d44842efb93f2717674c63cb4c2b Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Fri, 5 Oct 2018 12:51:00 +0200
+Subject: [PATCH] Build for target instead of native
+
+---
+ Makefile.inc | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile.inc b/Makefile.inc
+index b0edf5a..ad2a5b6 100644
+--- a/Makefile.inc
++++ b/Makefile.inc
+@@ -13,14 +13,14 @@
+ # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE
+ # USE OR PERFORMANCE OF THIS SOFTWARE.
+ #
+-CC = gcc
++#CC = gcc
+ LIB=lib
+ DUT=dut
+ CA=ca
+ UCC=ucc
+ CON=console_src
+ WTG=WTGService
+-MAKE=make
++#MAKE=make
+ 
+ # This is for WMM-PS
+ #for Ext TG
+@@ -42,7 +42,7 @@ MAKE=make
+ #CFLAGS = -g -O2 -D_REENTRANT  -DWFA_WMM_PS_EXT -DWFA_WMM_AC -DWFA_PC_CONSOLE -DWFA_STA_TB -Wall -I../inc
+ 
+ # This is for WPA2 as default
+-CFLAGS = -g -O2 -D_REENTRANT -Wall -I../inc
++CFLAGS = -g -O2 -D_REENTRANT -DWFA_STA_TB -Wall -I../inc
+ 
+ DUTLIBS = ../lib/libwfa_dut.a -lpthread
+ CALIBS = ../lib/libwfa_ca.a -lpthread
+-- 
+1.9.1
+

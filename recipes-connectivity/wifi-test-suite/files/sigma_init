@@ -1,0 +1,15 @@
+#! /bin/sh
+
+rfkill unblock 0
+systemctl stop wpa_supplicant
+killall connmand
+sleep 2
+wpa_supplicant -d -t -iwlan0 -Dnl80211 -c/etc/wpa_supplicant.conf > /tmp/wpa.log &
+sleep 3
+wfa_dut lo 8111 &
+export WFA_ENV_AGENT_IPADDR=127.0.0.1
+export WFA_ENV_AGENT_PORT=8111
+sleep 3
+wfa_ca usb0 9000 &
+wpa_cli -iwlan0 add_network
+

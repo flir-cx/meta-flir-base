@@ -1,0 +1,26 @@
+From 3e4647914a232c770e2ec2c8427056993ae4f9ac Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Thu, 19 Nov 2015 14:38:06 +0100
+Subject: [PATCH] Use wlan0 as interface
+
+Signed-off-by: Peter Fitger <peter.fitger@flir.se>
+---
+ inc/wfa_portall.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/inc/wfa_portall.h b/inc/wfa_portall.h
+index 5774d01..f0fc4cd 100644
+--- a/inc/wfa_portall.h
++++ b/inc/wfa_portall.h
+@@ -19,7 +19,7 @@
+ /* The fixed definition for the device interface name */
+ /* For different OSes or your platforms, you may not  */
+ /* need to use fixed definition                       */
+-#define WFA_STAUT_IF        "eth1"
++#define WFA_STAUT_IF        "wlan0"
+ 
+ /* the path to store EAP certificates. This is used   */
+ /* for Linux-like OS for wpa_supplicant               */
+-- 
+2.1.4
+

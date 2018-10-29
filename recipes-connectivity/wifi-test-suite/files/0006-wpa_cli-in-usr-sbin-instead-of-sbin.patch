@@ -1,0 +1,25 @@
+From 5f2f7a156c8d1c9c26dce4a5ab20261719c03bdf Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Tue, 28 Feb 2017 16:36:42 +0100
+Subject: [PATCH] wpa_cli in /usr/sbin instead of /sbin
+
+---
+ lib/wfa_cs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/wfa_cs.c b/lib/wfa_cs.c
+index 6b1f5a2..c7e6c78 100644
+--- a/lib/wfa_cs.c
++++ b/lib/wfa_cs.c
+@@ -256,7 +256,7 @@ int wfaStaIsConnected(int len, BYTE *caCmdBuf, int *respLen, BYTE *respBuf)
+      * use 'wpa_cli' command to check the interface status
+      * none, scanning or complete (wpa_supplicant specific)
+      */
+-    sprintf(gCmdStr, "/sbin/wpa_cli -i%s status | grep ^wpa_state= | cut -f2- -d= > /tmp/.isConnected", ifname);
++    sprintf(gCmdStr, "/usr/sbin/wpa_cli -i%s status | grep ^wpa_state= | cut -f2- -d= > /tmp/.isConnected", ifname);
+     sret = system(gCmdStr);
+ 
+     /*
+-- 
+1.9.1
+
