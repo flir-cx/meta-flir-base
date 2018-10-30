@@ -69,7 +69,7 @@ do
 done
 
 if [ -z "$DISTRO" ]; then
-    DISTRO=fsl-fb
+    DISTRO=flir
 fi
 
 if [ -z "$DISTRO" ]; then
