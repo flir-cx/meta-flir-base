@@ -69,6 +69,7 @@ IMAGE_INSTALL = " \
     packagegroup-flir-gstreamer \
     parted \
     rndisload \
+    rpmsg-bifrost \
     screen \
     screen-service \
     sleepd \
