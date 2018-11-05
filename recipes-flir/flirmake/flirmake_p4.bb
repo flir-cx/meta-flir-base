@@ -8,8 +8,8 @@ LICENSE = "CLOSED"
 DEPENDS = ""
 PR = "r1"
 
-FETCHCOMMAND_p4 = "p4"
-HOSTTOOLS_append= " p4"
+# HOSTTOOLS_append= " p4" set in flir.conf, needs to be global
+
 P4PORT = "sed-ext03.zone2.flir.net:1666"
 SRCREV = "188200"
 PV = "p4-${SRCPV}"
