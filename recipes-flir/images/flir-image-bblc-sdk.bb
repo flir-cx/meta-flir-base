@@ -4,15 +4,15 @@
 require flir-image-bblc.bb
 
 IMAGE_INSTALL += " \ 
+    alsa-dev \
     breakpad \
     breakpad-staticdev \
-    flirbifrost-dev \
+    gperftools \
     gupnp \
-    alsa-dev \
     kernel-dev \
     kernel-devsrc \
+    rpmsg-bifrost-dev \
     zlib-dev \
-    gperftools \
 "
 
 cleanup_rootfs() {
