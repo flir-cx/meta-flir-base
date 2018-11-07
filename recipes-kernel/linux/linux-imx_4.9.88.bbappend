@@ -17,5 +17,6 @@ SRC_URI_append = " \
     file://0019-Update-Redpine-driver-version.patch \
     file://0020-OV5640-camera-and-VIU-capture-driver.patch \
     file://0021-Add-EDT-touchscreen-to-DT.patch \
+    file://0022-Avoid-system-hangup-on-MU_SendMessage-failure.patch \
     file://defconfig \
 "
