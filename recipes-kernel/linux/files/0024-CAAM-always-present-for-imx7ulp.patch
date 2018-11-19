@@ -1,0 +1,26 @@
+From e2c4d83e870670609760e43203443a9397ea7369 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Fri, 16 Nov 2018 09:27:59 +0100
+Subject: [PATCH] CAAM always present for imx7ulp
+
+Misstake by freescale
+---
+ drivers/crypto/caam/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/crypto/caam/Kconfig b/drivers/crypto/caam/Kconfig
+index e3803d1..71ee8ec 100644
+--- a/drivers/crypto/caam/Kconfig
++++ b/drivers/crypto/caam/Kconfig
+@@ -126,7 +126,7 @@ config CRYPTO_DEV_FSL_CAAM_RNG_API
+ 	  will be called caamrng.
+ 
+ config CRYPTO_DEV_FSL_CAAM_IMX
+-	def_bool SOC_IMX6 || SOC_IMX7D || HAVE_IMX8_SOC
++	def_bool SOC_IMX6 || SOC_IMX7D || SOC_IMX7ULP || HAVE_IMX8_SOC
+ 	depends on CRYPTO_DEV_FSL_CAAM
+ 
+ 
+-- 
+1.9.1
+
