@@ -18,5 +18,9 @@ SRC_URI_append = " \
     file://0020-OV5640-camera-and-VIU-capture-driver.patch \
     file://0021-Add-EDT-touchscreen-to-DT.patch \
     file://0022-Avoid-system-hangup-on-MU_SendMessage-failure.patch \
+    file://0023-DT-Set-up-for-standby.patch \
+    file://0024-CAAM-always-present-for-imx7ulp.patch \
+    file://0025-ov5640-Implement-suspend-and-resume.patch \
+    file://0026-CPUFREQ-Wait-for-regulators-to-register.patch \
     file://defconfig \
 "
