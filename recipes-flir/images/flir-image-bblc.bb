@@ -27,6 +27,7 @@ IMAGE_INSTALL = " \
     aufsrootfs \
     autofs \
     bash \
+    bluez5 \
     connman \
     connman-client \
     crda \
@@ -34,6 +35,7 @@ IMAGE_INSTALL = " \
     e2fsprogs \
     exfat-utils \        
     firmware-redpine \
+    firmware-qca9377 \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
@@ -49,6 +51,7 @@ IMAGE_INSTALL = " \
     gstreamer1.0-rtsp-server \
     i2c-tools \
     imx-gst1.0-plugin \
+    iperf3 \
     iputils-ping \
     kernel \
     kernel-devicetree \
@@ -56,6 +59,7 @@ IMAGE_INSTALL = " \
     kernel-modules \
     kernel-module-g-ether \
     kernel-module-g-mass-storage \
+    kernel-module-qcacld \
     kmod \
     libevdev \
     mmc-utils \
