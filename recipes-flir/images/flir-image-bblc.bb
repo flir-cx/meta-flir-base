@@ -72,6 +72,7 @@ IMAGE_INSTALL = " \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     parted \
+    qtbase \
     rndisload \
     rpmsg-bifrost \
     screen \
@@ -89,6 +90,9 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     wifi-test-suite \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
+		     'weston weston-init \
+		      qtwayland qtwayland-plugins', '', d)} \
 "
 
 IMAGE_PREPROCESS_COMMAND += "rootfs_update_timestamp ;\
