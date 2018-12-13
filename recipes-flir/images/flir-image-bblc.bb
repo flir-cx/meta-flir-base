@@ -12,9 +12,9 @@ TOOLCHAIN_HOST_TASK_append = "\
 
 LICENSE = "CLOSED"
 
-# ensure that license files accompany each binary in final image  
-COPY_LIC_MANIFEST = "1"  
-COPY_LIC_DIRS = "1"  
+# ensure that license files accompany each binary in final image
+COPY_LIC_MANIFEST = "1"
+COPY_LIC_DIRS = "1"
 
 TEST_SUITES = "ping ssh flir_test_valid_platform df connman builddate scp python gst1-0-fsl-plugin dmesg2 \
                flirsystemd wi-fi bluetooth sysfs standby wi-fi bluetooth mmdc"
@@ -25,7 +25,6 @@ DISTRO_SSH_DAEMON ?= "openssh"
 IMAGE_INSTALL = " \
     ${DISTRO_SSH_DAEMON} \
     aufsrootfs \
-    autofs \
     bash \
     bluez5 \
     connman \
@@ -33,7 +32,7 @@ IMAGE_INSTALL = " \
     crda \
     dosfstools \
     e2fsprogs \
-    exfat-utils \        
+    exfat-utils \ 
     firmware-redpine \
     firmware-qca9377 \
     flir-sysfs-links-service \
