@@ -73,6 +73,7 @@ IMAGE_INSTALL = " \
     packagegroup-flir-gstreamer \
     parted \
     qtbase \
+    qtgraphicaleffects \
     rndisload \
     rpmsg-bifrost \
     screen \
