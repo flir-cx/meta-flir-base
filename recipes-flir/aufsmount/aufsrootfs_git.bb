@@ -8,25 +8,22 @@ PR = "r1"
 PV = "1.0"
 PACKAGES = "${PN}"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
-
 FILES_${PN} = "\
-  ${base_sbindir} \
-  ${base_sbindir}/preinit \
-  /aufs \
-  /aufs/rofs \
-  /aufs/rwfs \
+    ${base_sbindir} \
+    ${base_sbindir}/preinit \
+    /aufs \
+    /aufs/rofs \
+    /aufs/rwfs \
 "
 
 SRC_URI += " \
-           file://preinit \  
-	   "
+            file://preinit \
+    "
 
 do_install() {
-	   install -m 0755 -d ${D}/aufs
-	   install -m 0755 -d ${D}/aufs/rofs
-	   install -m 0755 -d ${D}/aufs/rwfs
-           install -d ${D}${base_sbindir}
-	   install -m 0755 ${WORKDIR}/preinit ${D}${base_sbindir}
+    install -m 0755 -d ${D}/aufs
+    install -m 0755 -d ${D}/aufs/rofs
+    install -m 0755 -d ${D}/aufs/rwfs
+    install -d ${D}${base_sbindir}
+    install -m 0755 ${WORKDIR}/preinit ${D}${base_sbindir}
 }
