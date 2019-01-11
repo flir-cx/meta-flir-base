@@ -1,0 +1,33 @@
+From ec841eda52f69f2d30061175a1efdb43682ad29a Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Thu, 10 Jan 2019 17:04:47 +0100
+Subject: [PATCH] Makefile corrected for Yocto
+
+Removed unused USB code that does not compile
+---
+ Makefile | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 68243ba..d1343fb 100644
+--- a/Makefile
++++ b/Makefile
+@@ -16,12 +16,12 @@
+ #*
+ #******************************************************************************
+ 
+-LDLIBS = -lbluetooth
++# LDLIBS = -lbluetooth
+ # CFLAGS=-g
+ 
+-CFLAGS=
++# CFLAGS=
+ 
+-all : brcm_patchram_plus brcm_patchram_plus_h5 brcm_patchram_plus_usb
++all : brcm_patchram_plus brcm_patchram_plus_h5
+ 
+ brcm_patchram_plus_h5 : brcm_patchram_plus_h5.o
+ 
+-- 
+1.9.1
+

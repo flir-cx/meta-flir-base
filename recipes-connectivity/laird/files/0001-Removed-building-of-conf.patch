@@ -1,0 +1,47 @@
+From 47bdf1c491956c5006b31d9681ad78b85f9f5d84 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Fri, 8 Apr 2016 09:44:20 +0200
+Subject: [PATCH] Removed building of conf
+
+Conf will be built for target instead of host
+---
+ Makefile.real | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/Makefile.real b/Makefile.real
+index 4eac8c7..6e48405 100644
+--- a/Makefile.real
++++ b/Makefile.real
+@@ -13,7 +13,6 @@ export CONFIG_=CPTCFG_
+ 
+ .PHONY: menuconfig
+ menuconfig:
+-	@$(MAKE) -C kconf mconf
+ 	@./kconf/mconf Kconfig
+ 
+ .PHONY: listnewconfig oldaskconfig oldconfig \
+@@ -24,21 +23,17 @@ listnewconfig oldaskconfig oldconfig \
+ silentoldconfig olddefconfig oldnoconfig \
+ allnoconfig allyesconfig allmodconfig \
+ alldefconfig randconfig:
+-	@$(MAKE) -C kconf conf
+ 	@./kconf/conf --$@ Kconfig
+ 
+ .PHONY: usedefconfig
+ usedefconfig:
+-	@$(MAKE) -C kconf conf
+ 	@./kconf/conf --defconfig=defconfig Kconfig
+ 
+ .PHONY: savedefconfig
+ savedefconfig:
+-	@$(MAKE) -C kconf conf
+ 	@./kconf/conf --savedefconfig=defconfig Kconfig
+ 
+ defconfig-%::
+-	@$(MAKE) -C kconf conf
+ 	@./kconf/conf --defconfig=defconfigs/$(@:defconfig-%=%) Kconfig
+ 
+ .config:
+-- 
+2.5.0
+
