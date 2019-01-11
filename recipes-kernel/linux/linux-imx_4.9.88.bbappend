@@ -22,6 +22,7 @@ SRC_URI_append = " \
     file://0024-CAAM-always-present-for-imx7ulp.patch \
     file://0025-ov5640-Implement-suspend-and-resume.patch \
     file://0026-CPUFREQ-Wait-for-regulators-to-register.patch \
+    file://0027-DT-Bluetooth-UART-corrected.patch \
     file://defconfig \
 "
 
