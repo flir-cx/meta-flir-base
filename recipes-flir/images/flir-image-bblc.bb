@@ -27,12 +27,14 @@ IMAGE_INSTALL = " \
     aufsrootfs \
     bash \
     bluez5 \
+    brcm-patchram \
     connman \
     connman-client \
     crda \
     dosfstools \
     e2fsprogs \
     exfat-utils \ 
+    firmware-laird \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
@@ -56,6 +58,7 @@ IMAGE_INSTALL = " \
     kernel-modules \
     kernel-module-g-ether \
     kernel-module-g-mass-storage \
+    kernel-module-laird \
     kmod \
     libevdev \
     mmc-utils \
