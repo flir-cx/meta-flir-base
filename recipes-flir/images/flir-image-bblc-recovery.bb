@@ -7,8 +7,13 @@ FLIR_ROOT_PASSWORD ?= ""
 IMAGE_FSTYPES = "recovery.vfat"
 
 IMAGE_INSTALL = "bash \
+                 base-files-recovery \
+                 dosfstools \
+                 e2fsprogs \
+                 exfat-utils \ 
                  getherload \
                  kernel-module-g-ether \
+                 mmc-utils \
                  openssh \
                  packagegroup-core-boot \
                  rndisload \
