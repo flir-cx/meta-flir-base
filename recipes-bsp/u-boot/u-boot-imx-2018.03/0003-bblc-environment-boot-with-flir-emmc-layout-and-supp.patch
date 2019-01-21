@@ -1,0 +1,482 @@
+From d63b89e078a444bc2841d2dc26feac6c26c40b45 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@flir.se>
+Date: Mon, 21 Jan 2019 07:52:36 +0100
+Subject: [PATCH 3/3] bblc environment: boot with flir emmc layout and
+ supporting commands
+
+---
+ configs/mx7ulp_bblc_defconfig |   7 +-
+ include/configs/bblc.h        | 389 ++++++++++++++++++++++++++++--------------
+ 2 files changed, 268 insertions(+), 128 deletions(-)
+
+diff --git a/configs/mx7ulp_bblc_defconfig b/configs/mx7ulp_bblc_defconfig
+index 01d31a4..aaa394f 100644
+--- a/configs/mx7ulp_bblc_defconfig
++++ b/configs/mx7ulp_bblc_defconfig
+@@ -3,8 +3,8 @@ CONFIG_ARCH_MX7ULP=y
+ CONFIG_SYS_TEXT_BASE=0x67800000
+ # CONFIG_AUTOBOOT is not set
+ CONFIG_TARGET_MX7ULP_BBLC=y
++CONFIG_DEFAULT_FDT_FILE="imx7ulp-bblc.dtb"
+ CONFIG_DEFAULT_DEVICE_TREE="imx7ulp-bblc"
+-CONFIG_DEFAULT_FDT_FILE="imx7ulp-bblc"
+ CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/flir/bblc/imximage.cfg"
+ CONFIG_BOARD_EARLY_INIT_F=y
+ CONFIG_HUSH_PARSER=y
+@@ -67,3 +67,8 @@ CONFIG_ULP_WATCHDOG=y
+ # CONFIG_CMD_READ=y
+ CONFIG_IMX_BOOTAUX=y
+ CONFIG_DOS_PARTITION=y
++CONFIG_CMD_EXT4=y
++CONFIG_CMD_GPT=y
++CONFIG_EFI_PARTITION=y
++CONFIG_AUTOBOOT=y
++CONFIG_BOOTDELAY=0
+diff --git a/include/configs/bblc.h b/include/configs/bblc.h
+index 801d2cc..30c96d8 100644
+--- a/include/configs/bblc.h
++++ b/include/configs/bblc.h
+@@ -6,17 +6,12 @@
+  * published by the Free Software Foundation.
+  */
+ 
+-#ifndef __MX7ULP_EVK_CONFIG_H
+-#define __MX7ULP_EVK_CONFIG_H
++#ifndef __MX7ULP_BBLC_CONFIG_H
++#define __MX7ULP_BBLC_CONFIG_H
+ 
+ #include <linux/sizes.h>
+ #include <asm/arch/imx-regs.h>
+ 
+-#ifdef CONFIG_SECURE_BOOT
+-#ifndef CONFIG_CSF_SIZE
+-#define CONFIG_CSF_SIZE			0x4000
+-#endif
+-#endif
+ 
+ #define CONFIG_BOARD_POSTCLK_INIT
+ #define CONFIG_SYS_BOOTM_LEN		0x1000000
+@@ -35,18 +30,18 @@
+ #define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
+ 
+ #define CONFIG_SYS_FSL_USDHC_NUM        1
+-
+ #define CONFIG_SYS_FSL_ESDHC_ADDR       0
+-#define CONFIG_SYS_MMC_ENV_DEV          0	/* USDHC1 */
+-#define CONFIG_SYS_MMC_ENV_PART         0	/* user area */
+-#define CONFIG_MMCROOT                  "/dev/mmcblk0p2"  /* USDHC1 */
+-#define CONFIG_SYS_MMC_IMG_LOAD_PART    1
+ 
+-#define CONFIG_ENV_OFFSET		(14 * SZ_64K)
+-#define CONFIG_ENV_IS_IN_MMC
+-#define CONFIG_ENV_SIZE			SZ_8K
+ 
+-#define CONFIG_CMD_FAT
++#define CONFIG_ENV_IS_IN_MMC            1
++#define CONFIG_SYS_MMC_ENV_DEV          0      /* emmc0 */
++#define CONFIG_ENV_SIZE			SZ_16K
++#define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
++#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
++#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
++
++
++#define CONFIG_CMD_FAT                  1
+ 
+ /* Using ULP WDOG for reset */
+ #define WDOG_BASE_ADDR			WDG1_RBASE
+@@ -71,8 +66,8 @@
+ #define CONFIG_BAUDRATE			115200
+ 
+ #undef CONFIG_CMD_IMLS
+-#define CONFIG_SYS_LONGHELP
+-#define CONFIG_AUTO_COMPLETE
++#define CONFIG_SYS_LONGHELP             1
++#define CONFIG_AUTO_COMPLETE            1
+ 
+ #define CONFIG_SYS_CACHELINE_SIZE      64
+ 
+@@ -85,7 +80,7 @@
+ #define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
+ #define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
+ 
+-#define CONFIG_CMDLINE_EDITING
++#define CONFIG_CMDLINE_EDITING          1
+ #define CONFIG_STACKSIZE		SZ_8K
+ 
+ /* Physical Memory Map */
+@@ -96,119 +91,13 @@
+ #define PHYS_SDRAM_SIZE			SZ_512M
+ #define CONFIG_SYS_MEMTEST_START	PHYS_SDRAM
+ #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
+-#define CONFIG_CMD_BOOTZ
++#define CONFIG_CMD_BOOTZ                1
+ 
+ #define CONFIG_LOADADDR             0x60800000
+ 
+ #define CONFIG_CMD_MEMTEST
+ #define CONFIG_SYS_MEMTEST_END      0x9E000000
+ 
+-#define CONFIG_MFG_ENV_SETTINGS \
+-	"mfgtool_args=setenv bootargs console=${console},${baudrate} " \
+-		"rdinit=/linuxrc " \
+-		"g_mass_storage.stall=0 g_mass_storage.removable=1 " \
+-		"g_mass_storage.file=/fat g_mass_storage.ro=1 " \
+-		"g_mass_storage.idVendor=0x066F g_mass_storage.idProduct=0x37FF "\
+-		"g_mass_storage.iSerialNumber=\"\" "\
+-		"\0" \
+-		"initrd_addr=0x63800000\0" \
+-		"initrd_high=0xffffffff\0" \
+-		"bootcmd_mfg=run mfgtool_args; " \
+-			"if test ${tee} = yes; then " \
+-				"bootm ${tee_addr} ${initrd_addr} ${fdt_addr}; " \
+-			"else " \
+-				"bootz ${loadaddr} ${initrd_addr} ${fdt_addr}; " \
+-			"fi;\0"
+-
+-#define CONFIG_EXTRA_ENV_SETTINGS \
+-	CONFIG_MFG_ENV_SETTINGS \
+-	"script=boot.scr\0" \
+-	"image=zImage\0" \
+-	"console=ttyLP0\0" \
+-	"fdt_high=0xffffffff\0" \
+-	"initrd_high=0xffffffff\0" \
+-	"fdt_file=imx7ulp-evk.dtb\0" \
+-	"fdt_addr=0x63000000\0" \
+-	"tee_addr=0x64000000\0" \
+-	"tee_file=uTee-7ulp\0" \
+-	"boot_fdt=try\0" \
+-	"earlycon=lpuart32,0x402D0010\0" \
+-	"ip_dyn=yes\0" \
+-	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+-	"mmcautodetect=yes\0" \
+-	"mmcargs=setenv bootargs console=${console},${baudrate} " \
+-		"root=${mmcroot}\0" \
+-	"loadbootscript=" \
+-		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+-	"bootscript=echo Running bootscript from mmc ...; " \
+-		"source\0" \
+-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+-	"loadtee=fatload mmc ${mmcdev}:${mmcpart} ${tee_addr} ${tee_file}\0" \
+-	"mmcboot=echo Booting from mmc ...; " \
+-		"run mmcargs; " \
+-		"if test ${tee} = yes; then " \
+-			"run loadfdt; run loadtee; bootm ${tee_addr} - ${fdt_addr}; " \
+-		"else " \
+-			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+-				"if run loadfdt; then " \
+-					"bootz ${loadaddr} - ${fdt_addr}; " \
+-				"else " \
+-					"if test ${boot_fdt} = try; then " \
+-						"bootz; " \
+-					"else " \
+-						"echo WARN: Cannot load the DT; " \
+-					"fi; " \
+-				"fi; " \
+-			"else " \
+-				"bootz; " \
+-			"fi; " \
+-		"fi;\0" \
+-	"netargs=setenv bootargs console=${console},${baudrate} " \
+-		"root=/dev/nfs " \
+-		"ip=:::::eth0:dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
+-	"netboot=echo Booting from net ...; " \
+-		"run netargs; " \
+-		"if test ${ip_dyn} = yes; then " \
+-			"setenv get_cmd dhcp; " \
+-		"else " \
+-			"setenv get_cmd tftp; " \
+-		"fi; " \
+-		"usb start; "\
+-		"${get_cmd} ${image}; " \
+-		"if test ${tee} = yes; then " \
+-			"${get_cmd} ${tee_addr} ${tee_file}; " \
+-			"${get_cmd} ${fdt_addr} ${fdt_file}; " \
+-			"bootm ${tee_addr} - ${fdt_addr}; " \
+-		"else " \
+-			"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+-				"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
+-					"bootz ${loadaddr} - ${fdt_addr}; " \
+-				"else " \
+-					"if test ${boot_fdt} = try; then " \
+-						"bootz; " \
+-					"else " \
+-						"echo WARN: Cannot load the DT; " \
+-					"fi; " \
+-				"fi; " \
+-			"else " \
+-				"bootz; " \
+-			"fi; " \
+-		"fi;\0" \
+-
+-#define CONFIG_BOOTCOMMAND \
+-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
+-		   "if run loadbootscript; then " \
+-			   "run bootscript; " \
+-		   "else " \
+-			   "if run loadimage; then " \
+-				   "run mmcboot; " \
+-			   "else run netboot; " \
+-			   "fi; " \
+-		   "fi; " \
+-	   "fi"
+ 
+ #define CONFIG_SYS_HZ			1000
+ #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
+@@ -226,4 +115,250 @@
+ #endif
+ 
+ 
+-#endif	/* __CONFIG_H */
++#ifdef is_boot_from_usb
++#undef is_boot_from_usb
++#endif
++
++
++/* protected environment variables (besides ethaddr and serial#) */
++#define CONFIG_ENV_FLAGS_LIST_STATIC	\
++	"wlanaddr:mc,"			\
++	"btaddr:mc,"			\
++	"bootargs_once:sr"
++
++
++/* Pool of randomly generated UUIDs at host machine */
++#define RANDOM_UUIDS	\
++	"uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff\0" \
++	"part1_uuid=43f1961b-ce4c-4e6c-8f22-2230c5d532bd\0" \
++	"part2_uuid=f241b915-4241-47fd-b4de-ab5af832a0f6\0" \
++	"part3_uuid=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
++	"part4_uuid=c7d8648b-76f7-4e2b-b829-e95a83cc7b32\0" \
++	"part5_uuid=ebae5694-6e56-497c-83c6-c4455e12d727\0" \
++	"part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef\0" \
++	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
++	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
++	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
++
++
++#define CONFIG_OVERWRITE_ETHADDR_ONCE
++#define CONFIG_DEFAULT_NETWORK_SETTINGS	\
++	"wlanaddr=00:04:f3:ff:ff:fb\0" \
++	"btaddr=00:04:f3:ff:ff:fc\0" \
++	"ipaddr=192.168.42.30\0" \
++	"serverip=192.168.42.1\0" \
++	"netmask=255.255.0.0\0"
++
++
++/* Selects device tree*
++ * Reads select-device-tree-script from boot partition
++ * and  selects which device tree to use based on board article nr
++ * update-fdt updates device tree with board article numbers
++ */
++#define CONFIG_SELECT_FDT_FILE_ENV \
++	"fdt_file=""\0" \
++	"fdt_file_default=" CONFIG_DEFAULT_FDT_FILE "\0"\
++	"select_fdt_script=select-fdt.uscr\0" \
++	"update-fdt=" \
++			  "if ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} /boot/update-fdt.uscr; then " \
++					"source ${tempaddr}; " \
++			  "fi\0 " \
++	"selectfdtfile=" \
++			"if test -n ${fdt_file};then " \
++				  "echo Devicetree file already selected;" \
++			"else " \
++				  "if ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} /boot/${select_fdt_script}; then " \
++						"source ${tempaddr}; " \
++				  "else;" \
++						"setenv fdt_file ${fdt_file_default};" \
++				  "fi; " \
++		   "fi\0" \
++	"selectrecfdtfile=" \
++		   "if fatload mmc ${mmcdev}:1 ${tempaddr} ${select_fdt_script}; then " \
++				  "source ${tempaddr}; " \
++		   "else;" \
++				  "setenv fdt_file ${fdt_file_default};" \
++		   "fi\0"
++
++
++/* FLIR partition creation*
++ * 
++ * parition1 = recovery		40 MiB
++ * parition2 = rootfs1		512 MiB
++ * parition3 = rootfs2		512 MiB
++ * parition4 = rootfsrw		128 MiB
++ * parition5 = apps			512 MiB
++ * parition6 = data			512 MiB
++ * parition7 = spare
++ */
++#define CONFIG_PARTITION_FLIR_ENV \
++	"parts_flir=\"uuid_disk=${uuid_disk};" \
++		"start=2MiB,name=recovery,size=40MiB,uuid=${part1_uuid};" \
++		"name=rootfs1,size=512MiB,uuid=${part2_uuid};" \
++		"name=rootfs2,size=512MiB,uuid=${part3_uuid};" \
++		"name=rootfsrw,size=128MiB,uuid=${part4_uuid};" \
++		"name=apps,size=512MiB,uuid=${part5_uuid};" \
++		"name=data,size=512MiB,uuid=${part6_uuid};" \
++		"name=spare,size=-,uuid=${part7_uuid};\"\0" \
++	"partition_mmc_flir=mmc rescan; " \
++		"if mmc dev ${mmcdev} 0; then " \
++			  "gpt write mmc ${mmcdev} ${parts_flir}; " \
++			  "mmc rescan; " \
++		"else " \
++			  "if mmc dev ${mmcdev}; then " \
++				  "gpt write mmc ${mmcdev} ${parts_flir}; " \
++				  "mmc rescan; " \
++			  "else; " \
++			  "fi; " \
++		"fi; \0"
++
++
++/* FLIR Recovery boot
++* 
++* Boot from preloaded recovery in ram
++* Loads kernel, devicetree and ram rootfs from ram
++* 
++* Boot from recovery partition in mmc
++* Loads kernel, devicetree and ram rootfs from recovery partition on emmc
++*/
++#define CONFIG_REC_BOOT_ENV \
++	"recargs=setenv bootargs console=${console},${baudrate} " \
++		"root=/dev/ram0 ethaddr=${ethaddr}\0" \
++	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
++	"initrd_addr=0x63800000\0" \
++	"initrd_file=uRamdisk.img\0" \
++\
++	"recboot=echo Booting preloaded recovery...; "\
++		"run recargs; " \
++		"bootz ${loadaddr} ${initrd_addr} ${fdt_addr}; \0" \
++\
++	"recoveryboot=echo Booting from mmc recovery;" \
++				 "run selectrecfdtfile; run recargs; " \
++				 "setenv bootargs_linux ${bootargs}; " \
++				 "setenv mmcpart 1; " \
++				 "run loadfdt; run loadinitrd; run loadimage; " \
++				 "bootz ${loadaddr} ${initrd_addr} ${fdt_addr};\0" 
++
++
++/* Select which emmc partition to boot from
++ * 
++* * Boot from emmc partition2 or partition3
++* based on system_active variable
++*/
++
++#define CONFIG_SELECT_BOOT_PARTITION_ENV \
++	"system_active=system1\0" \
++	"select_boot=" \
++		"if itest.s ${system_active} == system2; " \
++		"then " \
++			  "setenv mmcpart 3; setenv rootfs root=/dev/mmcblk0p3; " \
++		"else setenv mmcpart 2; setenv rootfs root=/dev/mmcblk0p2; " \
++		"fi; \0" 
++
++/* common mmc boot
++* Environment shared between flir mmc boot and legacy mmc boot
++*/
++#define CONFIG_MMC_BOOT_COMMON_ENV \
++	"mmcdev=0\0" \
++	"mmcpart=1\0" \
++	"mmcargs=setenv bootargs console=${console},${baudrate} " \
++		"${rootfs} rootwait rw ethaddr=${ethaddr} " \
++		"wlanaddr=${wlanaddr} btaddr=${btaddr} ${bootargs_once} " \
++		 "${extra_bootargs} \0" \
++\
++	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
++	"loadimage4=ext4load mmc ${mmcdev}:${mmcpart} ${loadaddr} boot/${image}\0" \
++	"loadfdt4=ext4load mmc ${mmcdev}:${mmcpart} ${fdt_addr} " \
++		"boot/${fdt_file}\0" \
++	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" 
++
++/* FLIR mmc boot 
++*
++*loads kernel and boots from partition 2 or 3 on emmc
++*/
++#define CONFIG_MMC_BOOT_FLIR_ENV \
++	"hw_start=run startM4;\0" \
++	"setup_boot=bootargs_once=init=/sbin/preinit; " \
++			"run select_boot;\0" \
++\
++	"mmcbootflir=echo Booting from mmc (flir)...;" \
++			"run setup_boot;run update-fdt; run selectfdtfile; " \
++			"run hw_start;" \
++			"run mmcargs;" \
++			"if run loadimage4; then " \
++						"if run loadfdt4; then " \
++							  "bootz ${loadaddr} - ${fdt_addr}; " \
++						"else echo WARN: Cannot load the DT; " \
++						"fi; " \
++			 "else echo ERR: Cannot load the kernel; " \
++			 "fi;\0" 
++
++/* Legacy mmc boot 
++*
++* Uses partition layout as created by yocto rootfs.sdcard file
++*/
++#define CONFIG_MMC_BOOT_LEGACY_ENV \
++	"mmcroot_sdcard=/dev/mmcblk0p2  rootwait rw\0" \
++	"mmcargs_sdcard=setenv bootargs console=${console},${baudrate} " \
++		"root=${mmcroot_sdcard}\0" \
++\
++	"mmcboot_sdcard=echo Booting from mmc ...; " \
++		"if run loadimage; then " \
++			"run mmcargs_sdcard; " \
++			"if run loadfdt; then " \
++				"bootz ${loadaddr} - ${fdt_addr}; " \
++			"fi;" \
++		"fi;\0" \
++
++
++/* M4 boot
++*
++* Loads M4 code from emmc to sram
++* Starts executing M4
++*/
++
++#define CONFIG_M4_BOOT_ENV \
++	"m4_image=imx7ulpm4.bin\0" \
++	"m4_addr=0x1ffd2000\0" \
++	"loadM4=ext4load mmc ${mmcdev}:${mmcpart} ${m4_addr} boot/${m4_image}\0" \
++\
++	"startM4=echo Starting M4 ...; " \
++			"if run loadM4; then " \
++				"bootaux ${m4_addr};" \
++			"fi;\0"
++
++
++
++#define CONFIG_EXTRA_ENV_SETTINGS \
++	CONFIG_DEFAULT_NETWORK_SETTINGS \
++	CONFIG_PARTITION_FLIR_ENV \
++	RANDOM_UUIDS \
++	"image=zImage\0" \
++	"console=ttyLP0\0" \
++	"tempaddr=0x66000000\0"\
++	"fdt_addr=0x63000000\0" \
++	"fdt_high=0xffffffff\0"	  \
++	"initrd_high=0xffffffff\0" \
++\
++	CONFIG_M4_BOOT_ENV \
++	CONFIG_MMC_BOOT_COMMON_ENV\
++	CONFIG_SELECT_FDT_FILE_ENV \
++	CONFIG_REC_BOOT_ENV \
++	CONFIG_SELECT_BOOT_PARTITION_ENV \
++	CONFIG_MMC_BOOT_FLIR_ENV\
++	CONFIG_MMC_BOOT_LEGACY_ENV \
++	""	/* end line */
++
++
++
++#define CONFIG_BOOTCOMMAND \
++	"if recoverykey && kbd_secret; then " \
++		 "run recoveryboot;" \
++	"else " \
++		"run mmcbootflir;" \
++	"fi;" \
++	"echo Fallback to recovery boot!....;" \
++	"run recoveryboot;"
++
++
++#endif	/* __MX7ULP_BBLC_CONFIG_H */
+-- 
+1.9.1
+
