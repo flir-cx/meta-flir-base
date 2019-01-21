@@ -1,0 +1,59 @@
+From ce49dae4399a67e998861caf0afdf393380b9a19 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Fri, 26 Oct 2018 09:28:56 +0200
+Subject: [PATCH] Add EDT touchscreen to DT
+
+---
+ arch/arm/boot/dts/imx7ulp-bblc.dts | 22 +++++++++++++++++-----
+ 1 file changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-bblc.dts b/arch/arm/boot/dts/imx7ulp-bblc.dts
+index 022a1c0cf6e7..2dd101b7258e 100644
+--- a/arch/arm/boot/dts/imx7ulp-bblc.dts
++++ b/arch/arm/boot/dts/imx7ulp-bblc.dts
+@@ -149,6 +149,8 @@
+ 			fsl,pins = <
+ 				IMX7ULP_PAD_PTE12__LPI2C7_SCL	0x27
+ 				IMX7ULP_PAD_PTE13__LPI2C7_SDA	0x27
++				IMX7ULP_PAD_PTE14__PTE14	0x3
++				IMX7ULP_PAD_PTC6__PTC6		0x3
+ 			>;
+ 		};
+ 		
+@@ -161,10 +163,10 @@
+ 
+ 		pinctrl_lpuart6: lpuart6grp {
+ 			fsl,pins = <
+-				IMX7ULP_PAD_PTE10__LPUART6_TX	0x3
+-				IMX7ULP_PAD_PTE11__LPUART6_RX	0x3
+-				IMX7ULP_PAD_PTE9__LPUART6_RTS_B	0x3
+-				IMX7ULP_PAD_PTE8__LPUART6_CTS_B	0x3
++				IMX7ULP_PAD_PTC10__LPUART6_TX	0x3
++				IMX7ULP_PAD_PTC11__LPUART6_RX	0x3
++				IMX7ULP_PAD_PTC9__LPUART6_RTS_B	0x3
++				IMX7ULP_PAD_PTC8__LPUART6_CTS_B	0x3
+ 			>;
+ 		};
+ 
+@@ -256,7 +258,17 @@
+ 	pinctrl-0 = <&pinctrl_lpi2c7>;
+ 	pinctrl-1 = <&pinctrl_lpi2c7>;
+ 	status = "okay";
+-
++	
++	touchscreen:edt_ft5336@38 {
++		compatible = "edt,edt-ft5306";
++		reg = <0x38>;
++		interrupt-parent = <&gpio_pte>;
++		interrupts = <14 GPIO_ACTIVE_HIGH>;
++		touchscreen-size-x = <640>;
++		touchscreen-size-y = <480>;
++		reset-gpios = <&gpio_ptc 6 GPIO_ACTIVE_LOW>;
++		status = "okay";
++	};
+ };
+ 	
+ /*  IO expander for keyboard, VCAM, Lepton, Temp sensor 1 and 2, EEPROM	*/
+-- 
+2.17.1
+

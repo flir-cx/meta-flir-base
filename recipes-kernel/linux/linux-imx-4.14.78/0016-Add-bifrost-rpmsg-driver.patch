@@ -1,0 +1,85 @@
+From 270ac71825f8b618020124bb29dee752694ddb78 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Thu, 27 Sep 2018 15:33:45 +0200
+Subject: [PATCH] Add bifrost rpmsg driver
+
+---
+ arch/arm/boot/dts/imx7ulp-bblc.dts | 41 +++++++-----------------------
+ 1 file changed, 9 insertions(+), 32 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-bblc.dts b/arch/arm/boot/dts/imx7ulp-bblc.dts
+index 36182f6f9f6a..d0cf98b3cbbf 100644
+--- a/arch/arm/boot/dts/imx7ulp-bblc.dts
++++ b/arch/arm/boot/dts/imx7ulp-bblc.dts
+@@ -15,11 +15,6 @@
+ 	model = "FLIR Low Cost Brassboard";
+ 	compatible = "flir,imx7ulp-bblc", "fsl,imx7ulp", "Generic DT based system";
+ 
+-	aliases {
+-		gpio4 = &rpmsg_gpio0;
+-		gpio5 = &rpmsg_gpio1;
+-	};
+-
+ 	chosen {
+ 		stdout-path = &lpuart4;
+ 	};
+@@ -75,31 +70,9 @@
+ 		pinctrl-1 = <&pinctrl_extcon_usb1>;
+ 	};
+ 
+-	rpmsg_gpio0: rpmsg-gpio0 {
+-		compatible = "fsl,imx-rpmsg-gpio";
+-		port_idx = <0>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		#interrupt-cells = <2>;
+-		interrupt-controller;
+-		interrupt-parent = <&rpmsg_gpio0>;
+-		status = "disabled";
+-	};
+-
+-	rpmsg_gpio1: rpmsg-gpio1 {
+-		compatible = "fsl,imx-rpmsg-gpio";
+-		port_idx = <1>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		#interrupt-cells = <2>;
+-		interrupt-controller;
+-		interrupt-parent = <&rpmsg_gpio1>;
+-		status = "disabled";
+-	};
+-
+ 	v4l2_cap_0 {
+ 		compatible = "fsl,imx7-rpmsg-capture";
+- 		status = "disabled";
++		status = "okay";
+ 	};
+ 	
+ 	// We use another PWM than evalkit - TPM5 channel 1
+@@ -305,15 +278,19 @@
+ 	status = "okay";
+ };
+ 
++&rpmsg_reserved{
++	reg = <0x7FF80000 0x80000>;
++};
++
+ &rpmsg{
+ 	/*
+ 	 * 64K for one rpmsg instance, default using 2 rpmsg instances:
+-	 * --0x9FF00000~0x9FF0FFFF: pmic,pm,audio,keys,gpio,sensor
+-	 * --0x9FF10000~0x9FF1FFFF: pingpong,virtual tty
++	 * --0x7FF80000~0x7FF8FFFF: pmic,pm,audio,keys,gpio,sensor
++	 * --0x7FF90000~0x7FF9FFFF: pingpong,virtual tty
+ 	 */
+ 	vdev-nums = <2>;
+-	reg = <0x9FF00000 0x20000>;
+-	status = "disabled";
++	reg = <0x7FF80000 0x20000>;
++	status = "okay";
+ };
+ 
+ &usbotg1 {
+-- 
+2.17.1
+
