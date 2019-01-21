@@ -18,6 +18,7 @@ SRC_URI_append = " \
     file://0020-DT-Set-up-for-standby.patch \
     file://0021-ov5640-Implement-suspend-and-resume.patch \
     file://0022-CPUFREQ-Wait-for-regulators-to-register.patch \
+    file://0023-Disable-build-of-busfreq_optee.c.patch \
     file://defconfig \
 "
 
