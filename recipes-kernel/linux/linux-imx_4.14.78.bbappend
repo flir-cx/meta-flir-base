@@ -19,9 +19,13 @@ SRC_URI_append = " \
     file://0021-ov5640-Implement-suspend-and-resume.patch \
     file://0022-CPUFREQ-Wait-for-regulators-to-register.patch \
     file://0023-Disable-build-of-busfreq_optee.c.patch \
+    file://0024-DT-Bluetooth-UART-corrected.patch \
+    file://0025-Modify-and-clean-up-imx7ulp-bblc.dts.patch \
+    file://0026-Adds-Sherlock-device-tree.patch \
+    file://0027-Adds-slightly-modified-tmp116-driver.patch \
     file://defconfig \
 "
-
+#
 # To enable building a rootfs without a kernel-image on, we have to remove the rdepend from kernel-base.
 # Images that need a kernel-image have to add it explicitly.
 RDEPENDS_kernel-base_remove = "kernel-image"
