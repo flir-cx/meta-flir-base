@@ -23,9 +23,10 @@ SRC_URI_append = " \
     file://0025-ov5640-Implement-suspend-and-resume.patch \
     file://0026-CPUFREQ-Wait-for-regulators-to-register.patch \
     file://0027-DT-Bluetooth-UART-corrected.patch \
-	file://0028-Modify-and-clean-up-imx7ulp-bblc.dts.patch \
-	file://0029-Adds-Sherlock-device-tree.patch \
-	file://0030-Adds-slightly-modified-tmp116-driver.patch \
+    file://0028-Modify-and-clean-up-imx7ulp-bblc.dts.patch \
+    file://0029-Adds-Sherlock-device-tree.patch \
+    file://0030-Adds-slightly-modified-tmp116-driver.patch \
+    file://0031-ec201-dts-use-channel5-for-backlight-pwm.patch \
     file://defconfig \
 "
 
