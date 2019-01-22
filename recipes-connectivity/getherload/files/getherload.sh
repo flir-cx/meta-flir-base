@@ -1,6 +1,11 @@
 #!/bin/sh
 
 USBC_PID_ATTR=/etc/sysfs-links/usbc_control/set_pid
+[ -e $(dirname $USBC_PID_ATTR) ]
+if [ $? -ne 0 ]
+then
+    USBC_PID_ATTR=/tmp/getherload_pidattr
+fi
 
 grep -q ethaddr /proc/cmdline
 if [ $? -eq 0 ]; then
@@ -52,3 +57,5 @@ else
 	ifconfig usb0 192.168.250.2
 fi
 killall -USR1 fis
+
+exit 0
