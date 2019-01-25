@@ -14,7 +14,7 @@ Fetching code (public):
      use -b/-m flags if change to this is required)
 4.  repo sync
 5a. MACHINE=bblc source ./flir-setup-release.sh -b build_bblc
-5b. (or, for wayland, 
+5b. (or, for trying a fsl distro variants, typically: 
     MACHINE=bblc DISTRO=fsl-imx-wayland source ./flir-setup-release.sh -b build_bblc-wl)
 6.  bitbake core-image-minimal
 
