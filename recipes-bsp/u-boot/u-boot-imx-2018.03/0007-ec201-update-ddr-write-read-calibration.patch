@@ -1,0 +1,24 @@
+From 2ff6568078a1e02a02ac4bae15276d9a6aa86916 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Fri, 25 Jan 2019 15:57:05 +0100
+Subject: [PATCH] ec201: update ddr write/read calibration
+
+---
+ board/flir/ec201/imximage.cfg | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/board/flir/ec201/imximage.cfg b/board/flir/ec201/imximage.cfg
+index 5ffaf94..e69c792 100644
+--- a/board/flir/ec201/imximage.cfg
++++ b/board/flir/ec201/imximage.cfg
+@@ -78,8 +78,8 @@ DATA 4   0x40AB0800 0xA1390003
+ DATA 4   0x40AB085C 0x0D3900A0
+ DATA 4   0x40AB0890 0x00400000
+ 
+-DATA 4   0x40AB0848 0x40404040
+-DATA 4   0x40AB0850 0x40404040
++DATA 4   0x40AB0848 0x383C3238
++DATA 4   0x40AB0850 0x2A2C322E
+ DATA 4   0x40AB081C 0x33333333
+ DATA 4   0x40AB0820 0x33333333
+ DATA 4   0x40AB0824 0x33333333
