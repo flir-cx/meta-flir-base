@@ -59,7 +59,7 @@ IMAGE_INSTALL = " \
     kernel-modules \
     kernel-module-g-ether \
     kernel-module-g-mass-storage \
-    kernel-module-qcacld \
+    kernel-module-qca9377 \
     kmod \
     libevdev \
     mmc-utils \
