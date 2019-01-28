@@ -7,6 +7,7 @@ FLIR_ROOT_PASSWORD ?= ""
 IMAGE_FSTYPES = "recovery.vfat"
 
 IMAGE_INSTALL = "bash \
+                 base-files \
                  base-files-recovery \
                  dosfstools \
                  e2fsprogs \
@@ -29,6 +30,15 @@ BAD_RECOMMENDATIONS += "kernel-modules"
 
 ROOTFS_PREPROCESS_COMMAND += "cleanup_rootfs ; "
 IMAGE_PREPROCESS_COMMAND += "cleanup_rootfs ; "
-ROOTFS_POSTPROCESS_COMMAND += "set_root_passwd;"
+ROOTFS_POSTPROCESS_COMMAND += "set_root_passwd; patch_profile; "
+
+patch_profile() {
+#   override /etc/* files from base-files install with a specific
+#   recovery version (if present)
+    if [ -d "${IMAGE_ROOTFS}/etc/recovery" ]; then
+        mv -f ${IMAGE_ROOTFS}/etc/recovery/* ${IMAGE_ROOTFS}/etc
+        rm -rf ${IMAGE_ROOTFS}/etc/recovery
+    fi
+}
 
 inherit image
