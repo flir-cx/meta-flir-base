@@ -17,6 +17,7 @@ SRC_URI += " \
 
 do_install() {
            install -d ${D}${sysconfdir}
-           install -m 0644 ${WORKDIR}/profile ${D}${sysconfdir}/
-           install -m 0644 ${WORKDIR}/fstab ${D}${sysconfdir}/
+           install -d ${D}${sysconfdir}/recovery
+           install -m 0644 ${WORKDIR}/profile ${D}${sysconfdir}/recovery/
+           install -m 0644 ${WORKDIR}/fstab ${D}${sysconfdir}/recovery/
 }
