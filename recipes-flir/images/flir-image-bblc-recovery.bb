@@ -17,6 +17,7 @@ IMAGE_INSTALL = "bash \
                  mmc-utils \
                  openssh \
                  packagegroup-core-boot \
+                 parted \
                  rndisload \
                  u-boot-fw-utils \
 "
