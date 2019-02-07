@@ -1,0 +1,12 @@
+[Unit]
+Description=Configure gadget on usb0
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/gadget.sh load
+ExecStop=/sbin/gadget.sh unload
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
