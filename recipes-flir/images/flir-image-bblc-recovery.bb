@@ -12,13 +12,12 @@ IMAGE_INSTALL = "bash \
                  dosfstools \
                  e2fsprogs \
                  exfat-utils \ 
-                 getherload \
+                 gadgetload \
                  kernel-module-g-ether \
                  mmc-utils \
                  openssh \
                  packagegroup-core-boot \
                  parted \
-                 rndisload \
                  u-boot-fw-utils \
 "
 

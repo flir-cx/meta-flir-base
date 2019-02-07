@@ -42,7 +42,7 @@ IMAGE_INSTALL = " \
     flirmisc \
     fliruseradd \
     ftpd-service \
-    getherload \
+    gadgetload \
     glibmm \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-plugins-base-app \
@@ -75,7 +75,6 @@ IMAGE_INSTALL = " \
     parted \
     qtbase \
     qtgraphicaleffects \
-    rndisload \
     rpmsg-bifrost \
     screen \
     screen-service \
