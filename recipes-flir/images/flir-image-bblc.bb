@@ -61,6 +61,7 @@ IMAGE_INSTALL = " \
     kernel-module-g-mass-storage \
     kernel-module-qca9377 \
     kmod \
+    lepton-m4-bin \
     libevdev \
     mmc-utils \
     mtd-utils \
