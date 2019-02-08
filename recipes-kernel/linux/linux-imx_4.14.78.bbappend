@@ -28,7 +28,6 @@ SRC_URI_append = " \
 #
 # To enable building a rootfs without a kernel-image on, we have to remove the rdepend from kernel-base.
 # Images that need a kernel-image have to add it explicitly.
-RDEPENDS_kernel-base_remove = "kernel-image"
-
+RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
 
 
