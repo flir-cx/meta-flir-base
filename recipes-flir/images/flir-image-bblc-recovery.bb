@@ -4,7 +4,7 @@ inherit image_types_flirrecovery
 
 FLIR_ROOT_PASSWORD ?= ""
 
-IMAGE_FSTYPES = "recovery.vfat"
+IMAGE_FSTYPES = "recovery.vfat tar.bz2"
 
 IMAGE_INSTALL = "bash \
                  base-files \
@@ -13,7 +13,13 @@ IMAGE_INSTALL = "bash \
                  e2fsprogs \
                  exfat-utils \ 
                  gadgetload \
-                 kernel-module-g-ether \
+                 kernel-module-ci-hdrc \
+                 kernel-module-ci-hdrc-imx \
+                 kernel-module-libcomposite \
+                 kernel-module-udc-core \
+                 kernel-module-usbmisc-imx \
+                 kernel-module-usb-f-rndis \
+                 kernel-module-u-ether \
                  mmc-utils \
                  openssh \
                  packagegroup-core-boot \
@@ -25,8 +31,9 @@ IMAGE_INSTALL = "bash \
 BAD_RECOMMENDATIONS += "busybox-syslog udev-hwdb"
 
 # Too try to keep size down, we don't want all kernel-modules,
-# only the ones we explicitly install
-BAD_RECOMMENDATIONS += "kernel-modules"
+# only the ones we explicitly install. (Add kernel-image and devicetree
+# as well just to be sure they are not snuck in)
+BAD_RECOMMENDATIONS += "kernel-image kernel-devicetree kernel-modules"
 
 ROOTFS_PREPROCESS_COMMAND += "cleanup_rootfs ; "
 IMAGE_PREPROCESS_COMMAND += "cleanup_rootfs ; "

@@ -57,9 +57,6 @@ IMAGE_INSTALL = " \
     kernel-devicetree \
     kernel-image \
     kernel-modules \
-    kernel-module-g-ether \
-    kernel-module-g-mass-storage \
-    kernel-module-qca9377 \
     kmod \
     lepton-m4-bin \
     libevdev \
