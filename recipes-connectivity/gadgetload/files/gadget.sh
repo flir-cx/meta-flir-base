@@ -35,6 +35,8 @@ ms_qw_sign="MSFT100"      # Microsoft
 ms_compat_id="RNDIS"      # matches Windows RNDIS Drivers
 ms_subcompat_id="5162001" # matches Windows RNDIS 6.0 Driver
 
+default_usb_ip_addr="192.168.250.2"
+
 get_base_mac_from_cmdline() {
     cat /proc/cmdline | sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p"
 }
@@ -49,6 +51,19 @@ get_base_mac_addr() {
         echo "$wlanaddr"
     else
         echo ":40:7f:01:02:03"
+    fi
+}
+
+get_default_usb_ip_addr() {
+    local ip_addr=""
+    if [ -f "/etc/usb_ip_addr" ]; then
+       ip_addr=`cat /etc/usb_ip_addr | grep -o -E '([0-9]{1,3}\.){3}[0-9]{1,3}'`
+    fi
+
+    if [ -n "${ip_addr}" ]; then
+        echo "${ip_addr}"
+    else
+        echo "${default_usb_ip_addr}"
     fi
 }
 
@@ -119,8 +134,11 @@ config_load() {
 
     echo "${udc_device}" > UDC
 
+    # Set ip adress to default adress
+    ifconfig usb0 `get_default_usb_ip_addr`
+
     # Signal to fis to update RNDIS status
-    killall -USR1 fis
+    killall -USR1 fis || true
 
     echo "Loaded: Done."
 }

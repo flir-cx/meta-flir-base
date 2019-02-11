@@ -1,6 +1,6 @@
 [Unit]
 Description=Configure gadget on usb0
-After=network.target
+Before=network.target
 
 [Service]
 Type=oneshot
