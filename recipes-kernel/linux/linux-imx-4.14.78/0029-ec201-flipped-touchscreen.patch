@@ -1,0 +1,22 @@
+From fc86b1e861a016371cf25bffea5d864dc0d2c8a3 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Mon, 11 Feb 2019 10:23:23 +0100
+Subject: [PATCH] ec201: flipped touchscreen
+
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 7e3ea99..f9d8fc7 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -429,6 +429,8 @@
+ 		interrupts = <14 GPIO_ACTIVE_HIGH>;
+ 		touchscreen-size-x = <640>;
+ 		touchscreen-size-y = <480>;
++		touchscreen-inverted-x;
++		touchscreen-inverted-y;
+ 		reset-gpios = <&gpio_ptc 7 GPIO_ACTIVE_LOW>;
+ 		status = "okay";
+ 	};

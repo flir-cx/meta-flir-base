@@ -1,0 +1,22 @@
+From d1643eac268faa49c653cb052ecaf70673ea642d Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Mon, 11 Feb 2019 10:09:08 +0100
+Subject: [PATCH] flipped otm1287a display
+
+---
+ drivers/video/fbdev/mxc/mxcfb_otm1287a.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/mxc/mxcfb_otm1287a.c b/drivers/video/fbdev/mxc/mxcfb_otm1287a.c
+index beafbea..2e68c69 100644
+--- a/drivers/video/fbdev/mxc/mxcfb_otm1287a.c
++++ b/drivers/video/fbdev/mxc/mxcfb_otm1287a.c
+@@ -219,7 +219,7 @@ int mipid_otm1287a_lcd_setup(struct mipi_dsi_info *mipi_dsi)
+ 	}
+ #endif
+ 	
+-	otm1287a_write_reg(mipi_dsi,OTM1287A_REG_MADCTL,0x1); 
++	otm1287a_write_reg(mipi_dsi,OTM1287A_REG_MADCTL,0x2); 
+ 	msleep(10);
+ 	otm1287a_write_cmd(mipi_dsi,OTM1287A_CMD_SLPOUT);
+ 	msleep(120);
