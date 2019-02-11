@@ -23,6 +23,8 @@ SRC_URI_append = " \
     file://0025-Modify-and-clean-up-imx7ulp-bblc.dts.patch \
     file://0026-Adds-Sherlock-device-tree.patch \
     file://0027-Adds-slightly-modified-tmp116-driver.patch \
+    file://0028-flipped-otm1287a-display.patch \
+    file://0029-ec201-flipped-touchscreen.patch \
     file://defconfig \
 "
 #
