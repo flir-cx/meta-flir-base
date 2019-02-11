@@ -135,6 +135,7 @@ config_load() {
     echo "${udc_device}" > UDC
 
     # Set ip adress to default adress
+    sleep 1
     ifconfig usb0 `get_default_usb_ip_addr`
 
     # Signal to fis to update RNDIS status
