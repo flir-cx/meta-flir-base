@@ -1,7 +1,7 @@
 #
 # Recept for building the toolchain for Sherlock
 #
-require flir-image-bblc.bb
+require flir-image-sherlock.bb
 
 IMAGE_INSTALL += " \ 
     alsa-dev \
