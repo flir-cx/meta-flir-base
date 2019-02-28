@@ -5,7 +5,6 @@ do_copy_defconfig () {
 }
 
 SRC_URI_append = " \
-    file://0010-Lepton-M4-V4L2-driver-added.patch \
     file://0011-Device-tree-for-FLIR-bblc-brass-board-based-on-imx7u.patch \
     file://0012-bblc-disable-rpmsg.patch \
     file://0013-bblc-device-tree-add-dummy-extcon-to-enable-usb-and-.patch \
@@ -25,8 +24,12 @@ SRC_URI_append = " \
     file://0027-Adds-slightly-modified-tmp116-driver.patch \
     file://0028-flipped-otm1287a-display.patch \
     file://0029-ec201-flipped-touchscreen.patch \
+    file://0030-Add-possibility-to-control-NIC-priority.patch \
+    file://0031-Add-rpmsg-4vl2-capture-driver.patch \
+    file://0032-DT-updated-for-new-v4l2-rpmsg-driver.patch \
     file://defconfig \
 "
+
 #
 # To enable building a rootfs without a kernel-image on, we have to remove the rdepend from kernel-base.
 # Images that need a kernel-image have to add it explicitly.
