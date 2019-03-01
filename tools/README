@@ -14,9 +14,12 @@ Fetching code (public):
      use -b/-m flags if change to this is required)
 4.  repo sync
 5a. MACHINE=bblc source ./flir-setup-release.sh -b build_bblc
+    or
+    MACHINE=ec201 source ./flir-setup-release.sh -b build_ec201
+    (DISTRO=flir is implicit)
 5b. (or, for trying a fsl distro variants, typically: 
-    MACHINE=bblc DISTRO=fsl-imx-wayland source ./flir-setup-release.sh -b build_bblc-wl)
-6.  bitbake core-image-minimal
+    MACHINE=bblc DISTRO=fsl-imx-xwayland source ./flir-setup-release.sh -b build_bblc-xwl)
+6.  bitbake core-image-sherlock (core-image-minimal, core-image-bblc)
 
 Note;
 FLIR cameras uses meta-flir-base as distributed for FLIR public components.
