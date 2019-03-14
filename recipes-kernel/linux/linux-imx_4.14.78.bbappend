@@ -27,6 +27,7 @@ SRC_URI_append = " \
     file://0030-Add-possibility-to-control-NIC-priority.patch \
     file://0031-Add-rpmsg-4vl2-capture-driver.patch \
     file://0032-DT-updated-for-new-v4l2-rpmsg-driver.patch \
+    file://0033-Add-Texas-radio-module-to-EC201.patch \
     file://defconfig \
 "
 
