@@ -80,6 +80,9 @@ IMAGE_INSTALL = " \
     systemd-analyze \
     systemd-compat-units \
     telnetd-service \
+    ti-bt-firmware \
+    ti-firmware \
+    ti-nvs \
     tzdata \
     u-boot-fw-utils \
     u-boot-script \
