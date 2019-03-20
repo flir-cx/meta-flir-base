@@ -29,6 +29,7 @@ SRC_URI_append = " \
     file://0032-DT-updated-for-new-v4l2-rpmsg-driver.patch \
     file://0033-Add-Texas-radio-module-to-EC201.patch \
     file://0034-Add-LM3642-Torch-and-Flash-driver.patch \
+    file://0035-DT-Add-touchpad-leds.patch \
     file://defconfig \
 "
 
