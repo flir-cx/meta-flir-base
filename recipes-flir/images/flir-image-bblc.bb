@@ -87,6 +87,7 @@ IMAGE_INSTALL = " \
     u-boot-script \
     udev \
     udev-extraconf \
+    umtp-responder \
     wifi-test-suite \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
