@@ -59,6 +59,7 @@ IMAGE_INSTALL = " \
     lepton-m4-bin \
     libevdev \
     mmc-utils \
+    mmc7mounter \
     mtd-utils \
     nano \
     ncurses-libpanelw \
