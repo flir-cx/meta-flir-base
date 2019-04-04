@@ -14,6 +14,9 @@ EXTRA_OEMAKE_class-cross = 'ARCH=${TARGET_ARCH} CC="${CC} ${CFLAGS} ${LDFLAGS}" 
 
 inherit uboot-config
 
+SRC_URI_append += "file://fw_envdefault.sh \
+"
+
 do_compile () {
 	oe_runmake ${UBOOT_MACHINE}
 	oe_runmake envtools
@@ -24,7 +27,8 @@ do_install () {
 	install -d ${D}${sysconfdir}
 	install -m 755 ${S}/tools/env/fw_printenv ${D}${base_sbindir}/fw_printenv
 	install -m 755 ${S}/tools/env/fw_printenv ${D}${base_sbindir}/fw_setenv
-	install -m 0644 ${S}/tools/env/fw_env.config ${D}${sysconfdir}/fw_env.config
+	install -m 0644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}/fw_env.config
+        install -m 0755 ${WORKDIR}/fw_envdefault.sh ${D}${base_sbindir}/fw_envdefault
 }
 
 do_install_class-cross () {
