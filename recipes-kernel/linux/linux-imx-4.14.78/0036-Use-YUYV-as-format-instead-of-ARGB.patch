@@ -1,0 +1,137 @@
+From 8d56c4ef0f17269f866d729cdd29d5aae0036525 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Mon, 8 Apr 2019 07:31:36 +0200
+Subject: [PATCH] Use YUYV as format instead of ARGB
+
+Signed-off-by: David Sernelius <david.sernelius@flir.se>
+---
+ drivers/media/platform/mxc/capture/m4_rpmsg.c | 18 +++----------
+ .../media/platform/mxc/capture/mxc_rpmsg.c    | 27 +++++++++----------
+ 2 files changed, 17 insertions(+), 28 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/m4_rpmsg.c b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+index a95a4426b0ce..4a23c96be756 100644
+--- a/drivers/media/platform/mxc/capture/m4_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+@@ -91,7 +91,7 @@ struct ovRpmsg {
+ static struct ovRpmsg ovRpmsg_data;
+ 
+ static const struct ovRpmsg_datafmt ovRpmsg_colour_fmts[] = {
+-	{MEDIA_BUS_FMT_ARGB8888_1X32, V4L2_COLORSPACE_JPEG},
++	{MEDIA_BUS_FMT_YUYV8_1X16, V4L2_COLORSPACE_JPEG},
+ };
+ 
+ /* Find a data format by a pixel code in an array */
+@@ -175,7 +175,7 @@ static int rpmsg_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *a)
+ 		cparm->capability = 0;
+ 		cparm->timeperframe.denominator = DEFAULT_FPS;
+ 		cparm->timeperframe.numerator = 1;
+-		cparm->capturemode = MEDIA_BUS_FMT_ARGB8888_1X32;
++		cparm->capturemode = MEDIA_BUS_FMT_YUYV8_1X16;
+ 		ret = 0;
+ 		break;
+ 
+@@ -308,7 +308,7 @@ static int rpmsg_get_fmt(struct v4l2_subdev *sd,
+ 	if (format->pad)
+ 		return -EINVAL;
+ 
+-	mf->code	= MEDIA_BUS_FMT_ARGB8888_1X32;
++	mf->code	= MEDIA_BUS_FMT_YUYV8_1X16;
+ 	mf->colorspace	= V4L2_COLORSPACE_JPEG;
+ 	mf->field	= V4L2_FIELD_NONE;
+ 
+@@ -462,20 +462,10 @@ static int rpmsg_lepton_probe(struct rpmsg_device *dev)
+ 
+ 	dev_info(&dev->dev, "new channel: 0x%x -> 0x%x!\n", dev->src, dev->dst);
+ 
+-	/* Send LUT to M4 */
+-	vaddr = dma_alloc_coherent(0, 0x40000, &paddr, GFP_DMA | GFP_KERNEL);
+-	msg.type = RX_LUT;
+-	msg.addr = paddr;
+-	err = rpmsg_send(dev->ept, &msg, sizeof(msg));
+-	if (err) {
+-		pr_err("rpmsg_send failed: %d\n", err);
+-		return err;
+-	}
+-
+ 	/* Set initial values for the sensor struct. */
+ 	memset(&ovRpmsg_data, 0, sizeof(ovRpmsg_data));
+ 
+-	ovRpmsg_data.pix.pixelformat = V4L2_PIX_FMT_RGB32;
++	ovRpmsg_data.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+ 	ovRpmsg_data.pix.width = 160;
+ 	ovRpmsg_data.pix.height = 120;
+ 	ovRpmsg_data.streamcap.capturemode = 0;
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index ed34c2c05661..6c521fdd87ee 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -118,11 +118,11 @@ struct imx_rpmsg_device {
+ 
+ static const struct imx_rpmsg_fmt rpmsg_fmts[] = {
+ 	{
+-		.name		= "BGRA-32",
+-		.fourcc		= V4L2_PIX_FMT_RGB32,
+-		.pix_fmt	= V4L2_PIX_FMT_RGB32,
+-		.mbus_code	= MEDIA_BUS_FMT_ARGB8888_1X32,
+-		.bpp		= 32,
++		.name		= "YUYV",
++		.fourcc		= V4L2_PIX_FMT_YUYV,
++		.pix_fmt	= V4L2_PIX_FMT_YUYV,
++		.mbus_code	= MEDIA_BUS_FMT_YUYV8_1X16,
++		.bpp		= 16,
+ 	},
+ };
+ 
+@@ -173,8 +173,8 @@ static int imx_rpmsg_set_fmt(struct imx_rpmsg_device *rpmsg_dev)
+ 	struct imx_rpmsg_fmt *rpmsg_fmt = &rpmsg_dev->rpmsg_fmt;
+ 
+ 	switch (rpmsg_fmt->mbus_code) {
+-	case MEDIA_BUS_FMT_ARGB8888_1X32:
+-		/* BGRA8888 */
++	case MEDIA_BUS_FMT_YUYV8_1X16:
++		/* YUYV */
+ 		break;
+ 	default:
+ 		dev_err(rpmsg_dev->dev,
+@@ -319,11 +319,10 @@ static int imx_rpmsg_vidioc_try_fmt_vid_cap(struct file *filp, void *fh,
+ 	/* TODO: set field none */
+ 	v4l2_pix_fmt->field = V4L2_FIELD_NONE;
+ 
+-
+-	v4l2_pix_fmt->sizeimage = (32 >> 3) *
++	v4l2_pix_fmt->sizeimage = (16 >> 3) *
+ 				  v4l2_pix_fmt->height *
+ 				  v4l2_pix_fmt->width;
+-	v4l2_pix_fmt->bytesperline = (32 >> 3) * v4l2_pix_fmt->width;
++	v4l2_pix_fmt->bytesperline = (16 >> 3) * v4l2_pix_fmt->width;
+ 
+ 	return 0;
+ }
+@@ -944,13 +943,13 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	/* Seems necessary to set up some default parameters */
+-	rpmsg_dev->v4l2_pix_fmt.pixelformat = V4L2_PIX_FMT_RGB32;
++	rpmsg_dev->v4l2_pix_fmt.pixelformat = V4L2_PIX_FMT_YUYV;
+ 	rpmsg_dev->v4l2_pix_fmt.width	= 160;
+ 	rpmsg_dev->v4l2_pix_fmt.height	= 120;
+-	rpmsg_dev->v4l2_pix_fmt.sizeimage = (32 >> 3) *
++	rpmsg_dev->v4l2_pix_fmt.sizeimage = (16 >> 3) *
+ 			rpmsg_dev->v4l2_pix_fmt.height *
+ 			rpmsg_dev->v4l2_pix_fmt.width;
+-	rpmsg_dev->v4l2_pix_fmt.bytesperline = (32 >> 3) * rpmsg_dev->v4l2_pix_fmt.width;
++	rpmsg_dev->v4l2_pix_fmt.bytesperline = (16 >> 3) * rpmsg_dev->v4l2_pix_fmt.width;
+ 	rpmsg_dev->v4l2_pix_fmt.field	= V4L2_FIELD_NONE;
+ 
+ 
+@@ -1055,5 +1054,5 @@ static struct platform_driver imx_rpmsg_driver = {
+ module_platform_driver(imx_rpmsg_driver);
+ 
+ MODULE_DESCRIPTION("NXP i.MX RPMSG driver");
+-MODULE_AUTHOR("Peter Fitger <petyer.fitger@flir.se>");
++MODULE_AUTHOR("Peter Fitger <peter.fitger@flir.se>");
+ MODULE_LICENSE("GPL");
+-- 
+2.17.1
+
