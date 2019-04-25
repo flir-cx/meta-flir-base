@@ -31,6 +31,7 @@ SRC_URI_append = " \
     file://0034-Add-LM3642-Torch-and-Flash-driver.patch \
     file://0035-DT-Add-touchpad-leds.patch \
     file://0036-Use-YUYV-as-format-instead-of-ARGB.patch \
+    file://0037-In-mxc_rpmg.c-release-spinlock-before-calling-functi.patch \
     file://defconfig \
 "
 
