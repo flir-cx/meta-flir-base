@@ -34,6 +34,7 @@ IMAGE_INSTALL = " \
     dosfstools \
     e2fsprogs \
     exfat-utils \ 
+    firmware-qca9377 \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
@@ -55,6 +56,7 @@ IMAGE_INSTALL = " \
     kernel-devicetree \
     kernel-image \
     kernel-modules \
+    kernel-module-qca9377 \
     kmod \
     lepton-m4-bin \
     libevdev \
@@ -69,6 +71,7 @@ IMAGE_INSTALL = " \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     parted \
+    qca-tools \
     qtbase \
     qtgraphicaleffects \
     rpmsg-bifrost \
@@ -81,9 +84,6 @@ IMAGE_INSTALL = " \
     systemd-analyze \
     systemd-compat-units \
     telnetd-service \
-    ti-bt-firmware \
-    ti-firmware \
-    ti-nvs \
     tzdata \
     u-boot-fw-utils \
     u-boot-script \
