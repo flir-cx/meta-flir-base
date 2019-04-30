@@ -90,6 +90,7 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     umtp-responder \
+    videorender \
     wifi-test-suite \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
