@@ -161,12 +161,15 @@ config_load() {
 
     if [ $usbmode = "RNDIS_MTP" ] || [ $usbmode = "MTP" ] ; then
         # create and link mtp
-        mkdir -p functions/ffs.umtp
-        ln -s functions/ffs.umtp configs/c.1
-        # Mount and start MTP
-        mkdir -p /dev/ffs-umtp
-        mount -t functionfs umtp /dev/ffs-umtp
-        umtprd &
+        if mkdir -p functions/ffs.umtp ; then
+			ln -s functions/ffs.umtp configs/c.1
+			# Mount and start MTP
+			mkdir -p /dev/ffs-umtp
+			mount -t functionfs umtp /dev/ffs-umtp
+			umtprd &
+        else
+			echo "Unable to mount MTP"
+        fi
     fi
 
     ln -s configs/c.1 os_desc
