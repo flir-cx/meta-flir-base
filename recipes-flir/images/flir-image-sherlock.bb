@@ -28,6 +28,7 @@ IMAGE_INSTALL = " \
     bash \
     bluez5 \
     brcm-patchram \
+    camcloudsync \
     connman \
     connman-client \
     crda \
