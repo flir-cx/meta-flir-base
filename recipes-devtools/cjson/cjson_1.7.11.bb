@@ -9,16 +9,19 @@ HOMEPAGE = "https://github.com/DaveGamble/cJSON"
 
 PR = "r1"
 
+inherit cmake
+
 SRC_URI = "git://github.com/DaveGamble/cJSON.git;protocol=https"
 SRCREV = "0b5a7abf489e52d0e20a3de03bfffd674142b900"
 
 S="${WORKDIR}/git"
 
-do_compile() {
-    oe_runmake
-}
+EXTRA_OECMAKE += "-DENABLE_CJSON_UTILS=On \
+				  -DENABLE_CJSON_TEST=Off \
+				  -DENABLE_CUSTOM_COMPILER_FLAGS=OFF \
+				  -DBUILD_SHARED_AND_STATIC_LIBS=On \
+				  -DCMAKE_INSTALL_PREFIX=/usr"
 
-do_install() {
-	
-	oe_runmake install DESTDIR=${D} SBINDIR=${sbindir} INCLUDEDIR=${includedir} PREFIX="/usr/"
-}
+FILES_${PN} += "/usr/lib/* \
+				/usr/include/cjson/*"
+
