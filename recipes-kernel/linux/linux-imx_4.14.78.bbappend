@@ -33,6 +33,7 @@ SRC_URI_append = " \
     file://0036-Use-YUYV-as-format-instead-of-ARGB.patch \
     file://0037-In-mxc_rpmg.c-release-spinlock-before-calling-functi.patch \
     file://0038-DT-updated-for-FN-link-radio-module-on-EC201-rev-B.patch \
+    file://0039-New-version-of-m4-v4l-buffer-handling.patch \
     file://defconfig \
 "
 
