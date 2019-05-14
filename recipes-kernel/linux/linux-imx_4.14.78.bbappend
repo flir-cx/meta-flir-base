@@ -35,8 +35,11 @@ SRC_URI_append = " \
     file://0038-DT-updated-for-FN-link-radio-module-on-EC201-rev-B.patch \
     file://0039-New-version-of-m4-v4l-buffer-handling.patch \
     file://0040-adapt-device-tree-for-ec201-rev-b.patch \        
+    file://0041-Kernel-builds-without-warnings.patch \
     file://defconfig \
 "
+
+EXTRA_OEMAKE += "KCFLAGS=-Werror"
 
 #
 # To enable building a rootfs without a kernel-image on, we have to remove the rdepend from kernel-base.
