@@ -14,7 +14,7 @@ SYSTEMD_SERVICE_${PN} = "${PN}.service"
 SRCREV = "${AUTOREV}"
 
 SRC_URI = "\
-           git://git-se.flir.net:7999/im7/videorender.git;protocol=ssh;branch=master \
+           git://bitbucketcommercial.flir.com:7999/im7/videorender.git;protocol=ssh;branch=master \
            file://${PN}.service \
            "
 S = "${WORKDIR}/git"
