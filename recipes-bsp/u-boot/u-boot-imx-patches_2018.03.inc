@@ -8,3 +8,6 @@ SRC_URI += "file://0005-Add-config-for-the-EC201-board.patch"
 SRC_URI += "file://0006-Adds-posibility-to-generate-specialized-u-boot-for-m.patch"
 SRC_URI += "file://0007-ec201-update-ddr-write-read-calibration.patch"
 SRC_URI += "file://0008-Renamed-spare-emmc-part-to-storage.patch"
+SRC_URI += "file://0012-add-cmd-board-and-update_fdt_eeprom.patch"
+
+
