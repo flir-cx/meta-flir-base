@@ -41,6 +41,14 @@ if [ "${USBMODE}" != "RNDIS" ] &&
     exit
 fi
 
+if [ -d "/sys/kernel/config/usb_gadget/g1" ]; then
+    CURRUSBMODE="$(cat /etc/usbmode  2>/dev/null)"
+    if [ "$CURRUSBMODE" == "$USBMODE" ]; then
+        echo "USBMODE ${USBMODE} already set"
+        exit
+    fi
+fi
+
 echo $USBMODE > /etc/usbmode
 sync
 
