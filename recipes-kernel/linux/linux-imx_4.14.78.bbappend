@@ -36,6 +36,7 @@ SRC_URI_append = " \
     file://0039-New-version-of-m4-v4l-buffer-handling.patch \
     file://0040-adapt-device-tree-for-ec201-rev-b.patch \        
     file://0041-Kernel-builds-without-warnings.patch \
+    file://0042-Trigg-and-SW_ON-button-gpio_keys-change.patch \
     file://defconfig \
 "
 
