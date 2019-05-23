@@ -37,6 +37,7 @@ SRC_URI_append = " \
     file://0040-adapt-device-tree-for-ec201-rev-b.patch \        
     file://0041-Kernel-builds-without-warnings.patch \
     file://0042-Trigg-and-SW_ON-button-gpio_keys-change.patch \
+    file://0043-Change-temp-sensor-to-LM73.patch \
     file://defconfig \
 "
 
