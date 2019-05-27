@@ -39,6 +39,7 @@ SRC_URI_append = " \
     file://0042-Trigg-and-SW_ON-button-gpio_keys-change.patch \
     file://0043-Change-temp-sensor-to-LM73.patch \
     file://0044-Driver-for-fuel-gauge-lc709203f.patch \
+    file://0045-Add-vcam-enable-gpio-as-regulator.patch \
     file://defconfig \
 "
 
