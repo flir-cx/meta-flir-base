@@ -1,4 +1,4 @@
-From 3189b3a5a9fed91cca40bc1bdcaa205fcc856a6a Mon Sep 17 00:00:00 2001
+From 7158f3b11d5f0f662f0a894a722c7188e73d01ac Mon Sep 17 00:00:00 2001
 From: Erik Bengtsson <erik.bengtsson@flir.se>
 Date: Wed, 22 May 2019 13:34:13 +0200
 Subject: [PATCH] Driver for fuel gauge lc709203f
@@ -78,7 +78,7 @@ index 0000000..fb9cfaa
 +		onsemi,alert-low-voltage = <0x0>;
 +};
 diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
-index 402fb4c..e11fc1c 100644
+index 26cf91a..3d23843 100644
 --- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
 +++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
 @@ -361,6 +361,19 @@
@@ -101,8 +101,8 @@ index 402fb4c..e11fc1c 100644
  };
  
  /*  IO expander for VCAM, Lepton, Accelerometer, Temp sensor 1 and 2, EEPROM */
-@@ -411,6 +424,7 @@
- 		reg = <0x49>;
+@@ -406,6 +419,7 @@
+ 		reg = <0x48>;
  	};
  
 +
