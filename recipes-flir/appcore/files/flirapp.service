@@ -1,6 +1,5 @@
 [Unit]
 Description=FLIR flirapp (appcore et al) service 
-After=connman.service systemd-journald.service progressapp.service videorender.service
 
 [Service]
 Type=simple
@@ -8,6 +7,8 @@ ExecStartPre=/bin/bash -c 'echo 4 > /sys/devices/system/cpu/cpufreq/ondemand/sam
 ExecStartPre=/bin/bash -c 'echo 512 > /proc/sys/fs/mqueue/msgsize_max'
 ExecStartPre=/bin/bash -c 'rm -rf `ls /tmp/FLIRevent/* | grep -v Progress`'
 ExecStartPre=/bin/bash -c 'rm -rf `ls /dev/mqueue/* | grep -v Progress`'
+ExecStartPre=/bin/sleep 3
+
 ExecStart=/FLIR/usr/bin/appcore -d
 ExecStop=/usr/bin/killall -HUP appcore
 KillMode=control-group
@@ -16,3 +17,4 @@ Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 
 [Install]
 WantedBy=multi-user.target
+
