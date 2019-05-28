@@ -1,0 +1,207 @@
+From ab199cb9a9b4cc5a2f93137b4c10d107828a6468 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Tue, 28 May 2019 15:10:37 +0200
+Subject: [PATCH] support for hx8394 sherlock display
+
+---
+ drivers/video/fbdev/mxc/Kconfig              |   5 ++
+ drivers/video/fbdev/mxc/Makefile             |   1 +
+ drivers/video/fbdev/mxc/mipi_dsi.h           |   5 ++
+ drivers/video/fbdev/mxc/mipi_dsi_northwest.c |   8 ++
+ drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c   | 124 +++++++++++++++++++++++++++
+ 5 files changed, 143 insertions(+)
+ create mode 100644 drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c
+
+diff --git a/drivers/video/fbdev/mxc/Kconfig b/drivers/video/fbdev/mxc/Kconfig
+index e0dd513..c43fd97 100644
+--- a/drivers/video/fbdev/mxc/Kconfig
++++ b/drivers/video/fbdev/mxc/Kconfig
+@@ -66,6 +66,11 @@ config FB_MXC_TRULY_PANEL_TFT3P5581E
+ 	depends on FB_MXC_DISP_FRAMEWORK || FB_MXC_SYNC_PANEL
+ 	depends on FB_MXC_MIPI_DSI_SAMSUNG || FB_MXC_MIPI_DSI_NORTHWEST
+ 
++config FB_MXC_TRULY_PANEL_SHERLOCK
++	tristate "Truly VGA Panel SHERLOCK display driver"
++	depends on FB_MXC_DISP_FRAMEWORK || FB_MXC_SYNC_PANEL
++	depends on FB_MXC_MIPI_DSI || FB_MXC_MIPI_DSI_NORTHWEST
++
+ config FB_MXC_ORISE_OTM1287A
+ 	tristate "Orise Tech OTM1287A display driver"
+ 	depends on FB_MXC_DISP_FRAMEWORK || FB_MXC_SYNC_PANEL
+diff --git a/drivers/video/fbdev/mxc/Makefile b/drivers/video/fbdev/mxc/Makefile
+index 3562007..a5c5c10 100644
+--- a/drivers/video/fbdev/mxc/Makefile
++++ b/drivers/video/fbdev/mxc/Makefile
+@@ -4,6 +4,7 @@ obj-$(CONFIG_FB_MXC_MIPI_DSI_NORTHWEST)         += mipi_dsi_northwest.o
+ obj-$(CONFIG_FB_MXC_TRULY_WVGA_SYNC_PANEL)      += mxcfb_hx8369_wvga.o
+ obj-$(CONFIG_FB_MXC_TRULY_PANEL_TFT3P5079E)     += mxcfb_otm8018b_wvga.o
+ obj-$(CONFIG_FB_MXC_TRULY_PANEL_TFT3P5581E)	+= mxcfb_hx8363_wvga.o
++obj-$(CONFIG_FB_MXC_TRULY_PANEL_SHERLOCK)     += mxcfb_hx8394_vga.o
+ obj-$(CONFIG_FB_MXC_ORISE_OTM1287A)		+= mxcfb_otm1287a.o
+ obj-$(CONFIG_FB_MXC_LDB) += ldb.o
+ obj-$(CONFIG_FB_MXC_HDMI)			+= mxc_hdmi.o
+diff --git a/drivers/video/fbdev/mxc/mipi_dsi.h b/drivers/video/fbdev/mxc/mipi_dsi.h
+index c12c7ca..c1197d0 100644
+--- a/drivers/video/fbdev/mxc/mipi_dsi.h
++++ b/drivers/video/fbdev/mxc/mipi_dsi.h
+@@ -138,6 +138,11 @@ void mipid_otm1287a_get_lcd_videomode(struct fb_videomode **mode, int *size,
+ 		struct mipi_lcd_config **data);
+ int mipid_otm1287a_lcd_setup(struct mipi_dsi_info *mipi_dsi);
+ #endif
++#ifdef CONFIG_FB_MXC_TRULY_PANEL_SHERLOCK
++void mipid_hx8394_get_lcd_videomode(struct fb_videomode **mode, int *size,
++		struct mipi_lcd_config **data);
++int mipid_hx8394_lcd_setup(struct mipi_dsi_info *mipi_dsi);
++#endif
+ 
+ #ifndef CONFIG_FB_MXC_TRULY_WVGA_SYNC_PANEL
+ #error "Please configure MIPI LCD panel, we cannot find one!"
+diff --git a/drivers/video/fbdev/mxc/mipi_dsi_northwest.c b/drivers/video/fbdev/mxc/mipi_dsi_northwest.c
+index b0b0d28..468a025 100644
+--- a/drivers/video/fbdev/mxc/mipi_dsi_northwest.c
++++ b/drivers/video/fbdev/mxc/mipi_dsi_northwest.c
+@@ -81,6 +81,14 @@ static struct mipi_dsi_match_lcd mipi_dsi_lcd_db[] = {
+ 	 {mipid_otm1287a_get_lcd_videomode, mipid_otm1287a_lcd_setup}
+ 	},
+ #endif
++#ifdef CONFIG_FB_MXC_TRULY_PANEL_SHERLOCK
++	{
++	 "TRULY-VGA-SHERLOCK",
++	 {mipid_hx8394_get_lcd_videomode, mipid_hx8394_lcd_setup}
++	},
++#endif
++
++
+ 	{
+ 	"", {NULL, NULL}
+ 	}
+diff --git a/drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c b/drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c
+new file mode 100644
+index 0000000..bbec208
+--- /dev/null
++++ b/drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c
+@@ -0,0 +1,124 @@
++/*
++ * Copyright (C) 2019 FLIR Systems.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ */
++
++#include <linux/types.h>
++#include <linux/init.h>
++#include <linux/delay.h>
++#include <linux/err.h>
++#include <linux/clk.h>
++#include <linux/io.h>
++#include <linux/mipi_dsi.h>
++#include <linux/mxcfb.h>
++#include <video/mipi_display.h>
++#include "mipi_dsi.h"
++
++#define HX8394_MAX_DPHY_CLK					(300)
++#define HX8394_ONE_DATA_LANE				(0x1)
++#define HX8394_TWO_DATA_LANE				(0x2)
++
++struct reg_value {
++	u8	command; // mipi command
++	u8  delay; //delay in ms
++	u8 	buf_size; //buffer size for long commands, for short set it to 0
++	u8	buf[60];
++};
++
++static struct reg_value lcd_setup[] =
++{
++	{0x05,150,0,{0x11}}, //Sleep out
++	{0x29,0, 4,{0xB9,0xFF,0x83,0x94}}, //SETEXTC  extended command set access enable
++	{0x29,0,11,{0xB1,0x48,0x14,0x74,0x09,0x33,0x54,0x71,0x31,0x4D,0x2F}},  //SETPOWER
++	{0x29,0, 7,{0xBA,0x61,0x03,0x68,0x6B,0xB2,0xC0}}, //SETMIPI MIPI control: dsi 2-lane
++	//SETCYC display waveform cycles
++	{0x29,0,22,{0xB4,0x01,0x70,0x01,0x70,0x01,0x70,0x01,0x0C,0x76,0x35,0x00,0x3F,0x01,\
++			0x70,0x01,0x70,0x01,0x70,0x01,0x0C,0x76}}, 
++	//SETGIP_0 GIP Option0
++	{0x29,0,34,{0xD3,0x00,0x00,0x00,0x00,0x08,0x08,0x00,0x00,0x32,0x10,0x03,0x00,0x03,\
++			0x32,0x11,0xE9,0x01,0xE9,0x32,0x10,0x08,0x00,0x00,0x37,0x03,0x05,0x05,0x37,0x05,0x05,0x17,0x06,0x40}}, 
++	//SETDISP Display related register: Resolution=640RGB, Lines=480, Vertical Back Porch=12, Vertical Front Porch=13, 
++	// Line Blank=352 TCON CLK
++	{0x29,0, 7,{0xB2,0x00,0x90,0x00,0x0C,0x0D,0xFF}}, 
++	//{0x29,0,0,0,0, 12,{0xB2,0x00,0x90,0x00,0x0C,0x0D,0xFF, 0x0,0x0,0x0,0x0,0x78}}, //Test Pattern
++	{0x29,0, 8,{0xBF,0x40,0x81,0x50,0x00,0x1A,0xFC,0x01}}, //??
++	//SETGIP_1 GIP Option1
++	{0x29,0,45,{0xD5,0x18,0x18,0x24,0x25,0x19,0x19,0x18,0x18,0x18,0x18,0x06,0x07,0x04,\
++			0x05,0x02,0x03,0x00,0x01,0x20,0x21,0x18,0x18,0x18,0x18,0x18,0x18,0x18,\
++			0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18}}, 
++	//SETGIP_2 GIP Option2
++	{0x29,0,45,{0xD6,0x19,0x19,0x21,0x20,0x18,0x18,0x18,0x18,0x18,0x18,0x01,0x00,0x03,\
++			0x02,0x05,0x04,0x07,0x06,0x25,0x24,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,\
++			0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18,0x18}}, 
++	//SETGAMMA gamma curve related setting
++	{0x29,0,59,{0xE0,0x00,0x13,0x20,0x27,0x2C,0x2F,0x30,0x30,0x5E,0x6D,0x7C,0x78,0x7F,\
++			0x8E,0x92,0x94,0xA1,0xA4,0xA0,0xAE,0xBB,0x5C,0x59,0x5D,0x60,0x63,0x67,0x73,\
++			0x7F,0x00,0x13,0x20,0x27,0x2C,0x2F,0x30,0x30,0x5E,0x6D,0x7C,0x78,0x7F,0x8E,\
++			0x92,0x94,0xA1,0xA4,0xA0,0xAE,0xBB,0x5C,0x59,0x5D,0x60,0x63,0x67,0x73,0x7F}}, 
++	//SETPANEL panel related register: BGR_PANEL=1, GS_PANEL=1, reverse scan. SS_PANEL=1, shift direction from S3240 to S1
++	{0x29,0, 2,{0xCC,0x0B}}, 
++	{0x29,0, 3,{0xC0,0x1F,0x31}},  //SETSTBA Source Option
++	{0x29,0, 3,{0xB6,0x20,0x20}}, //SETVCOM VCOM voltage
++	{0x15,0, 0,{0xD4,0x02}}, //SETIOOPT Set I/O Option
++	{0x15,0, 0,{0xD2,0x77}}, //SETOFFSET
++	{0x15,0, 0,{0xC6,0xED}}, //??
++	{0x05,50,0,{0x29}} //Display on
++};
++
++
++
++static struct fb_videomode otm_lcd_modedb[] = {
++	{
++	 "TRULY-VGA-SHERLOCK", 60, 640, 480, 46894,
++	 15, 26,
++	 9, 16,
++	 20, 2,
++	 0,
++	 FB_VMODE_NONINTERLACED,
++	 0,
++	},
++};
++
++
++static struct mipi_lcd_config lcd_config = {
++	.virtual_ch	= 0x0,
++	.data_lane_num	= HX8394_TWO_DATA_LANE,
++	.max_phy_clk	= HX8394_MAX_DPHY_CLK,
++	.dpi_fmt	= MIPI_RGB888,
++};
++
++void mipid_hx8394_get_lcd_videomode(struct fb_videomode **mode, int *size,
++		struct mipi_lcd_config **data)
++{
++	*mode = &otm_lcd_modedb[0];
++	*size = ARRAY_SIZE(otm_lcd_modedb);
++	*data = &lcd_config;
++}
++
++
++int mipid_hx8394_lcd_setup(struct mipi_dsi_info *mipi_dsi)
++{
++	int i;
++	for(i=0;i<ARRAY_SIZE(lcd_setup);i++)
++	{
++		mipi_dsi->mipi_dsi_pkt_write(mipi_dsi, lcd_setup[i].command,
++					(u32*) lcd_setup[i].buf, lcd_setup[i].buf_size);
++		msleep(lcd_setup[i].delay);
++	}
++
++	return 0;
++}
++

@@ -40,6 +40,8 @@ SRC_URI_append = " \
     file://0043-Change-temp-sensor-to-LM73.patch \
     file://0044-Driver-for-fuel-gauge-lc709203f.patch \
     file://0045-Add-vcam-enable-gpio-as-regulator.patch \
+    file://0046-support-for-hx8394-sherlock-display.patch \
+    file://0047-ec201-dtb-revb-change-lcd-panel-to-truly-sherlock-di.patch \    
     file://defconfig \
 "
 
