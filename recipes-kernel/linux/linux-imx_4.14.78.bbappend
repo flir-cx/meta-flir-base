@@ -43,6 +43,7 @@ SRC_URI_append = " \
     file://0046-support-for-hx8394-sherlock-display.patch \
     file://0047-ec201-dtb-revb-change-lcd-panel-to-truly-sherlock-di.patch \
     file://0048-Add-parade-touchscreen-driver-cyttsp5.patch \
+    file://0049-DTS-change-backlight-for-compatibitility-tp-led-name.patch \
     file://defconfig \
 "
 

@@ -28,9 +28,9 @@ battery_lnk=$lnk_base_dir/battery
 
 tpleds_folder=$lnk_base_dir/tp-leds
 tpleds_detect_lnk=$lnk_base_dir/tp-leds/tp-leds
-tpled1_lnk=$lnk_base_dir/tp-leds/tp-led1
-tpled2_lnk=$lnk_base_dir/tp-leds/tp-led2
-tpled3_lnk=$lnk_base_dir/tp-leds/tp-led3
+tpleds_camera_lnk=$lnk_base_dir/tp-leds/tp-camera
+tpleds_gallery_lnk=$lnk_base_dir/tp-leds/tp-gallery
+tpleds_settings_lnk=$lnk_base_dir/tp-leds/tp-settings
 
 find_out_model () {
 	grep -q -- '-evco' $compat_path && return $evco
@@ -62,9 +62,9 @@ set_paths () {
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		battery_path=/sys/class/power_supply/battery
 		tpleds_detect_path=/sys/bus/i2c/devices/1-0032
-		tpled1_path=/sys/class/leds/tp-led1
-		tpled2_path=/sys/class/leds/tp-led2
-		tpled3_path=/sys/class/leds/tp-led3
+		tpleds_camera_path=/sys/class/leds/tp-camera
+		tpleds_gallery_path=/sys/class/leds/tp-gallery
+		tpleds_settings_path=/sys/class/leds/tp-settings
 		;;
 	esac
 }
@@ -84,9 +84,9 @@ create_links () {
 	[ -n "$tpleds_detect_path" ] && \
 		mkdir $tpleds_folder
 	create_link "$tpleds_detect_path" "$tpleds_detect_lnk"
-	create_link "$tpled1_path" "$tpled1_lnk"
-	create_link "$tpled2_path" "$tpled2_lnk"
-	create_link "$tpled3_path" "$tpled3_lnk"
+	create_link "$tpleds_camera_path" "$tpleds_camera_lnk"
+	create_link "$tpleds_gallery_path" "$tpleds_gallery_lnk"
+	create_link "$tpleds_settings_path" "$tpleds_settings_lnk"
 }
 
 find_out_model
