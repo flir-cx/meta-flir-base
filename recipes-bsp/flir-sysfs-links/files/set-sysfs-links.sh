@@ -20,17 +20,15 @@ lnk_base_dir=/etc/sysfs-links
 
 # Created symlinks
 lcd2dp_sink_caps_lnk=$lnk_base_dir/lcd2dp_sink_caps
-
 usbc_control_lnk=$lnk_base_dir/usbc_control
 usb2_control_lnk=$lnk_base_dir/usb2_control
-
 battery_lnk=$lnk_base_dir/battery
-
 tpleds_folder=$lnk_base_dir/tp-leds
 tpleds_detect_lnk=$lnk_base_dir/tp-leds/tp-leds
 tpleds_camera_lnk=$lnk_base_dir/tp-leds/tp-camera
 tpleds_gallery_lnk=$lnk_base_dir/tp-leds/tp-gallery
 tpleds_settings_lnk=$lnk_base_dir/tp-leds/tp-settings
+backlight_lcd_lnk=$lnk_base_dir/backlight_lcd
 
 find_out_model () {
 	grep -q -- '-evco' $compat_path && return $evco
@@ -65,6 +63,7 @@ set_paths () {
 		tpleds_camera_path=/sys/class/leds/tp-camera
 		tpleds_gallery_path=/sys/class/leds/tp-gallery
 		tpleds_settings_path=/sys/class/leds/tp-settings
+		backlight_lcd_path=/sys/class/backlight/backlight_lcd
 		;;
 	esac
 }
@@ -87,6 +86,7 @@ create_links () {
 	create_link "$tpleds_camera_path" "$tpleds_camera_lnk"
 	create_link "$tpleds_gallery_path" "$tpleds_gallery_lnk"
 	create_link "$tpleds_settings_path" "$tpleds_settings_lnk"
+	create_link "$backlight_lcd_path" "$backlight_lcd_lnk"
 }
 
 find_out_model
