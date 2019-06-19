@@ -80,13 +80,21 @@ usage() {
 }
 
 config_load() {
-    # Check usbmode config and vaildate
-    if [ -f "/etc/usbmode" ] ; then
+    # Workaround if stuck in MTP mode only
+    if [ -f "/FLIR/images/.usbmode" ] ; then
+        usbmode=`cat /FLIR/images/.usbmode`
+        cp FLIR/images/.usbmode /etc/usbmode
+        echo .system.usbmode text \"${usbmode}\" >> /FLIR/system/journal.d/journal.rsc
+        rm /FLIR/images/.usbmode
+    # Check usbmode config
+    elif [ -f "/etc/usbmode" ] ; then
         usbmode=`cat /etc/usbmode`
-        if [ ! $usbmode = "MTP" ] && [ ! $usbmode = "RNDIS" ] && [ ! $usbmode = "RNDIS_MTP" ] ; then
-            usbmode="${usbmode_default}"
-        fi
     else
+        usbmode="${usbmode_default}"
+    fi
+
+    # Validate
+    if [ ! $usbmode = "MTP" ] && [ ! $usbmode = "RNDIS" ] && [ ! $usbmode = "RNDIS_MTP" ] ; then
         usbmode="${usbmode_default}"
     fi
 
