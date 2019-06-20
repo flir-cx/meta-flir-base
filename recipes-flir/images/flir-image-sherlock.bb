@@ -72,6 +72,7 @@ IMAGE_INSTALL = " \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     parted \
+    python \
     qca-tools \
     qtbase \
     qtgraphicaleffects \
