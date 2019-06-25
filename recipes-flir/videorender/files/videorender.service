@@ -3,7 +3,7 @@ Description=Videorender application
 After=weston.service
 
 [Service]
-ExecStart=/bin/bash -a -c 'source /etc/profile.d/weston.sh && /usr/bin/videorender -d /dev/video0 -d /dev/video1 -s /usr/share/videorender/shaders'
+ExecStart=/bin/bash -a -c 'source /etc/profile.d/weston.sh && /usr/bin/videorender --input device=/dev/video0,type=visible,pixelformat=YUYV,width=640,height=480 --input device=/dev/video1,type=colorized-ir,pixelformat=YUYV,width=160,height=120 -s /usr/share/videorender/shaders'
 
 [Install]
 WantedBy=multi-user.target
