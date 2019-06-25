@@ -12,7 +12,7 @@ RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
 #SRCREV = "${AUTOREV}"
-SRCREV = "7c3afde6bdce70eb0292204dee29429b52f6d985"
+SRCREV = "1dd5f5c73c236f9e7f90a16a6f7fd923090ac28c"
 
 SRC_URI = "\
            git://bitbucketcommercial.flir.com:7999/im7/videorender.git;protocol=ssh;branch=master \
