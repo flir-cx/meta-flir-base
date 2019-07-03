@@ -45,6 +45,7 @@ SRC_URI_append = " \
     file://0048-Add-parade-touchscreen-driver-cyttsp5.patch \
     file://0049-DTS-change-backlight-for-compatibitility-tp-led-name.patch \
     file://0050-Change-trigger-and-power-button-key-codes.patch \
+    file://0051-ec201-dtb-enable-heartbeat-rpmsg.patch \
     file://defconfig \
 "
 
