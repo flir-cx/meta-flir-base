@@ -1,9 +1,9 @@
-SUMMARY = "minidump server for uploading dumps to cloud"
-DESCRIPTION = "dump uploader"
+SUMMARY = "Data Collection Service for uploading usage data to the cloud"
 AUTHOR = "Ulf Palmer <ulf.palmer@flir.se>"
 SECTION = "flir/applications"
 PRIORITY = "optional"
-LICENSE = "CLOSED"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=7fd8cbdea64237e5b70d9296a4382091"
+LICENSE = "GPLv2"
 PR = "r1"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
@@ -19,18 +19,13 @@ RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
 SRC_URI += "gitsm://bitbucketcommercial.flir.com:7999/im7/data-collection.git;protocol=ssh;branch=master"
-#SRC_URI += "file://cam_updater.cfg"
 SRCREV = "master"
 
 S="${WORKDIR}/git"
 
-#do_install() {
-#    install -d ${D}${systemd_unitdir}/system
-#    install -d ${D}/${bindir}
-#    install -m 0755 ${S}/${PN}  ${D}/${bindir}
-#}
+prefix="/usr/local"
 
 EXTRA_OECMAKE += ""
-FILES_${PN} += "/usr/lib/* \
-		/usr/bin/*"
-
+FILES_${PN} += "${prefix}/bin/${PN} \
+                /etc/${PN}.conf \
+                /lib/systemd/system/${PN}.service"
