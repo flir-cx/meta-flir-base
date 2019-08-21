@@ -22,6 +22,7 @@ IMAGE_INSTALL = "bash \
                  kernel-module-u-ether \
                  mmc-utils \
                  openssh \
+                 opkg \
                  packagegroup-core-boot \
                  parted \
                  u-boot-fw-utils \
