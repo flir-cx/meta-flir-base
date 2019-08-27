@@ -1,0 +1,12 @@
+[Unit]
+Description=Bluetooth loader
+After=wlanload.service dbus.service 
+Before=bluetooth.service dbus-org.bluez.service
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/btload
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
