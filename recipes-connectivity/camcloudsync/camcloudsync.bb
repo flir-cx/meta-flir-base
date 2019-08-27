@@ -39,5 +39,8 @@ do_install() {
     install -m 0744 ${S}/misc/camcloudsync.sh ${D}/sbin
     install -d ${D}/etc/
     install -d ${D}/etc/camcloudsync
-    install -m 0744 ${S}/misc/flircloud.conf ${D}/etc/camcloudsync
+    install -d ${D}/etc/dbus-1
+    install -d ${D}/etc/dbus-1/system.d    
+    install -m 0644 ${S}/misc/flircloud.conf ${D}/etc/camcloudsync
+    install -m 0644 ${S}/misc/camcloud.conf ${D}/etc/dbus-1/system.d
 }
