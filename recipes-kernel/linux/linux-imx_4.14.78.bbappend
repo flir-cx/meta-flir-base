@@ -47,6 +47,7 @@ SRC_URI_append = " \
     file://0050-Change-trigger-and-power-button-key-codes.patch \
     file://0051-ec201-dtb-enable-heartbeat-rpmsg.patch \
     file://0052-Do-not-set-initialization-when-probing-fuel-guage.patch \
+    file://0053-Calculate-and-set-unique-ID-system-serial.patch \
     file://defconfig \
 "
 
