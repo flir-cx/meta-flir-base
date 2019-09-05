@@ -27,6 +27,7 @@ IMAGE_INSTALL = " \
     aufsrootfs \
     bash \
     bluez5 \
+    bootlogo \
     brcm-patchram \
     btload \
     camcloudsync \
