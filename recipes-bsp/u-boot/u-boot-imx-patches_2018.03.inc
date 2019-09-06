@@ -9,5 +9,7 @@ SRC_URI += "file://0006-Adds-posibility-to-generate-specialized-u-boot-for-m.pat
 SRC_URI += "file://0007-ec201-update-ddr-write-read-calibration.patch"
 SRC_URI += "file://0008-Renamed-spare-emmc-part-to-storage.patch"
 SRC_URI += "file://0012-add-cmd-board-and-update_fdt_eeprom.patch"
+SRC_URI += "file://0013-add-hx8394-mipi-display.patch"
+SRC_URI += "file://0014-add-bootlogo-functionality.patch"
 
 
