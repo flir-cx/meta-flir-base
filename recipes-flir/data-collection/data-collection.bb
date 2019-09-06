@@ -4,11 +4,17 @@ SECTION = "flir/applications"
 PRIORITY = "optional"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=7fd8cbdea64237e5b70d9296a4382091"
 LICENSE = "GPLv2"
-PR = "r6"
+PR = "r7"
 PACKAGES = "${PN}-dbg ${PN} ${PN}-dev"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
+
+EXTRA_OECMAKE += " -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
+EXTRA_OECMAKE += " -DDC_BUILD_EXAMPLES=OFF"
+EXTRA_OECMAKE += " -DDC_MINIDUMP_DESTINATION=/FLIR/system/data-collection/minidumps"
+EXTRA_OECMAKE += " -DDC_STATISTICS_DESTINATION=/FLIR/system/data-collection/statistics"
+EXTRA_OECMAKE += " -DDC_SERVICE_ACCOUNT_CONFIG=/FLIR/system/data-collection/service-account.json"
 
 inherit cmake pkgconfig systemd
 
@@ -21,12 +27,9 @@ RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
 SRC_URI += "gitsm://bitbucketcommercial.flir.com:7999/im7/data-collection.git;protocol=ssh;branch=master"
-SRCREV = "1379e767ec20697eb99d87a8f8165a56a52995b2"
-#SRCREV = "${AUTOREV}"
+SRCREV = "ad27092262735b7e948ec396777c50a3d8a3e5e5"
 
 S="${WORKDIR}/git"
-
-EXTRA_OECMAKE += ""
 
 prefix = "/usr"
 
