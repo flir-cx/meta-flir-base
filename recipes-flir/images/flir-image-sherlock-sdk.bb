@@ -11,6 +11,7 @@ IMAGE_INSTALL += " \
     breakpad \
     breakpad-staticdev \
     gperftools \
+    gtest-staticdev \
     gupnp \
     kernel-dev \
     kernel-devsrc \
