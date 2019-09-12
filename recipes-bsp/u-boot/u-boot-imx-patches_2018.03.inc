@@ -11,5 +11,13 @@ SRC_URI += "file://0008-Renamed-spare-emmc-part-to-storage.patch"
 SRC_URI += "file://0012-add-cmd-board-and-update_fdt_eeprom.patch"
 SRC_URI += "file://0013-add-hx8394-mipi-display.patch"
 SRC_URI += "file://0014-add-bootlogo-functionality.patch"
+SRC_URI += "file://0015-sherlock-display-fixed-pixel-clock.patch"
+SRC_URI += "file://0016-mxsfb-set-gd-fb_base-to-framebuffer-pointer.patch"
+SRC_URI += "file://0017-arch_preboot_os-dont-disable-display-when-booting-li.patch"
+SRC_URI += "file://0018-ec201-copy-framebuffer-address-to-dtb-lcdif-bootlogo.patch"
+
+
+
+
 
 
