@@ -1,0 +1,25 @@
+From e2551f690ebb390730fc426d201091ae4f7d463d Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Thu, 12 Sep 2019 11:05:39 +0200
+Subject: [PATCH] gpio-vf610: move driver start order earlier in boot
+
+prevents driver defer errors
+---
+ drivers/gpio/gpio-vf610.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpio/gpio-vf610.c b/drivers/gpio/gpio-vf610.c
+index 047ceb4..eb532b1 100644
+--- a/drivers/gpio/gpio-vf610.c
++++ b/drivers/gpio/gpio-vf610.c
+@@ -351,4 +351,8 @@ static struct platform_driver vf610_gpio_driver = {
+ 	.probe		= vf610_gpio_probe,
+ };
+ 
+-builtin_platform_driver(vf610_gpio_driver);
++static int __init vf610_gpio_driver_init(void)
++{
++	return platform_driver_register(&vf610_gpio_driver);
++}
++arch_initcall(vf610_gpio_driver_init);
+\ No newline at end of file
