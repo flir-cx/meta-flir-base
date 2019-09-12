@@ -59,7 +59,6 @@ set_paths () {
 	"$bblc"|"$ec201")
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		battery_path=/sys/class/power_supply/battery
-		tpleds_detect_path=/sys/bus/i2c/devices/1-0032
 		tpleds_camera_path=/sys/class/leds/tp-camera
 		tpleds_gallery_path=/sys/class/leds/tp-gallery
 		tpleds_settings_path=/sys/class/leds/tp-settings
@@ -80,12 +79,18 @@ create_links () {
 	create_link "$usb2_control_path" "$usb2_control_lnk"
 
 	create_link "$battery_path" "$battery_lnk"
-	[ -n "$tpleds_detect_path" ] && \
-		mkdir $tpleds_folder
-	create_link "$tpleds_detect_path" "$tpleds_detect_lnk"
+	
+	[ -n "$tpleds_camera_path" ] && \
+		mkdir -p $tpleds_folder
+
+	[ ! -a $tpleds_detect_lnk/uevent ] && \
+		rm -f $tpleds_detect_lnk
+
+	create_link "$tpleds_camera_path" "$tpleds_detect_lnk" # Detect link for appcore
 	create_link "$tpleds_camera_path" "$tpleds_camera_lnk"
 	create_link "$tpleds_gallery_path" "$tpleds_gallery_lnk"
 	create_link "$tpleds_settings_path" "$tpleds_settings_lnk"
+	
 	create_link "$backlight_lcd_path" "$backlight_lcd_lnk"
 }
 
