@@ -1,0 +1,30 @@
+From b0a20151ff8698b1b6489e89f506535a926cef8a Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Thu, 12 Sep 2019 12:04:51 +0200
+Subject: [PATCH] mxsfb: set gd->fb_base to framebuffer pointer
+
+---
+ drivers/video/mxsfb.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/video/mxsfb.c b/drivers/video/mxsfb.c
+index 838c037..bda4c37 100644
+--- a/drivers/video/mxsfb.c
++++ b/drivers/video/mxsfb.c
+@@ -36,6 +36,8 @@
+ 
+ #define	PS2KHZ(ps)	(1000000000UL / (ps))
+ 
++DECLARE_GLOBAL_DATA_PTR;
++
+ static GraphicDevice panel;
+ struct mxs_dma_desc desc;
+ 
+@@ -295,6 +297,7 @@ void *video_hw_init(void)
+ 	memset(fb, 0, panel.memSize);
+ 
+ 	panel.frameAdrs = (ulong)fb;
++	gd->fb_base = fb;
+ 
+ 	printf("%s\n", panel.modeIdent);
+ 
