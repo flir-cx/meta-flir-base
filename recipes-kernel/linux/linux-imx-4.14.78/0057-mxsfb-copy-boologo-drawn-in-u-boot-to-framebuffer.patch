@@ -1,0 +1,53 @@
+From e2a2a93d5f4798176f1d631b229e77fbb06dbe44 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Thu, 12 Sep 2019 11:11:37 +0200
+Subject: [PATCH] mxsfb: copy boologo drawn in u-boot to  framebuffer
+
+---
+ drivers/video/fbdev/mxsfb.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/mxsfb.c b/drivers/video/fbdev/mxsfb.c
+index 5659ec2..74a799b 100644
+--- a/drivers/video/fbdev/mxsfb.c
++++ b/drivers/video/fbdev/mxsfb.c
+@@ -262,7 +262,11 @@ struct mxsfb_info {
+ 	int id;
+ 	struct fb_var_screeninfo var;
+ 	struct pm_qos_request pm_qos_req;
+-
++	//framebuffer address to bootlogo filled in by u-boot
++	struct {
++		int addr;
++		int size;
++	}bootlogo;
+ 	char disp_videomode[NAME_LEN];
+ 
+ #ifdef CONFIG_FB_MXC_OVERLAY
+@@ -1348,6 +1352,11 @@ static int mxsfb_init_fbinfo_dt(struct mxsfb_info *host)
+ 		goto put_display_node;
+ 	}
+ 
++	ret = of_property_read_u32_array(np,"bootlogo", (u32*) &host->bootlogo,2);
++	if (ret < 0) {
++		memset((void*)&host->bootlogo,2,sizeof(int));
++	}
++
+ 	ret = of_property_read_u32(display_np, "bits-per-pixel",
+ 				   &var->bits_per_pixel);
+ 	if (ret < 0) {
+@@ -1463,6 +1472,14 @@ static int mxsfb_init_fbinfo(struct mxsfb_info *host)
+ 	if (mxsfb_restore_mode(host))
+ 		memset((char *)fb_info->screen_base, 0, fb_info->fix.smem_len);
+ 
++	//reuse bootlogo drawn in bootloader
++	if(host->bootlogo.addr)
++	{
++		void*  bootlogo = phys_to_virt(host->bootlogo.addr);
++		if(bootlogo) {
++			memcpy((char *)fb_info->screen_base,bootlogo ,host->bootlogo.size);
++		}
++	}
+ 	return 0;
+ }
+ 

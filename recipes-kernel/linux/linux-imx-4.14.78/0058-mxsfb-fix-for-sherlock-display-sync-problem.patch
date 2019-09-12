@@ -1,0 +1,24 @@
+From 63924ed332e8d79c700f0b02dd5aa3a42a3e3394 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Thu, 12 Sep 2019 11:57:18 +0200
+Subject: [PATCH] mxsfb: fix for sherlock display sync problem
+
+If u-boot have already initialized display, we might get a horizontal out-of-sync panned  image on display.
+By disable and enable display driver, we fix this problem
+---
+ drivers/video/fbdev/mxsfb.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/video/fbdev/mxsfb.c b/drivers/video/fbdev/mxsfb.c
+index 74a799b..fe95f53 100644
+--- a/drivers/video/fbdev/mxsfb.c
++++ b/drivers/video/fbdev/mxsfb.c
+@@ -2345,6 +2345,8 @@ static int mxsfb_probe(struct platform_device *pdev)
+ 
+ #ifndef CONFIG_FB_IMX64_DEBUG
+ 	console_lock();
++	//hack to fix display sync
++	fb_blank(fb_info, FB_BLANK_NORMAL);
+ 	ret = fb_blank(fb_info, FB_BLANK_UNBLANK);
+ 	console_unlock();
+ 	if (ret < 0) {

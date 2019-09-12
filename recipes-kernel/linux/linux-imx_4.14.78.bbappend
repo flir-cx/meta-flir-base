@@ -49,6 +49,10 @@ SRC_URI_append = " \
     file://0052-Do-not-set-initialization-when-probing-fuel-guage.patch \
     file://0053-Calculate-and-set-unique-ID-system-serial.patch \
     file://0054-lc709203f-battery-Only-set-battery-param-if-not-corr.patch \
+    file://0055-ec201-dtb-pass-bootlogo-framebuffer-address-from-boo.patch \
+    file://0056-gpio-vf610-move-driver-start-order-earlier-in-boot.patch \
+    file://0057-mxsfb-copy-boologo-drawn-in-u-boot-to-framebuffer.patch \
+    file://0058-mxsfb-fix-for-sherlock-display-sync-problem.patch \                
     file://defconfig \
 "
 
