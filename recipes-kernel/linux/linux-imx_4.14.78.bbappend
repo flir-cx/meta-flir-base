@@ -52,7 +52,8 @@ SRC_URI_append = " \
     file://0055-ec201-dtb-pass-bootlogo-framebuffer-address-from-boo.patch \
     file://0056-gpio-vf610-move-driver-start-order-earlier-in-boot.patch \
     file://0057-mxsfb-copy-boologo-drawn-in-u-boot-to-framebuffer.patch \
-    file://0058-mxsfb-fix-for-sherlock-display-sync-problem.patch \                
+    file://0058-mxsfb-fix-for-sherlock-display-sync-problem.patch \
+    file://0059-Change-keycodes-for-touchbuttons-using-standard-F-ke.patch \
     file://defconfig \
 "
 
