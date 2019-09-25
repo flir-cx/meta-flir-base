@@ -14,7 +14,7 @@ EXTRA_OECMAKE += " -DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
 EXTRA_OECMAKE += " -DDC_BUILD_EXAMPLES=OFF"
 EXTRA_OECMAKE += " -DDC_MINIDUMP_DESTINATION=/FLIR/system/data-collection/minidumps"
 EXTRA_OECMAKE += " -DDC_STATISTICS_DESTINATION=/FLIR/system/data-collection/statistics"
-EXTRA_OECMAKE += " -DDC_SERVICE_ACCOUNT_CONFIG=/FLIR/system/data-collection/service-account.json"
+EXTRA_OECMAKE += " -DDC_CREDENTIALS_FILE=/FLIR/system/data-collection/credentials.json"
 
 inherit cmake pkgconfig systemd
 
@@ -27,7 +27,7 @@ RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
 SRC_URI += "gitsm://bitbucketcommercial.flir.com:7999/im7/data-collection.git;protocol=ssh;branch=master"
-SRCREV = "ad27092262735b7e948ec396777c50a3d8a3e5e5"
+SRCREV = "f7d715a2e92ec149ea16d95d085c3e0f6fb6d294"
 
 S="${WORKDIR}/git"
 
