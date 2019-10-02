@@ -1,0 +1,76 @@
+From 71a21d96f8507722f5c1ec47eeef4a001a3b15e2 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Mon, 20 Aug 2018 15:08:37 +0200
+Subject: [PATCH] bblc device tree: add dummy extcon to enable usb and dummy
+ regulator for cpu0
+
+Signed-off-by: David Sernelius <david.sernelius@flir.se>
+---
+ arch/arm/boot/dts/imx7ulp-bblc.dts | 29 ++++++++++++++++++++++++++++-
+ 1 file changed, 28 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-bblc.dts b/arch/arm/boot/dts/imx7ulp-bblc.dts
+index d824198aea54..883741845922 100644
+--- a/arch/arm/boot/dts/imx7ulp-bblc.dts
++++ b/arch/arm/boot/dts/imx7ulp-bblc.dts
+@@ -50,8 +50,23 @@
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		
++		dummy_reg: dummy_reg {
++			compatible = "regulator-fixed";
++			regulator-name = "dummy_reg";
++			regulator-min-microvolt = <600000>;
++			regulator-max-microvolt = <1387500>;
++			regulator-boot-on;
++			regulator-always-on;
++		};
++		
+ 	};
+-
++extcon_usb1: extcon_usb1 {
++	compatible = "linux,extcon-usb-gpio";
++	id-gpio = <&gpio_ptc 13 GPIO_ACTIVE_HIGH>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_extcon_usb1>;
++	pinctrl-1 = <&pinctrl_extcon_usb1>;
++};
+ 
+ 	rpmsg_gpio0: rpmsg-gpio0 {
+ 		compatible = "fsl,imx-rpmsg-gpio";
+@@ -80,6 +95,11 @@
+  		status = "disabled";
+ 	};
+ };
++	
++&cpu0 {
++	arm-supply= <&dummy_reg>;
++};
++
+ 
+ 
+ &iomuxc1 {
+@@ -163,6 +183,12 @@
+ 				IMX7ULP_PAD_PTE4__SDHC1_D3		0x43
+ 			>;
+ 		};
++		
++		pinctrl_extcon_usb1: extcon1grp {
++			fsl,pins = <
++				IMX7ULP_PAD_PTC13__PTC13	0x10003
++			>;
++		};
+ 
+ 	};
+ };
+@@ -235,6 +261,7 @@
+ };
+ 
+ &usbotg1 {
++	extcon = <0>, <&extcon_usb1>;
+ 	srp-disable;
+ 	hnp-disable;
+ 	adp-disable;
+-- 
+2.17.1
+
