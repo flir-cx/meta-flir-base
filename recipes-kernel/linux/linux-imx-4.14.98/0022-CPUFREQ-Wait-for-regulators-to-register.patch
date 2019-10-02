@@ -1,0 +1,31 @@
+From 990007cf8c7542b892f394b36e7e63f89225c307 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Mon, 19 Nov 2018 12:49:26 +0100
+Subject: [PATCH] CPUFREQ Wait for regulators to register
+
+Signed-off-by: David Sernelius <david.sernelius@flir.se>
+---
+ drivers/cpufreq/imx7ulp-cpufreq.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/cpufreq/imx7ulp-cpufreq.c b/drivers/cpufreq/imx7ulp-cpufreq.c
+index 55c52d8f611b..581458317c65 100644
+--- a/drivers/cpufreq/imx7ulp-cpufreq.c
++++ b/drivers/cpufreq/imx7ulp-cpufreq.c
+@@ -176,8 +176,11 @@ static int imx7ulp_cpufreq_probe(struct platform_device *pdev)
+ 
+ 	arm_reg = regulator_get(cpu_dev, "arm");
+ 	if (IS_ERR(arm_reg)) {
+-		dev_err(cpu_dev, "failed to get regulator\n");
+-		ret = -ENOENT;
++		ret = PTR_ERR(arm_reg);
++		if (ret == -EPROBE_DEFER)
++			dev_warn(cpu_dev, "regulator not ready, retry\n");
++		else
++			dev_err(cpu_dev, "failed to get regulator: %d\n", ret);
+ 		goto put_reg;
+ 	}
+ 
+-- 
+2.17.1
+

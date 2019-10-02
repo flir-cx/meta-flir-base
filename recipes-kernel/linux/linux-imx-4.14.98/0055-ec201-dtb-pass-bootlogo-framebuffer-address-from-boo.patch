@@ -1,0 +1,38 @@
+From d69ccb40d5056b6fdf890698767264044d39be3e Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Thu, 12 Sep 2019 11:04:39 +0200
+Subject: [PATCH] ec201 dtb: pass bootlogo framebuffer address from bootloader
+ to kernel
+
+Signed-off-by: David Sernelius <david.sernelius@flir.se>
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 76f66e3a964d..92f15926c645 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -7,6 +7,11 @@
+  */
+ 
+ / {
++
++	aliases {
++		lcdif = &lcdif;
++	};
++
+ 	chosen {
+ 		stdout-path = &lpuart4;
+ 	};
+@@ -157,6 +162,7 @@
+ 	status = "okay";
+ 	disp-dev = "mipi_dsi_northwest";
+ 	display = <&display0>;
++	bootlogo = <0x0 0x0>;
+ 
+ 	display0: display@0 {
+ 		bits-per-pixel = <32>;
+-- 
+2.17.1
+

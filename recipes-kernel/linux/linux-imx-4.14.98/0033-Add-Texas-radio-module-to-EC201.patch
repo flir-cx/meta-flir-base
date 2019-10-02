@@ -1,0 +1,198 @@
+From 4a74b81beab6e29a030717cdf8908297235f6b27 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Thu, 14 Mar 2019 09:45:00 +0100
+Subject: [PATCH] Add Texas radio module to EC201
+
+Signed-off-by: David Sernelius <david.sernelius@flir.se>
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 44 +++++++++++++---------------
+ drivers/misc/ti-st/st_kim.c          | 37 ++++++++++++++++++++++-
+ drivers/mmc/host/sdhci-esdhc-imx.c   |  2 ++
+ 3 files changed, 58 insertions(+), 25 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 9f81bf701423..77cd344332b4 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -25,6 +25,10 @@
+ 	};
+ 
+ 	regulators {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
+ 		wlan_en_reg: wlan_en_reg {
+ 			compatible = "regulator-fixed";
+ 			regulator-name = "wl";
+@@ -34,16 +38,6 @@
+ 			startup-delay-us = <70000>;
+ 			enable-active-high;
+ 		};
+-
+-		bt_en_reg: bt_en_reg {
+-			compatible = "regulator-fixed";
+-			regulator-name = "bt";
+-			regulator-min-microvolt = <1800000>;
+-			regulator-max-microvolt = <1800000>;
+-			gpio = <&gpio_pte 12 GPIO_ACTIVE_HIGH>;
+-			startup-delay-us = <70000>;
+-			enable-active-high;
+-		};
+ 	};
+ 
+ //  /* Torch PWM, LPTPM7 (PTC15) */
+@@ -139,6 +133,18 @@
+ 		m2_prio = <5>;		// Raise Cortex-M4 prio from 1 to 5
+ 		m5_prio = <5>;		// Raise VIU prio from 4 to 5
+ 	};
++	
++	kim {
++		compatible = "kim";
++		nshutdown-gpio = <&gpio_pte 12 GPIO_ACTIVE_HIGH>;
++		dev_name = "/dev/ttyLP2";
++		flow_cntrl = <1>;
++		baud_rate = <3000000>;
++	};
++ 
++	btwilink {
++		compatible = "btwilink";
++	};
+ };
+ 
+ &cpu0 {
+@@ -239,19 +245,6 @@
+ 			>;
+ 	};
+ 
+-	pinctrl_usdhc1: usdhc1grp {
+-		fsl,pins = <
+-			IMX7ULP_PAD_PTE3__SDHC1_CMD     0x43
+-			IMX7ULP_PAD_PTE2__SDHC1_CLK     0x10042
+-			IMX7ULP_PAD_PTE1__SDHC1_D0      0x43
+-			IMX7ULP_PAD_PTE0__SDHC1_D1      0x43
+-			IMX7ULP_PAD_PTE5__SDHC1_D2      0x43
+-			IMX7ULP_PAD_PTE4__SDHC1_D3      0x43
+-			IMX7ULP_PAD_PTE6__PTE6          0x3     /* WLAN_EN */
+-			IMX7ULP_PAD_PTE7__PTE7          0x2     /* WLAN_IRQ */
+-			>;
+-	};
+-
+ 	pinctrl_usdhc0: usdhc0grp {
+ 		fsl,pins = <
+ 			IMX7ULP_PAD_PTD0__PTD0      0x20000     /* USDHC0 RST */
+@@ -277,6 +270,8 @@
+ 			IMX7ULP_PAD_PTE0__SDHC1_D1      0x43
+ 			IMX7ULP_PAD_PTE5__SDHC1_D2      0x43
+ 			IMX7ULP_PAD_PTE4__SDHC1_D3      0x43
++			IMX7ULP_PAD_PTE6__PTE6      	0x3     /* WLAN_EN */
++			IMX7ULP_PAD_PTE7__PTE7      	0x2     /* WLAN_IRQ */
+ 			>;
+ 	};
+ 
+@@ -554,7 +549,8 @@
+ 		reg = <2>;
+ 		interrupt-parent = <&gpio_pte>;
+ 		interrupts = <7 IRQ_TYPE_LEVEL_HIGH>;
+-		platform-quirks = <1>;
++		tcxo-clock-frequency = <26000000>;
++		ref-clock-frequency = <26000000>;
+ 	};
+ };
+ 
+diff --git a/drivers/misc/ti-st/st_kim.c b/drivers/misc/ti-st/st_kim.c
+index dda3ed72d05b..42f258a7351b 100644
+--- a/drivers/misc/ti-st/st_kim.c
++++ b/drivers/misc/ti-st/st_kim.c
+@@ -32,6 +32,7 @@
+ #include <linux/sched.h>
+ #include <linux/sysfs.h>
+ #include <linux/tty.h>
++#include <linux/of_gpio.h>
+ 
+ #include <linux/skbuff.h>
+ #include <linux/ti_wilink_st.h>
+@@ -714,6 +715,30 @@ static const struct file_operations list_debugfs_fops = {
+ 	.release = single_release,
+ };
+ 
++static struct ti_st_plat_data *get_platform_data(struct device *dev)
++{
++	struct device_node *np = dev->of_node;
++	const u32 *dt_property;
++	struct ti_st_plat_data	*dt_pdata;
++	int len;
++
++	dt_pdata = kzalloc(sizeof(*dt_pdata), GFP_KERNEL);
++
++	if (!dt_pdata)
++		pr_err("Can't allocate device_tree platform data\n");
++
++	dt_property = of_get_property(np, "dev_name", &len);
++	if (dt_property)
++		memcpy(&dt_pdata->dev_name, dt_property, len);
++
++	dt_pdata->nshutdown_gpio = of_get_named_gpio(np, "nshutdown-gpio", 0);
++
++	of_property_read_u32(np, "flow_cntrl", (u32 *)&dt_pdata->flow_cntrl);
++	of_property_read_u32(np, "baud_rate", (u32 *)&dt_pdata->baud_rate);
++
++	return dt_pdata;
++}
++
+ /**********************************************************************/
+ /* functions called from platform device driver subsystem
+  * need to have a relevant platform device entry in the platform's
+@@ -724,9 +749,14 @@ static struct dentry *kim_debugfs_dir;
+ static int kim_probe(struct platform_device *pdev)
+ {
+ 	struct kim_data_s	*kim_gdata;
+-	struct ti_st_plat_data	*pdata = pdev->dev.platform_data;
++	struct ti_st_plat_data	*pdata;
+ 	int err;
+ 
++	if (pdev->dev.of_node)
++		pdev->dev.platform_data = get_platform_data(&pdev->dev);
++
++	pdata = pdev->dev.platform_data;
++
+ 	if ((pdev->id != -1) && (pdev->id < MAX_ST_DEVICES)) {
+ 		/* multiple devices could exist */
+ 		st_kim_devices[pdev->id] = pdev;
+@@ -800,6 +830,8 @@ static int kim_probe(struct platform_device *pdev)
+ 
+ err_core_init:
+ 	kfree(kim_gdata);
++	if (pdev->dev.of_node)
++		kfree(pdev->dev.platform_data);
+ 
+ 	return err;
+ }
+@@ -827,6 +859,9 @@ static int kim_remove(struct platform_device *pdev)
+ 
+ 	kfree(kim_gdata);
+ 	kim_gdata = NULL;
++	if (pdev->dev.of_node)
++		kfree(pdev->dev.platform_data);
++
+ 	return 0;
+ }
+ 
+diff --git a/drivers/mmc/host/sdhci-esdhc-imx.c b/drivers/mmc/host/sdhci-esdhc-imx.c
+index e2061a08cf34..f61e257029ca 100644
+--- a/drivers/mmc/host/sdhci-esdhc-imx.c
++++ b/drivers/mmc/host/sdhci-esdhc-imx.c
+@@ -1779,8 +1779,10 @@ static int sdhci_esdhc_runtime_resume(struct device *dev)
+ 
+ static const struct dev_pm_ops sdhci_esdhc_pmops = {
+ 	SET_SYSTEM_SLEEP_PM_OPS(sdhci_esdhc_suspend, sdhci_esdhc_resume)
++#ifndef CONFIG_WLAN_VENDOR_TI 
+ 	SET_RUNTIME_PM_OPS(sdhci_esdhc_runtime_suspend,
+ 				sdhci_esdhc_runtime_resume, NULL)
++#endif
+ };
+ 
+ static struct platform_driver sdhci_esdhc_imx_driver = {
+-- 
+2.17.1
+

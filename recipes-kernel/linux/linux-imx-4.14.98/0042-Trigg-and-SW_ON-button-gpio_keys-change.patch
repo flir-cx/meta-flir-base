@@ -1,0 +1,50 @@
+From df6476d994a499d7550c37cc6f7644c6c5a54e69 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Mon, 20 May 2019 15:09:06 +0200
+Subject: [PATCH] Trigg and SW_ON button gpio_keys change
+
+Signed-off-by: David Sernelius <david.sernelius@flir.se>
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index b078dcaac787..402fb4c418d5 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -61,17 +61,17 @@
+ 
+ 		TRIG {
+ 			label = "TRIG";
+-			linux,input-type = <5>; /* EV_SW */
++			linux,input-type = <1>; /* EV_KEY */
+ 			linux,code = <0x120>;
+-			gpios = <&gpio_pte 13 GPIO_ACTIVE_LOW>;
++			gpios = <&gpio_ptc 12 GPIO_ACTIVE_LOW>;
+ 			debounce-interval = <5>;
+ 		};
+ 
+ 		SW_ON {
+ 			label = "SW_ON";
+-			linux,input-type = <5>; /* EV_SW */
++			linux,input-type = <1>; /* EV_KEY */
+ 			linux,code = <0x100>;
+-			gpios = <&gpio_pte 14 GPIO_ACTIVE_LOW>;
++			gpios = <&gpio_ptc 13 GPIO_ACTIVE_LOW>;
+ 			debounce-interval = <5>;
+ 		};
+ 	};
+@@ -171,8 +171,8 @@
+ 
+ 	pinctrl_gpiokeys: gpiokeysgrp {
+ 		fsl,pins = <
+-			IMX7ULP_PAD_PTE13__PTE13  0x10003
+-			IMX7ULP_PAD_PTE14__PTE14  0x10003
++			IMX7ULP_PAD_PTC12__PTC12  0x10003
++			IMX7ULP_PAD_PTC13__PTC13  0x10003
+ 			>;
+ 		};
+ 
+-- 
+2.17.1
+

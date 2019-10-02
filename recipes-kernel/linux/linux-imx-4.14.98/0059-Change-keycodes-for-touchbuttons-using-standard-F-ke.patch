@@ -1,0 +1,31 @@
+From 6fcc35affb015f6b5873365fa8070395777ead7d Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Fri, 13 Sep 2019 13:54:50 +0200
+Subject: [PATCH] Change keycodes for touchbuttons, using standard F-keys to
+ enable easier development on host.
+
+Signed-off-by: David Sernelius <david.sernelius@flir.se>
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 92f15926c645..882c6e23270a 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -515,9 +515,9 @@
+ 			/* CY_CORE_EWG_NONE */
+ 			cy,easy_wakeup_gesture = <0>;
+ 
+-			cy,btn_keys = < KEY_RECORD
+-							KEY_PLAY
+-							KEY_SETUP>;
++			cy,btn_keys = < KEY_F11		/*Camera*/
++							KEY_F7		/*Archive*/
++							KEY_F12>;	/*Settings*/
+ 			cy,btn_keys-tag = <0>;
+ 
+ 			cy,mt {
+-- 
+2.17.1
+
