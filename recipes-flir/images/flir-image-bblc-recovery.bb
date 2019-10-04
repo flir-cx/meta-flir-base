@@ -20,12 +20,14 @@ IMAGE_INSTALL = "bash \
                  kernel-module-usbmisc-imx \
                  kernel-module-usb-f-rndis \
                  kernel-module-u-ether \
+                 libstdc++ \
                  mmc-utils \
                  openssh \
                  opkg \
                  packagegroup-core-boot \
                  parted \
                  u-boot-fw-utils \
+                 flirmisc \
 "
 
 # We're using journal and do not want the busybox-syslog
