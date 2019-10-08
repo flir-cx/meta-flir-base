@@ -55,6 +55,7 @@ SRC_URI_append = " \
     file://0058-mxsfb-fix-for-sherlock-display-sync-problem.patch \
     file://0059-Change-keycodes-for-touchbuttons-using-standard-F-ke.patch \
     file://0060-Add-support-for-ec201-rev.C.-Change-led-driver-to-lp.patch \
+    file://0061-Vcam-set-bits-for-drive-mode-and-shutter-in-ov5640.patch \
     file://defconfig \
 "
 
