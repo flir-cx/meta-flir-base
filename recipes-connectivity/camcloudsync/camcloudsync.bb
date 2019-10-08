@@ -19,8 +19,8 @@ CC += "-I${STAGING_INCDIR}/glib-2.0 -I${STAGING_LIBDIR}/glib-2.0/include"
 
 DEPENDS += "curl openssl cjson sqlite3 dbus glib-2.0"
 
-SRC_URI += "git://bitbucketcommercial.flir.com/scm/misc/camcloudsync.git;protocol=https"
-SRCREV = "master"
+SRC_URI += "git://bitbucketcommercial.flir.com/scm/misc/camcloudsync.git;protocol=https;nobranch=1"
+SRCREV = "64905d87f218f815c161fb39dc32e0fa41654db4"
 S="${WORKDIR}/git"
 
 do_configure() {
