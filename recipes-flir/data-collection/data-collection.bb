@@ -18,7 +18,7 @@ EXTRA_OECMAKE += " -DDC_CREDENTIALS_FILE=/FLIR/system/data-collection/credential
 
 inherit cmake pkgconfig systemd
 
-DEPENDS += "util-linux curl openssl gcc-runtime"
+DEPENDS += "util-linux curl openssl gcc-runtime boost"
 RDEPENDS_${PN} += "curl openssl"
 
 RPROVIDES_${PN} += "${PN}-systemd"
@@ -27,7 +27,7 @@ RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
 SRC_URI += "gitsm://bitbucketcommercial.flir.com:7999/im7/data-collection.git;protocol=ssh;branch=master"
-SRCREV = "f7d715a2e92ec149ea16d95d085c3e0f6fb6d294"
+SRCREV = "2e40c1f7f27297d1427d92c3d5b1a8cd4365bc19"
 
 S="${WORKDIR}/git"
 
@@ -35,6 +35,7 @@ prefix = "/usr"
 
 FILES_${PN} += "\
   ${prefix}/bin/${PN} \
+  ${prefix}/bin/collect-statistics \
   ${prefix}/lib/libflir-minidump-client.so.1 \
   ${prefix}/lib/libflir-statistics-client.so.1 \
   /etc/${PN}.conf \
