@@ -20,6 +20,7 @@ IMAGE_INSTALL += " \
     zlib-dev \
     libstdc++-staticdev \
     data-collection-dev \
+    boost-staticdev \
 "
 
 cleanup_rootfs() {
