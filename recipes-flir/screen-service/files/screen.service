@@ -6,8 +6,11 @@ Type=simple
 RemainAfterExit=yes
 ExecStart=/usr/bin/screen -A -d -m -S autoscreen
 ExecStop=/usr/bin/screen -S autoscreen -X quit
-Environment="LD_LIBRARY_PATH=/FLIR/usr/lib" "PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/root/bin:/FLIR/usr/bin"
-
+Environment="LD_LIBRARY_PATH=/FLIR/usr/lib" 
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/root/bin:/FLIR/usr/bin"
+Environment=QT_QPA_EGLFS_FB=/dev/fb0
+Environment=QT_QPA_PLATFORM=wayland
+Environment=XDG_RUNTIME_DIR=/run/user/0
 [Install]
 
 
