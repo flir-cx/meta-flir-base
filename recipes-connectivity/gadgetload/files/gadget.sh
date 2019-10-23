@@ -12,7 +12,7 @@ product_id_rndis="0x1002"
 product_id_mtp="0x100A"
 product_id_rndis_mtp="0x100C"
 
-serial="0" # TODO: Should be device serial number?
+# serial="0" # TODO: Should be device serial number?
 
 usbmode="RNDIS_MTP" # RNDIS_MTP | MTP | RNDIS
 usbmode_default="RNDIS_MTP"
@@ -130,7 +130,7 @@ config_load() {
     mkdir -p strings/0x409
     echo "${manufacturer}"  > strings/0x409/manufacturer
     echo "${product}"       > strings/0x409/product
-    echo "${serial}"        > strings/0x409/serialnumber
+#   echo "${serial}"        > strings/0x409/serialnumber
     
     # Config 1
     mkdir -p configs/c.1
