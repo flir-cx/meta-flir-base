@@ -13,7 +13,18 @@ cleanup_rootfs() {
 
 
 flir_rev_update() {
-   BLD_VERSION=`git -C ${FILE_DIRNAME} describe --dirty --long --always`;\
+   REPODIR=$(cd "${FILE_DIRNAME}/../../../../.repo"; pwd); \
+   BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`;\
+   if echo ${BLD_VERSION} | grep -vq "dirty"
+   then
+      FLIR1DIR="${REPODIR}/../sources/meta-flir-base"; \
+      FLIR2DIR="${REPODIR}/../sources/meta-flir-internal"; \
+      if ! ( git -C "${FLIR1DIR}" diff --quiet ) || \
+         ( [ -d "${FLIR2DIR}" ] && ! ( git -C "${FLIR2DIR}" diff --quiet) )
+      then
+          BLD_VERSION=${BLD_VERSION}-dirty
+      fi
+   fi
    BLDHOST=`/bin/hostname`;\
    date +%Y%m%d%H%M > ${IMAGE_ROOTFS}/etc/build; \
    echo "${MACHINE}" > ${IMAGE_ROOTFS}/etc/platform; \
@@ -24,8 +35,8 @@ flir_rev_update() {
    sed -i s/IVERSION/${BLD_VERSION}/g ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i 's/BLDUSER/${USER}/g' ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i s/BLDHOST/${BLDHOST}/g ${IMAGE_ROOTFS}/etc/os-release ;\
+   cp -p ${REPODIR}/manifest.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
 }
-
 
 link_licenses_info() {
 # Create the symlink for _licenses.tgz
