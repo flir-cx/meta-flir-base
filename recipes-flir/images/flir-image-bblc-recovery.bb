@@ -24,6 +24,7 @@ IMAGE_INSTALL = "bash \
                  mmc-utils \
                  openssh \
                  opkg \
+                 os-release \
                  packagegroup-core-boot \
                  parted \
                  u-boot-fw-utils \
@@ -39,7 +40,11 @@ BAD_RECOMMENDATIONS += "busybox-syslog udev-hwdb"
 BAD_RECOMMENDATIONS += "kernel-image kernel-devicetree kernel-modules"
 
 ROOTFS_PREPROCESS_COMMAND += "cleanup_rootfs ; "
-IMAGE_PREPROCESS_COMMAND += "cleanup_rootfs ; "
+IMAGE_PREPROCESS_COMMAND += "cleanup_rootfs ; \
+                         rootfs_update_timestamp ;\
+                         flir_rev_update ;\
+"
+
 ROOTFS_POSTPROCESS_COMMAND += "set_root_passwd; patch_profile; "
 
 patch_profile() {
