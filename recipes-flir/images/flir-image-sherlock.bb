@@ -34,7 +34,6 @@ IMAGE_INSTALL = " \
     connman \
     connman-client \
     crda \
-    data-collection \
     dosfstools \
     e2fsprogs \
     exfat-utils \ 

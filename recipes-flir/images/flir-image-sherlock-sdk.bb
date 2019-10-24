@@ -19,7 +19,6 @@ IMAGE_INSTALL += " \
     rpmsg-bifrost-dev \
     zlib-dev \
     libstdc++-staticdev \
-    data-collection-dev \
     boost-staticdev \
 "
 
