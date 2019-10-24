@@ -66,7 +66,6 @@ IMAGE_INSTALL = " \
     ncurses-libpanelw \
     opkg \
     os-release \
-    oscombtab \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     parted \
