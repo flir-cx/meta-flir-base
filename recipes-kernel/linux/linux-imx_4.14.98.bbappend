@@ -57,6 +57,7 @@ SRC_URI_append = " \
     file://0060-Add-support-for-ec201-rev.C.-Change-led-driver-to-lp.patch \
     file://0061-Vcam-set-bits-for-drive-mode-and-shutter-in-ov5640.patch \
     file://0062-ov5640-Update-Lens-correction-and-night-mode-setting.patch \
+    file://0063-Enable-SNVS-LP-SRTC.patch \
     file://defconfig \
 "
 
