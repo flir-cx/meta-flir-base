@@ -1,0 +1,344 @@
+From 03f69ed002514105555a8c6555f3fa402404f1e0 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Wed, 30 Oct 2019 14:46:49 +0100
+Subject: [PATCH] DT: IOMUX settings for standby
+
+IOMUX settings to try to minimize standby power consumption
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi          | 113 +++++++++++++++---
+ drivers/media/platform/mxc/capture/mxc_viu.c  |   8 ++
+ .../media/platform/mxc/capture/ov5640_v2.c    |   9 +-
+ drivers/tty/serial/fsl_lpuart.c               |   4 +
+ 4 files changed, 109 insertions(+), 25 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 6ed5315bd0e7..b797087706d4 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -170,9 +170,8 @@
+ 
+ /* LCD */
+ &mipi_dsi {
+-	pinctrl-names = "default", "sleep";
++	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_mipi_dsi_reset>;
+-	pinctrl-1 = <&pinctrl_mipi_dsi_reset>;
+ 	lcd_panel = "TRULY-VGA-SHERLOCK";
+ 	status = "okay";
+ 	resets = <&mipi_dsi_reset>;
+@@ -195,7 +194,7 @@
+ 
+ 	pinctrl_pwm0: pwm0grp {
+ 		fsl,pins = <
+-			IMX7ULP_PAD_PTC6__TPM4_CH5  0x3
++			IMX7ULP_PAD_PTC6__TPM4_CH5  0x0
+ 			>;
+ 	};
+ 
+@@ -215,14 +214,34 @@
+ 			>;
+ 	};
+ 
++	pinctrl_lpi2c5_sleep: lpi2c5grp_sleep {
++		fsl,pins = <
++			IMX7ULP_PAD_PTC4__PTC4          0x0
++			IMX7ULP_PAD_PTC5__PTC5          0x0
++			IMX7ULP_PAD_PTC19__PTC19        0x3  /* PMIC_INT */
++			IMX7ULP_PAD_PTC18__PTC18        0x27 /* PMIC_WD */
++			>;
++	};
++
+ 	pinctrl_lpi2c6: lpi2c6grp {
+ 		fsl,pins = <
+ 			IMX7ULP_PAD_PTC8__LPI2C6_SCL    0x27
+ 			IMX7ULP_PAD_PTC9__LPI2C6_SDA    0x27
+ 			IMX7ULP_PAD_PTC10__PTC10        0x2 /* ACC_INT_n */
+-			IMX7ULP_PAD_PTC11__PTC11        0x3 /* TP_LED_EN */
+-			IMX7ULP_PAD_PTC15__PTC15  	0x3 /* TORCH */
+-			IMX7ULP_PAD_PTC16__PTC16  	0x3 /* STROBE */
++			IMX7ULP_PAD_PTC11__PTC11        0x0 /* TP_LED_EN */
++			IMX7ULP_PAD_PTC15__PTC15  	    0x0 /* TORCH */
++			IMX7ULP_PAD_PTC16__PTC16  	    0x0 /* STROBE */
++			>;
++	};
++
++	pinctrl_lpi2c6_sleep: lpi2c6grp_sleep {
++		fsl,pins = <
++			IMX7ULP_PAD_PTC8__PTC8          0x0
++			IMX7ULP_PAD_PTC9__PTC9          0x0
++			IMX7ULP_PAD_PTC10__PTC10        0x0 /* ACC_INT_n */
++			IMX7ULP_PAD_PTC11__PTC11        0x0 /* TP_LED_EN */
++			IMX7ULP_PAD_PTC15__PTC15  	    0x0 /* TORCH */
++			IMX7ULP_PAD_PTC16__PTC16  	    0x0 /* STROBE */
+ 			>;
+ 	};
+ 
+@@ -235,6 +254,15 @@
+ 			>;
+ 	};
+ 
++	pinctrl_lpi2c7_sleep: lpi2c7grp_sleep {
++		fsl,pins = <
++			IMX7ULP_PAD_PTE12__PTE12        0x0
++			IMX7ULP_PAD_PTE13__PTE13        0x0
++			IMX7ULP_PAD_PTE14__PTE14  		0x0 /* PCAPINT_n */
++			IMX7ULP_PAD_PTF5__PTF5          0x3 /* TP_RESET_n */
++			>;
++	};
++
+ 	pinctrl_lpuart4: lpuart4grp {
+ 		fsl,pins = <
+ 			IMX7ULP_PAD_PTC3__LPUART4_RX    0x3
+@@ -242,6 +270,13 @@
+ 			>;
+ 	};
+ 
++	pinctrl_lpuart4_sleep: lpuart4grp_sleep {
++		fsl,pins = <
++			IMX7ULP_PAD_PTC3__PTC3    0x0
++			IMX7ULP_PAD_PTC2__PTC2    0x0
++			>;
++	};
++
+ 	pinctrl_lpuart6: lpuart6grp {
+ 		fsl,pins = <
+ 			IMX7ULP_PAD_PTE10__LPUART6_TX   0x3
+@@ -254,6 +289,18 @@
+ 			>;
+ 	};
+ 
++	pinctrl_lpuart6_sleep: lpuart6grp_sleep {
++		fsl,pins = <
++			IMX7ULP_PAD_PTE10__PTE10        0x0
++			IMX7ULP_PAD_PTE11__PTE11        0x0
++			IMX7ULP_PAD_PTE9__PTE9          0x0
++			IMX7ULP_PAD_PTE8__PTE8          0x0
++ 			IMX7ULP_PAD_PTE15__PTE15    	0x0     /* BT_EN */
++ 			IMX7ULP_PAD_PTF18__PTF18    	0x0     /* BT_WAKE_HOST */
++ 			IMX7ULP_PAD_PTF19__PTF19    	0x0     /* HOST_WAKE_BT */
++			>;
++	};
++
+ 	pinctrl_usdhc0: usdhc0grp {
+ 		fsl,pins = <
+ 			IMX7ULP_PAD_PTD0__PTD0      0x20000     /* USDHC0 RST */
+@@ -284,6 +331,19 @@
+ 			>;
+ 	};
+ 
++	pinctrl_usdhc1_sleep: usdhc1grp_sleep {
++		fsl,pins = <
++			IMX7ULP_PAD_PTE3__PTE3          0x0
++			IMX7ULP_PAD_PTE2__PTE2          0x0
++			IMX7ULP_PAD_PTE1__PTE1          0x0
++			IMX7ULP_PAD_PTE0__PTE0          0x0
++			IMX7ULP_PAD_PTE5__PTE5          0x0
++			IMX7ULP_PAD_PTE4__PTE4          0x0
++			IMX7ULP_PAD_PTE6__PTE6      	0x0     /* WLAN_EN */
++			IMX7ULP_PAD_PTE7__PTE7      	0x0     /* WLAN_IRQ */
++			>;
++	};
++
+ 	pinctrl_mipi_dsi_reset: mipi_dsi_reset_grp {
+ 		fsl,pins = <
+ 			IMX7ULP_PAD_PTC7__PTC7    0x3 /* DISPLAY_RESET */
+@@ -305,18 +365,37 @@
+ 			IMX7ULP_PAD_PTF15__PTF15    0x20043  /* CAMERA PWDN */
+ 			IMX7ULP_PAD_PTF16__PTF16    0x20043  /* CAMERA 1V8 ENABLE*/
+ 			IMX7ULP_PAD_PTF17__PTF17    0x20043  /* CAMERA 2V8 ENABLE */
+-			IMX7ULP_PAD_PTC0__PTC0    	0x3  	 /* CAMERA DUMMY CLK ENABLE */
++			IMX7ULP_PAD_PTC0__PTC0    	0x0  	 /* CAMERA DUMMY CLK ENABLE */
++			>;
++	};
++
++	pinctrl_camera_sleep: camera_grp_sleep {
++		fsl,pins = <
++			IMX7ULP_PAD_PTF3__PTF3      0x0
++			IMX7ULP_PAD_PTF6__PTF6      0x0
++			IMX7ULP_PAD_PTF7__PTF7      0x0
++			IMX7ULP_PAD_PTF8__PTF8      0x0
++			IMX7ULP_PAD_PTF9__PTF9      0x0
++			IMX7ULP_PAD_PTF10__PTF10    0x0
++			IMX7ULP_PAD_PTF11__PTF11    0x0
++			IMX7ULP_PAD_PTF12__PTF12    0x0
++			IMX7ULP_PAD_PTF13__PTF13    0x0
++			IMX7ULP_PAD_PTF14__PTF14    0x20043  /* CAMERA RESET */
++			IMX7ULP_PAD_PTF15__PTF15    0x20043  /* CAMERA PWDN */
++			IMX7ULP_PAD_PTF16__PTF16    0x20043  /* CAMERA 1V8 ENABLE*/
++			IMX7ULP_PAD_PTF17__PTF17    0x20043  /* CAMERA 2V8 ENABLE */
++			IMX7ULP_PAD_PTC0__PTC0    	0x0  	 /* CAMERA DUMMY CLK ENABLE */
+ 			>;
+ 	};
+ };
+ 
+ /*  PMIC */
+ &lpi2c5 {
+-	#address-cells = <1>;
++        #address-cells = <1>;
+ 	#size-cells = <0>;
+ 	pinctrl-names = "default", "sleep";
+ 	pinctrl-0 = <&pinctrl_lpi2c5>;
+-	pinctrl-1 = <&pinctrl_lpi2c5>;
++	pinctrl-1 = <&pinctrl_lpi2c5_sleep>;
+ 	status = "okay";
+ 
+ 	pmic: pf1550@08 {
+@@ -413,14 +492,12 @@
+ 	#size-cells = <0>;
+ 	pinctrl-names = "default", "sleep";
+ 	pinctrl-0 = <&pinctrl_lpi2c6>;
+-	pinctrl-1 = <&pinctrl_lpi2c6>;
++	pinctrl-1 = <&pinctrl_lpi2c6_sleep>;
+ 	status = "okay";
+ 
+ 	ov5640: ov5640@3c {
+ 		compatible = "ovti,ov5640";
+ 		reg = <0x3c>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_camera>;
+ 		clocks = <&clks IMX7ULP_CLK_DUMMY>;
+ 		clock-names = "csi_mclk";
+ 		DOVDD-supply = <&vcam_en_reg_dovdd>; /* 1.8v */
+@@ -511,7 +588,7 @@
+ 	#size-cells = <0>;
+ 	pinctrl-names = "default",  "sleep";
+ 	pinctrl-0 = <&pinctrl_lpi2c7>;
+-	pinctrl-1 = <&pinctrl_lpi2c7>;
++	pinctrl-1 = <&pinctrl_lpi2c7_sleep>;
+ 	status = "okay";
+ 
+ 	touchscreen_v2:tsc@24{
+@@ -583,16 +660,15 @@
+ };
+ 
+ &lpuart4 { /* console */
+-	pinctrl-names = "default", "sleep";
++	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_lpuart4>;
+-	pinctrl-1 = <&pinctrl_lpuart4>;
+ 	status = "okay";
+ };
+ 
+ &lpuart6 { /* BT */
+ 	pinctrl-names = "default", "sleep";
+ 	pinctrl-0 = <&pinctrl_lpuart6>;
+-	pinctrl-1 = <&pinctrl_lpuart6>;
++	pinctrl-1 = <&pinctrl_lpuart6_sleep>;
+ 	/* Default 48 MHz FIRC clk does not run at 48 MHz, use 24 MHz SOSC */
+ 	assigned-clock-parents = <&clks IMX7ULP_CLK_SOSC_BUS_CLK>;
+ 	assigned-clock-rates = <24000000>;
+@@ -648,7 +724,7 @@
+ &usdhc1 {
+ 	pinctrl-names = "default", "sleep";
+ 	pinctrl-0 = <&pinctrl_usdhc1>;
+-	pinctrl-1 = <&pinctrl_usdhc1>;
++	pinctrl-1 = <&pinctrl_usdhc1_sleep>;
+ 	bus-width = <4>;
+ 	pm-ignore-notify;
+ 	keep-power-in-suspend;
+@@ -669,6 +745,9 @@
+ };
+ 
+ &viu {
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_camera>;
++	pinctrl-1 = <&pinctrl_camera_sleep>;
+ 	status = "okay";
+ 	port {
+ 	viu_ep: endpoint {
+diff --git a/drivers/media/platform/mxc/capture/mxc_viu.c b/drivers/media/platform/mxc/capture/mxc_viu.c
+index 4b89c0f1800c..e2df03714b94 100644
+--- a/drivers/media/platform/mxc/capture/mxc_viu.c
++++ b/drivers/media/platform/mxc/capture/mxc_viu.c
+@@ -1515,6 +1515,8 @@ static int imx_viu_suspend(struct device *dev)
+ 	struct imx_viu_device *viu_dev = v4l2_dev_to_viu_dev(v4l2_dev);
+ 	int ret;
+ 
++	pr_info("imx_viu_suspend\n");
++
+ 	if (!vb2_is_streaming(&viu_dev->queue))
+ 		return 0;
+ 
+@@ -1526,6 +1528,8 @@ static int imx_viu_suspend(struct device *dev)
+ 	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
+ 	imx_viu_irq_disable(viu_dev, DMA_END_IRQ);
+ 
++	pinctrl_pm_select_sleep_state(dev);
++
+ 	/* save registers for resume */
+ 	imx_viu_save_reg_stack(viu_dev, &viu_dev->reset);
+ 
+@@ -1540,6 +1544,8 @@ static int imx_viu_resume(struct device *dev)
+ 	struct v4l2_device *v4l2_dev = dev_get_drvdata(dev);
+ 	struct imx_viu_device *viu_dev = v4l2_dev_to_viu_dev(v4l2_dev);
+ 
++	pr_info("imx_viu_resume\n");
++
+ 	if (!vb2_is_streaming(&viu_dev->queue))
+ 		return 0;
+ 
+@@ -1551,6 +1557,8 @@ static int imx_viu_resume(struct device *dev)
+ 	imx_viu_irq_enable(viu_dev, DMA_END_IRQ);
+ 	imx_viu_irq_enable(viu_dev, ERROR_IRQ);
+ 
++	pinctrl_pm_select_default_state(dev);
++
+ 	return 0;
+ }
+ #else
+diff --git a/drivers/media/platform/mxc/capture/ov5640_v2.c b/drivers/media/platform/mxc/capture/ov5640_v2.c
+index f9bad2c0e803..01d9e2c28b25 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_v2.c
++++ b/drivers/media/platform/mxc/capture/ov5640_v2.c
+@@ -1103,6 +1103,7 @@ static int ov5640_suspend(struct device *dev)
+ 	gpio_set_value_cansleep(pwn_gpio, 1);
+ 	msleep(1);
+ 	gpio_set_value_cansleep(clk_gpio, 0);
++
+ 	return 0;
+ }
+ 
+@@ -2245,18 +2246,10 @@ static struct v4l2_subdev_ops ov5640_subdev_ops = {
+ static int ov5640_probe(struct i2c_client *client,
+ 			const struct i2c_device_id *id)
+ {
+-	struct pinctrl *pinctrl;
+ 	struct device *dev = &client->dev;
+ 	int retval;
+ 	u8 chip_id_high, chip_id_low;
+ 
+-	/* ov5640 pinctrl */
+-	pinctrl = devm_pinctrl_get_select_default(dev);
+-	if (IS_ERR(pinctrl)) {
+-		dev_err(dev, "setup pinctrl failed\n");
+-		return PTR_ERR(pinctrl);
+-	}
+-
+ 	/* request power down pin */
+ 	pwn_gpio = of_get_named_gpio(dev->of_node, "pwn-gpios", 0);
+ 	if (!gpio_is_valid(pwn_gpio)) {
+diff --git a/drivers/tty/serial/fsl_lpuart.c b/drivers/tty/serial/fsl_lpuart.c
+index ace2c1a453c4..2e0bde0bad32 100644
+--- a/drivers/tty/serial/fsl_lpuart.c
++++ b/drivers/tty/serial/fsl_lpuart.c
+@@ -2756,6 +2756,8 @@ static int lpuart_suspend(struct device *dev)
+ 		pm_runtime_set_suspended(sport->port.dev);
+ 	}
+ 
++	pinctrl_pm_select_sleep_state(dev);
++
+ 	return 0;
+ }
+ 
+@@ -2911,6 +2913,8 @@ static int lpuart_resume(struct device *dev)
+ 	struct lpuart_port *sport = dev_get_drvdata(dev);
+ 	int ret;
+ 
++	pinctrl_pm_select_default_state(dev);
++
+ 	if (lpuart_uport_is_active(sport)) {
+ 		if (lpuart_is_32(sport))
+ 			lpuart32_resume_init(sport);
+-- 
+2.17.1
+
