@@ -30,7 +30,6 @@ IMAGE_INSTALL = " \
     bootlogo \
     brcm-patchram \
     btload \
-    camcloudsync \
     connman \
     connman-client \
     crda \
