@@ -62,6 +62,7 @@ IMAGE_INSTALL = " \
     kmod \
     lepton-m4-bin \
     libevdev \
+    libiio \
     mmc-utils \
     mmc7mounter \
     mtd-utils \
