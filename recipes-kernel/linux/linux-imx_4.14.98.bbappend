@@ -59,6 +59,7 @@ SRC_URI_append = " \
     file://0062-ov5640-Update-Lens-correction-and-night-mode-setting.patch \
     file://0063-Enable-SNVS-LP-SRTC.patch \
     file://0064-DT-IOMUX-settings-for-standby.patch \
+    file://0065-lm73-adds-suspend-and-resume-functionality.patch \
     file://defconfig \
 "
 
