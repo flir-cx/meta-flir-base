@@ -60,6 +60,7 @@ SRC_URI_append = " \
     file://0063-Enable-SNVS-LP-SRTC.patch \
     file://0064-DT-IOMUX-settings-for-standby.patch \
     file://0065-lm73-adds-suspend-and-resume-functionality.patch \
+    file://0066-mxc-mipi-dsi-move-supend-order-to-fix-display-not-en.patch \ 
     file://defconfig \
 "
 
