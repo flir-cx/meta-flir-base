@@ -1,0 +1,28 @@
+From 15430df9e37f23b579ed152c6e960bb98aaa5ade Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Thu, 7 Nov 2019 14:41:45 +0100
+Subject: [PATCH] mxc_viu: clear DMA_ACT before recovering ERROR IRQ 2
+
+Workaround to stop viu driver getting caught in a loop when resume:ing from recovery
+---
+ drivers/media/platform/mxc/capture/mxc_viu.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_viu.c b/drivers/media/platform/mxc/capture/mxc_viu.c
+index e2df03714b94..297a5e7e876f 100644
+--- a/drivers/media/platform/mxc/capture/mxc_viu.c
++++ b/drivers/media/platform/mxc/capture/mxc_viu.c
+@@ -1250,6 +1250,10 @@ static irqreturn_t imx_viu_irq_handler(int irq, void *dev_id)
+ 			/* DMA_ACT is set during vertical active, recover */
+ 			recover = true;
+ 			imx_viu_irq_enable(viu_dev, VSYNC_IRQ);
++
++			if (0x2 == errcode) {
++				writel(scr & ~SCR_DMA_ACT, viu_dev->base + VIU_SCR);
++			}
+ 		}
+ 		return IRQ_HANDLED;
+ 	}
+-- 
+2.17.1
+
