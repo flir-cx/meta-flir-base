@@ -1,0 +1,10 @@
+#!/bin/sh
+
+case $1 in
+    pre)
+        modprobe -r qca9377
+    ;;
+    post)
+        modprobe qca9377
+    ;;
+esac
