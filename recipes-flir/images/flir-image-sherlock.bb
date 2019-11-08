@@ -86,6 +86,7 @@ IMAGE_INSTALL = " \
     systemd \
     systemd-analyze \
     systemd-compat-units \
+    system-sleep-qca9377 \
     telnetd-service \
     tzdata \
     u-boot-fw-utils \
