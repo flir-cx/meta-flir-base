@@ -21,7 +21,6 @@ TEST_SUITES = "ping ssh flir_test_valid_platform df connman builddate scp python
 
 DISTRO_SSH_DAEMON ?= "openssh"
 
-
 IMAGE_INSTALL = " \
     ${DISTRO_SSH_DAEMON} \
     aufsrootfs \
