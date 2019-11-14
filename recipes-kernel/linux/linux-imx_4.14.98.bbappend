@@ -63,6 +63,7 @@ SRC_URI_append = " \
     file://0066-mxc-mipi-dsi-move-supend-order-to-fix-display-not-en.patch \ 
     file://0067-mxc_viu-clear-DMA_ACT-before-recovering-ERROR-IRQ-2.patch \ 
     file://0068-lp5562-Add-suspend-and-resume-functionality.patch \
+    file://0069-mxc-mipi-dsi-suspend-sherlock-display-enter-deep-sta.patch \
     file://defconfig \
 "
 
