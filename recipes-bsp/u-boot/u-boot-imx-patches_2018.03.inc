@@ -15,6 +15,10 @@ SRC_URI += "file://0015-sherlock-display-fixed-pixel-clock.patch"
 SRC_URI += "file://0016-mxsfb-set-gd-fb_base-to-framebuffer-pointer.patch"
 SRC_URI += "file://0017-arch_preboot_os-dont-disable-display-when-booting-li.patch"
 SRC_URI += "file://0018-ec201-copy-framebuffer-address-to-dtb-lcdif-bootlogo.patch"
+SRC_URI += "file://0019-fixed-duplicate-config-define-warnings.patch"
+SRC_URI += "file://0020-ec201-init-fuelgauge-and-shutdown-camera-on-onoff-bu.patch"
+SRC_URI += "file://0021-add-boot-state-functionalty.patch"
+SRC_URI += "file://0022-Add-cmd-chargeapp.patch"
 
 
 
