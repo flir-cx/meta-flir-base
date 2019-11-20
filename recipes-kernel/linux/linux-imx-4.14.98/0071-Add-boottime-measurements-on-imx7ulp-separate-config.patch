@@ -1,0 +1,153 @@
+From f68a3f4d5b4025eca5db1ead958336ef9af62091 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Tue, 19 Nov 2019 08:31:34 +0100
+Subject: [PATCH] Add boottime measurements on imx7ulp, separate configs for
+ each cpu since method will be different on each board.
+
+---
+ arch/arm/mach-imx/Kconfig    |  9 ++++
+ arch/arm/mach-imx/Makefile   |  2 +
+ arch/arm/mach-imx/boottime.c | 98 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 109 insertions(+)
+ create mode 100644 arch/arm/mach-imx/boottime.c
+
+diff --git a/arch/arm/mach-imx/Kconfig b/arch/arm/mach-imx/Kconfig
+index 18a9da9..7aa1cac 100644
+--- a/arch/arm/mach-imx/Kconfig
++++ b/arch/arm/mach-imx/Kconfig
+@@ -44,6 +44,15 @@ config MXC_USE_EPIT
+ 	  uses the same clocks as the GPT. Anyway, on some systems the GPT
+ 	  may be in use for other purposes.
+ 
++config IMX7ULP_BOOTTIME
++       bool "Use IMX7ULP timer for boottime timestamps"
++
++config IMX_BOOTTIME
++       bool "Show boot time timestamps in startup log"
++	   depends on IMX7ULP_BOOTTIME
++	   help
++	   	Create a new config for other timers than imx7ulp if needed.
++
+ config HAVE_IMX_RNG
+        bool
+ 
+diff --git a/arch/arm/mach-imx/Makefile b/arch/arm/mach-imx/Makefile
+index 36ed126..08feef3 100644
+--- a/arch/arm/mach-imx/Makefile
++++ b/arch/arm/mach-imx/Makefile
+@@ -23,6 +23,8 @@ obj-$(CONFIG_MXC_AVIC) += avic.o
+ obj-$(CONFIG_MXC_USE_EPIT) += epit.o
+ obj-$(CONFIG_MXC_DEBUG_BOARD) += 3ds_debugboard.o
+ 
++obj-$(CONFIG_IMX_BOOTTIME) += boottime.o
++
+ ifeq ($(CONFIG_CPU_IDLE),y)
+ obj-$(CONFIG_SOC_IMX5) += cpuidle-imx5.o
+ obj-$(CONFIG_SOC_IMX6Q) += cpuidle-imx6q.o
+diff --git a/arch/arm/mach-imx/boottime.c b/arch/arm/mach-imx/boottime.c
+new file mode 100644
+index 00000000..5644fc8
+--- /dev/null
++++ b/arch/arm/mach-imx/boottime.c
+@@ -0,0 +1,98 @@
++/*
++ *  linux/arch/arm/mach-imx/boottime.c
++ *
++ */
++
++#include <linux/time.h>
++#include <linux/unistd.h>
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/io.h>
++#include <linux/kobject.h> 
++#include <linux/sysfs.h>
++
++#define TSMRB_LOW 0x410A3C08
++#define TSMRB_HIGH 0x410A3C0C
++
++static void* timer_low = 0;
++static void* timer_high = 0;
++
++static int __init boottime_init (void);
++static struct kobject *boottime_kobject;
++
++u64 board_get_time(void)
++{
++    u64 res;
++#ifdef CONFIG_IMX7ULP_BOOTTIME
++    u32 low;
++    u32 high;
++    
++
++    if(timer_low == 0)
++        timer_low = ioremap(TSMRB_LOW, 4);
++    if(timer_high == 0)
++        timer_high = ioremap(TSMRB_HIGH, 4);
++
++    low = readl(timer_low);
++    high = readl(timer_high);
++
++    res = (u64) high << 32 | low;
++    
++#endif
++    return res;
++}
++
++static ssize_t boottime_show(struct kobject *kobj, struct kobj_attribute *attr,
++                      char *buf)
++{
++    return sprintf(buf, "%llu\n", board_get_time());
++}
++
++static ssize_t boottime_store(struct kobject *kobj, struct kobj_attribute *attr,
++                      const char *buf, size_t count)
++{
++    char a[count+1];
++    char *b;
++
++    strcpy(a, buf);
++    b = strchr(a, '\n');
++    if(b)
++        *b = '\0';
++
++    printk("%s boottime %llu\n", a, board_get_time());
++    return count;
++}
++
++static struct kobj_attribute boottime_attribute =__ATTR(stamp, 0660, boottime_show, boottime_store);
++
++static int __init boottime_init (void)
++{
++    int error = 0;
++
++    pr_info("kernel_init boottime %llu\n", board_get_time());
++
++    pr_debug("Module initialized successfully \n");
++
++    boottime_kobject = kobject_create_and_add("boottime",
++                                                kernel_kobj);
++    if(!boottime_kobject)
++            return -ENOMEM;
++
++    error = sysfs_create_file(boottime_kobject, &boottime_attribute.attr);
++    if (error) {
++            pr_debug("failed to create the stamp file in /sys/kernel/boottime \n");
++    }
++
++    return error;
++}
++
++static void __exit boottime_exit (void)
++{
++        pr_debug ("Module un initialized successfully \n");
++        sysfs_remove_file(boottime_kobject, &boottime_attribute.attr);
++        kobject_put(boottime_kobject);
++}
++
++module_init(boottime_init);
++module_exit(boottime_exit);
+-- 
+2.7.4
+
