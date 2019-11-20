@@ -29,6 +29,7 @@ IMAGE_INSTALL = " \
     bootlogo \
     brcm-patchram \
     btload \
+    chargelogo \
     connman \
     connman-client \
     crda \
