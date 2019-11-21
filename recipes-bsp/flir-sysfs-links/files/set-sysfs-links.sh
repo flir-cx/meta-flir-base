@@ -29,6 +29,8 @@ tpleds_camera_lnk=$lnk_base_dir/tp-leds/tp-camera
 tpleds_gallery_lnk=$lnk_base_dir/tp-leds/tp-gallery
 tpleds_settings_lnk=$lnk_base_dir/tp-leds/tp-settings
 backlight_lcd_lnk=$lnk_base_dir/backlight_lcd
+torch_lnk=$lnk_base_dir/torch
+flash_lnk=$lnk_base_dir/flash
 
 find_out_model () {
 	grep -q -- '-evco' $compat_path && return $evco
@@ -63,6 +65,8 @@ set_paths () {
 		tpleds_gallery_path=/sys/class/leds/tp-gallery
 		tpleds_settings_path=/sys/class/leds/tp-settings
 		backlight_lcd_path=/sys/class/backlight/backlight_lcd
+		torch_path=/sys/class/leds/torch
+		flash_path=/sys/class/leds/flash
 		;;
 	esac
 }
@@ -92,6 +96,9 @@ create_links () {
 	create_link "$tpleds_settings_path" "$tpleds_settings_lnk"
 	
 	create_link "$backlight_lcd_path" "$backlight_lcd_lnk"
+
+	create_link "$torch_path" "$torch_lnk"
+	create_link "$flash_path" "$flash_lnk"
 }
 
 find_out_model
