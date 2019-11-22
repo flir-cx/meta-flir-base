@@ -1,0 +1,892 @@
+diff --git a/Makefile.am b/Makefile.am
+index f01282ac..e7a14080 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -546,12 +546,11 @@ spring_tool_SOURCES =				\
+ 
+ if BUILD_CLIENTS
+ 
+-bin_PROGRAMS += weston-terminal weston-info
++bin_PROGRAMS += weston-terminal weston-info weston-screenshooter
+ 
+ libexec_PROGRAMS +=				\
+ 	weston-desktop-shell			\
+-	weston-screenshooter			\
+-	weston-keyboard				\
++	weston-keyboard			\
+ 	weston-simple-im
+ 
+ if ENABLE_IVI_SHELL
+diff --git a/clients/screenshot.c b/clients/screenshot.c
+index 78a5d424..0ea4501f 100644
+--- a/clients/screenshot.c
++++ b/clients/screenshot.c
+@@ -263,13 +263,6 @@ int main(int argc, char *argv[])
+ 	struct screenshooter_output *output;
+ 	int width, height;
+ 
+-	if (getenv("WAYLAND_SOCKET") == NULL) {
+-		fprintf(stderr, "%s must be launched by weston.\n"
+-			"Use the MOD+S shortcut to take a screenshot.\n",
+-			program_invocation_short_name);
+-		return -1;
+-	}
+-
+ 	display = wl_display_connect(NULL);
+ 	if (display == NULL) {
+ 		fprintf(stderr, "failed to create display: %m\n");
+diff --git a/compositor/weston-screenshooter.c b/compositor/weston-screenshooter.c
+index 981aff86..c7458b68 100644
+--- a/compositor/weston-screenshooter.c
++++ b/compositor/weston-screenshooter.c
+@@ -92,12 +92,6 @@ bind_shooter(struct wl_client *client,
+ 	resource = wl_resource_create(client,
+ 				      &weston_screenshooter_interface, 1, id);
+ 
+-	if (client != shooter->client) {
+-		wl_resource_post_error(resource, WL_DISPLAY_ERROR_INVALID_OBJECT,
+-				       "screenshooter failed: permission denied");
+-		return;
+-	}
+-
+ 	wl_resource_set_implementation(resource, &screenshooter_implementation,
+ 				       data, NULL);
+ }
+diff --git a/libweston/compositor.h b/libweston/compositor.h
+index 4cd143ae..0a40cd95 100644
+--- a/libweston/compositor.h
++++ b/libweston/compositor.h
+@@ -902,6 +902,7 @@ struct weston_renderer {
+ 			       float blue, float alpha);
+ 	void (*destroy)(struct weston_compositor *ec);
+ 
++	int (*get_bpp_from_shm_format)(uint32_t format);
+ 
+ 	/** See weston_surface_get_content_size() */
+ 	void (*surface_get_content_size)(struct weston_surface *surface,
+diff --git a/libweston/g2d-renderer.c b/libweston/g2d-renderer.c
+index 391157f5..fe78512c 100644
+--- a/libweston/g2d-renderer.c
++++ b/libweston/g2d-renderer.c
+@@ -91,6 +91,14 @@ struct g2d_output_state {
+ 	int current_buffer;
+ 	pixman_region32_t buffer_damage[BUFFER_DAMAGE_COUNT];
+ 	struct g2d_surfaceEx *renderSurf;
++
++	/*
++	 * Surface and buffer used when extracting frames for
++	 * screenshots.
++	 */
++	struct g2d_surfaceEx out_surf;
++	struct g2d_buf *out_buf;
++
+ 	int nNumBuffers;
+ 	int activebuffer;
+ 	struct g2d_surfaceEx offscreenSurface;
+@@ -432,10 +440,11 @@ g2d_SetSurfaceRect(struct g2d_surfaceEx* g2dSurface, g2dRECT* rect)
+ 
+ static int
+ g2d_blit_surface(void *handle, struct g2d_surfaceEx * srcG2dSurface, struct g2d_surfaceEx *dstG2dSurface,
+-	g2dRECT *srcRect, g2dRECT *dstRect)
++		g2dRECT *srcRect, g2dRECT *dstRect)
+ {
+ 	g2d_SetSurfaceRect(srcG2dSurface, srcRect);
+ 	g2d_SetSurfaceRect(dstG2dSurface, dstRect);
++
+ 	srcG2dSurface->base.blendfunc = G2D_ONE;
+ 	dstG2dSurface->base.blendfunc = G2D_ONE_MINUS_SRC_ALPHA;
+ 	if(!(_hasAlpha(srcG2dSurface->base.format)))
+@@ -452,6 +461,10 @@ g2d_blit_surface(void *handle, struct g2d_surfaceEx * srcG2dSurface, struct g2d_
+ 	return 0;
+ }
+ 
++
++/*
++ * Shift which buffer to display on the screen.
++ */
+ static void
+ g2d_flip_surface(struct weston_output *output)
+ {
+@@ -493,7 +506,7 @@ copy_to_framebuffer(struct weston_output *output)
+ 		clipRect = srcRect;
+ 		g2d_set_clipping(gr->handle, clipRect.left, clipRect.top, clipRect.right, clipRect.bottom);
+ 		g2d_blit_surface(gr->handle, &go->offscreenSurface,
+-			&go->renderSurf[go->activebuffer], &srcRect, &dstrect);
++				&go->renderSurf[go->activebuffer], &srcRect, &dstrect);
+ 	}
+ 
+ 	if(go->clone_display_num)
+@@ -506,12 +519,12 @@ copy_to_framebuffer(struct weston_output *output)
+ 			if(go->directBlit || go->nNumBuffers > 1)
+ 			{
+ 				g2d_blit_surface(gr->handle, &go->renderSurf[go->activebuffer],
+-				&go->mirrorSurf[i], &srcRect, &dstrect);
++						&go->mirrorSurf[i], &srcRect, &dstrect);
+ 			}
+ 			else
+ 			{
+ 				g2d_blit_surface(gr->handle, &go->offscreenSurface,
+-					&go->mirrorSurf[i], &srcRect, &dstrect);
++						&go->mirrorSurf[i], &srcRect, &dstrect);
+ 			}
+ 		}
+ 	}
+@@ -539,7 +552,7 @@ is_view_visible(struct weston_view *view)
+ 
+ 	return ret;
+ }
+- 
++
+ static void
+ use_output(struct weston_output *output)
+ {
+@@ -705,12 +718,143 @@ g2d_clip_rects(enum wl_output_transform transform,
+ 	}
+ }
+ 
++/*
++ * Translates wl_shm_format to bpp.
++ */
++static int
++get_bpp_from_shm_format(uint32_t shm_format)
++{
++	int bpp;
++	switch (shm_format) {
++	case WL_SHM_FORMAT_XRGB8888:
++	case WL_SHM_FORMAT_ARGB8888:
++		bpp = 4;
++		break;
++	case WL_SHM_FORMAT_RGB565:
++		bpp = 2;
++		break;
++	default:
++		weston_log("warning: incorrect format: %08x\n", shm_format);
++		return -1;
++	}
++	return bpp;
++}
++
++
++static int
++g2d_format_from_shm(uint32_t shm_format, int *res)
++{
++	enum g2d_format format;
++	switch (shm_format) {
++	case WL_SHM_FORMAT_XRGB8888:
++		format = G2D_BGRX8888;
++		break;
++	case WL_SHM_FORMAT_ARGB8888:
++		format = G2D_BGRA8888;
++		break;
++	case WL_SHM_FORMAT_RGB565:
++		format = G2D_RGB565;
++		break;
++	default:
++		weston_log("warning: incorrect format: %08x\n", shm_format);
++		*res = -1;
++		return 0;
++	}
++	*res = 0;
++	return format;
++}
++
++static struct g2d_buf*
++g2d_create_buffer_and_setup_surface(enum g2d_format format,
++		  int height,
++		  int width,
++		  uint32_t stride,
++		  struct g2d_surfaceEx *surface)
++
++{
++	int buffer_length;
++	struct g2d_buf *buf;
++
++	buffer_length =  height * stride;
++
++	weston_log("Allocate a g2d buffer, size: %d kb\n", buffer_length/1024);
++
++	buf = g2d_alloc(buffer_length, 0);
++	if(buf == 0){
++		weston_log("Allocate g2d buffer failed\n");
++		return NULL;
++	}
++
++	surface->base.planes[0]  = buf->buf_paddr;
++	surface->base.planes[1]  = surface->base.planes[0] + width * height;
++	surface->base.planes[2]  = surface->base.planes[1] + width * height / 4;
++	surface->base.left       = 0;
++	surface->base.top        = 0;
++	surface->base.right	 = width;
++	surface->base.bottom     = height;
++	surface->base.stride     = width;
++	surface->base.width	 = width;
++	surface->base.height     = height;
++	surface->base.rot	 = G2D_ROTATION_0;
++	surface->base.clrcolor   = 0xFF400000;
++	surface->tiling          = G2D_LINEAR;
++	surface->base.format     = format;
++	return buf;
++}
++
+ static int
+ g2d_renderer_read_pixels(struct weston_output *output,
+-				   pixman_format_code_t format, void *pixels,
+-				   uint32_t x, uint32_t y,
+-				   uint32_t width, uint32_t height)
++			 uint32_t shm_format,
++			 void *pixels,
++			 uint32_t x,
++			 uint32_t y,
++			 uint32_t width,
++			 uint32_t height)
+ {
++	int bpp;
++	int stride;
++	int res;
++	int size;
++	enum g2d_format format;
++
++	struct g2d_renderer *gr = get_renderer(output->compositor);
++	struct g2d_output_state *go = get_output_state(output);
++
++	if((bpp = get_bpp_from_shm_format(shm_format)) == -1)
++		return -1;
++
++	stride = width * bpp;
++	size = height * stride;
++
++	if(go->out_buf && (go->out_buf->buf_size) < size){
++		weston_log("Expanding size of g2d buffer\n");
++		g2d_free(go->out_buf);
++		go->out_buf = NULL;
++	}
++
++	if(!go->out_buf){
++		format = g2d_format_from_shm(shm_format, &res);
++		if(res == -1)
++			return -1;
++
++		go->out_buf = g2d_create_buffer_and_setup_surface(format,
++						height,
++						width,
++						stride,
++						&go->out_surf);
++	}
++
++	if(go->out_buf == NULL)
++		return -1;
++
++	if(g2d_blitEx(gr->handle,&go->renderSurf[go->activebuffer], &go->out_surf))
++	{
++		weston_log("Bit blit g2d surface failed\n");
++		return -1;
++	}
++
++	g2d_finish(gr->handle);
++	memcpy(pixels, go->out_buf->buf_vaddr, size);
+ 	return 0;
+ }
+ 
+@@ -721,7 +865,7 @@ static int g2d_int_from_double(double d)
+ 
+ static void
+ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_output_state *go, pixman_region32_t *region,
+-		pixman_region32_t *surf_region){
++	pixman_region32_t *surf_region){
+ 
+ 	struct g2d_renderer *gr = get_renderer(ev->surface->compositor);
+ 	struct g2d_surface_state *gs = get_surface_state(ev->surface);
+@@ -733,8 +877,10 @@ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_
+ 	g2dRECT clipRect = {0};
+ 	int dstWidth = 0;
+ 	int dstHeight = 0;
++
+ 	struct g2d_surfaceEx *dstsurface;
+ 	struct g2d_surfaceEx srcsurface = gs->g2d_surface;
++
+ 	uint32_t view_transform = ev->surface->buffer_viewport.buffer.transform;
+ 	int src_x = wl_fixed_to_int (ev->surface->buffer_viewport.buffer.src_x);
+ 	int src_y = wl_fixed_to_int (ev->surface->buffer_viewport.buffer.src_y);
+@@ -757,8 +903,8 @@ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_
+ 	rects = pixman_region32_rectangles(region, &nrects);
+ 	surf_rects = pixman_region32_rectangles(surf_region, &nsurf);
+ 	if(src_width != -1 && src_width > 0 && src_x >=0 && src_y >= 0
+-		&& src_x < gs->g2d_surface.base.width
+-		&& src_y < gs->g2d_surface.base.height)
++	   && src_x < gs->g2d_surface.base.width
++	   && src_y < gs->g2d_surface.base.height)
+ 	{
+ 		srcRect.left = src_x * scale;
+ 		srcRect.top = src_y * scale;
+@@ -772,12 +918,14 @@ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_
+ 		srcRect.right  = srcsurface.base.right;
+ 		srcRect.bottom = srcsurface.base.bottom;
+ 	}
++
+ 	if(go->drm_hw_buffer && gr->use_drm)
+ 	{
+ 		dstsurface = go->drm_hw_buffer;
+ 	}
+ 	else
+ 	{
++		/* Set destination g2d surface to the currently active surface. */
+ 		if(go->nNumBuffers > 1 || go->directBlit)
+ 		{
+ 			dstsurface = &go->renderSurf[go->activebuffer];
+@@ -787,6 +935,7 @@ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_
+ 			dstsurface = &go->offscreenSurface;
+ 		}
+ 	}
++
+ 	dstWidth  = dstsurface->base.width;
+ 	dstHeight = dstsurface->base.height;
+ 	/*Calculate the destrect once for all*/
+@@ -802,8 +951,8 @@ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_
+ 	}
+ 
+ 	calculate_rect_with_transform(dstsurface->base.width,
+-					  dstsurface->base.height,
+-					  output->transform, &dstrect);
++				      dstsurface->base.height,
++				      output->transform, &dstrect);
+ 
+ 	if(view_transform != output->transform)
+ 	{
+@@ -852,8 +1001,8 @@ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_
+ 			}
+ 			/* Need compute the clip rect with transform */
+ 			calculate_rect_with_transform(dstsurface->base.width,
+-							  dstsurface->base.height,
+-							  output->transform, &clipRect);
++						      dstsurface->base.height,
++						      output->transform, &clipRect);
+ 			if(clipRect.left >= clipRect.right || clipRect.top >= clipRect.bottom)
+ 			{
+ 				return;
+@@ -866,9 +1015,9 @@ repaint_region(struct weston_view *ev, struct weston_output *output, struct g2d_
+ 
+ static void
+ draw_view(struct weston_view *ev, struct weston_output *output,
+-		 pixman_region32_t *damage) /* in global coordinates */
++	pixman_region32_t *damage) /* in global coordinates */
+ {
+-	struct weston_compositor *ec = ev->surface->compositor;	
++	struct weston_compositor *ec = ev->surface->compositor;
+ 	struct g2d_output_state *go = get_output_state(output);
+ 	struct g2d_surface_state *gs = get_surface_state(ev->surface);
+ 	struct g2d_renderer *gr = get_renderer(ec);
+@@ -970,7 +1119,7 @@ output_rotate_damage(struct weston_output *output,
+ 
+ static void
+ g2d_renderer_repaint_output(struct weston_output *output,
+-				 pixman_region32_t *output_damage)
++			    pixman_region32_t *output_damage)
+ {
+ 	struct weston_compositor *compositor = output->compositor;
+ 	struct g2d_renderer *gr = get_renderer(compositor);
+@@ -993,6 +1142,7 @@ g2d_renderer_repaint_output(struct weston_output *output,
+ 	g2d_finish(gr->handle);
+ 
+ 	pixman_region32_copy(&output->previous_damage, output_damage);
++
+ 	wl_signal_emit(&output->frame_signal, output);
+ 	if(!gr->use_drm)
+ 		copy_to_framebuffer(output);
+@@ -1003,8 +1153,10 @@ g2d_renderer_attach_egl(struct weston_surface *es, struct weston_buffer *buffer)
+ {
+ 	struct wl_viv_buffer *vivBuffer = wl_resource_get_user_data(buffer->resource);
+ 	struct g2d_surface_state *gs = get_surface_state(es);
++
+ 	buffer->width = vivBuffer->width;
+ 	buffer->height = vivBuffer->height;
++
+ 	get_g2dSurface(vivBuffer, &gs->g2d_surface);
+ }
+ 
+@@ -1145,6 +1297,7 @@ g2d_renderer_attach_shm(struct weston_surface *es, struct weston_buffer *buffer,
+ 	int alignedWidth = 0;
+ 	int height = 0;
+ 	enum g2d_format g2dFormat = 0;
++
+ 	buffer->shm_buffer = shm_buffer;
+ 	buffer->width = wl_shm_buffer_get_width(shm_buffer);
+ 	buffer->height = wl_shm_buffer_get_height(shm_buffer);
+@@ -1204,23 +1357,24 @@ g2d_renderer_attach_shm(struct weston_surface *es, struct weston_buffer *buffer,
+ 	{
+ 		if(gs->shm_buf)
+ 			g2d_free(gs->shm_buf);
++
+ 		gs->shm_buf = g2d_alloc(buffer_length, 0);
+ 		gs->g2d_surface.base.planes[0] = gs->shm_buf->buf_paddr;
+ 		gs->g2d_surface.base.planes[1] = gs->g2d_surface.base.planes[0] + alignedWidth * height;
+ 		gs->g2d_surface.base.planes[2] = gs->g2d_surface.base.planes[1] + alignedWidth * height / 4;
+ 	}
+ 
+-	gs->g2d_surface.base.left = 0;
+-	gs->g2d_surface.base.top  = 0;
++	gs->g2d_surface.base.left       = 0;
++	gs->g2d_surface.base.top        = 0;
+ 	gs->g2d_surface.base.right	= buffer->width;
+-	gs->g2d_surface.base.bottom = buffer->height;
+-	gs->g2d_surface.base.stride = alignedWidth;
++	gs->g2d_surface.base.bottom     = buffer->height;
++	gs->g2d_surface.base.stride     = alignedWidth;
+ 	gs->g2d_surface.base.width	= buffer->width;
+-	gs->g2d_surface.base.height = height;
++	gs->g2d_surface.base.height     = height;
+ 	gs->g2d_surface.base.rot	= G2D_ROTATION_0;
+-	gs->g2d_surface.base.clrcolor = 0xFF400000;
+-	gs->g2d_surface.tiling = G2D_LINEAR;
+-	gs->g2d_surface.base.format = g2dFormat;
++	gs->g2d_surface.base.clrcolor   = 0xFF400000;
++	gs->g2d_surface.tiling          = G2D_LINEAR;
++	gs->g2d_surface.base.format     = g2dFormat;
+ }
+ 
+ 
+@@ -1402,7 +1556,7 @@ surface_state_destroy(struct g2d_surface_state *gs, struct g2d_renderer *gr)
+ 	wl_list_remove(&gs->renderer_destroy_listener.link);
+ 	if(gs->surface)
+ 		gs->surface->renderer_state = NULL;
+-	
++
+ 	if(gs->shm_buf)
+ 	{
+ 		g2d_free(gs->shm_buf);
+@@ -1445,7 +1599,12 @@ surface_state_handle_renderer_destroy(struct wl_listener *listener, void *data)
+ 	surface_state_destroy(gs, gr);
+ }
+ 
+-
++/*
++ * Sets up a g2d surface and a g2d buffer.
++ *
++ * This surface is used as a canvas to modify prior to transferring
++ * the content to an output surface through bit blitting.
++ */
+ static int
+ g2d_renderer_create_surface(struct weston_surface *surface)
+ {
+@@ -1481,7 +1640,7 @@ g2d_renderer_create_surface(struct weston_surface *surface)
+ 		g2d_renderer_attach(surface, surface->buffer_ref.buffer);
+ 		g2d_renderer_flush_damage(surface);
+ 	}
+-	
++
+ 	return 0;
+ }
+ 
+@@ -1497,7 +1656,6 @@ g2d_renderer_surface_set_color(struct weston_surface *surface,
+ 	gs->color[3] = alpha;
+ }
+ 
+-
+ static void
+ g2d_renderer_output_destroy(struct weston_output *output)
+ {
+@@ -1515,6 +1673,12 @@ g2d_renderer_output_destroy(struct weston_output *output)
+ 		go->offscreen_buf = NULL;
+ 	}
+ 
++	if(go->out_buf)
++	{
++		g2d_free(go->out_buf);
++		go->out_buf = NULL;
++	}
++
+ 	if(go->fb_info.fb_fd)
+ 	{
+ 		close(go->fb_info.fb_fd);
+@@ -1581,10 +1745,12 @@ g2d_renderer_create(struct weston_compositor *ec)
+ 	struct g2d_renderer *gr;
+ 	char *dir, *path;
+ 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
++
+ 	gr = calloc(1, sizeof *gr);
+ 	if (gr == NULL)
+ 		return -1;
+ 
++	gr->base.get_bpp_from_shm_format = get_bpp_from_shm_format;
+ 	gr->base.read_pixels = g2d_renderer_read_pixels;
+ 	gr->base.repaint_output = g2d_renderer_repaint_output;
+ 	gr->base.flush_damage = g2d_renderer_flush_damage;
+@@ -1594,6 +1760,7 @@ g2d_renderer_create(struct weston_compositor *ec)
+ 	gr->base.import_dmabuf = g2d_renderer_import_dmabuf;
+ 	gr->base.query_dmabuf_formats = g2d_renderer_query_dmabuf_formats;
+ 	gr->base.query_dmabuf_modifiers = g2d_renderer_query_dmabuf_modifiers;
++
+ #ifdef ENABLE_EGL
+ 	gr->bind_display =
+ 		(void *) eglGetProcAddress("eglBindWaylandDisplayWL");
+@@ -1610,6 +1777,7 @@ g2d_renderer_create(struct weston_compositor *ec)
+ 		weston_log("g2d_open fail.\n");
+ 		return -1;
+ 	}
++
+ 	ec->renderer = &gr->base;
+ 	ec->capabilities |= WESTON_CAP_VIEW_CLIP_MASK;
+ 
+@@ -1621,14 +1789,12 @@ g2d_renderer_create(struct weston_compositor *ec)
+ 	wl_signal_init(&gr->destroy_signal);
+ 
+ 	/* create use-g2d-renderer */
+-	
+ 	dir = getenv("XDG_RUNTIME_DIR");
+ 	path = malloc(strlen(dir) + 40);
+ 	strcpy(path, dir);
+ 	strcat(path, "/use-g2d-renderer");
+ 	close(open(path, O_CREAT | O_RDWR, mode));
+ 	free(path);
+-
+ 	return 0;
+ }
+ 
+@@ -1638,7 +1804,7 @@ g2d_drm_display_create(struct weston_compositor *ec, void *native_window)
+ 	struct g2d_renderer *gr;
+ 	if(g2d_renderer_create(ec) < 0)
+ 	{
+-		weston_log("g2d_renderer_create faile.\n");
++		weston_log("g2d_renderer_create failed.\n");
+ 		return -1;
+ 	}
+ #ifdef ENABLE_EGL
+@@ -1737,23 +1903,28 @@ calculate_g2d_format(struct fb_var_screeninfo *varinfo, enum g2d_format *g2dForm
+ 	return 0;
+ }
+ 
++
++/*
++ * Populate the g2d surface structure with information retrieved from
++ * the screen.
++ */
+ static int
+ get_G2dSurface_from_screeninfo(struct fb_screeninfo *info, struct g2d_surfaceEx* g2dSurface)
+ {
+ 	if(info && g2dSurface)
+ 	{
+ 		g2dSurface->base.planes[0] = info->physical;
+-		g2dSurface->base.left = 0;
+-		g2dSurface->base.top  = 0;
+-		g2dSurface->base.right	= info->x_resolution;
+-		g2dSurface->base.bottom = info->y_resolution;
+-		g2dSurface->base.stride = info->stride;
+-		g2dSurface->base.width	= info->x_resolution;
+-		g2dSurface->base.height = info->y_resolution;
+-		g2dSurface->base.format = info->pixel_format;
+-		g2dSurface->base.rot	= G2D_ROTATION_0;
+-		g2dSurface->base.clrcolor = 0xFF400000;
+-		g2dSurface->tiling = G2D_LINEAR;
++		g2dSurface->base.left      = 0;
++		g2dSurface->base.top       = 0;
++		g2dSurface->base.right	   = info->x_resolution;
++		g2dSurface->base.bottom    = info->y_resolution;
++		g2dSurface->base.stride    = info->stride;
++		g2dSurface->base.width	   = info->x_resolution;
++		g2dSurface->base.height    = info->y_resolution;
++		g2dSurface->base.format    = info->pixel_format;
++		g2dSurface->base.rot	   = G2D_ROTATION_0;
++		g2dSurface->base.clrcolor  = 0xFF400000;
++		g2dSurface->tiling         = G2D_LINEAR;
+ 		return 0;
+ 	}
+ 	return -1;
+@@ -1761,7 +1932,7 @@ get_G2dSurface_from_screeninfo(struct fb_screeninfo *info, struct g2d_surfaceEx*
+ 
+ static int
+ fb_query_screen_info(struct g2d_output_state *output, int fd,
+-						struct fb_screeninfo *info)
++		struct fb_screeninfo *info)
+ {
+ 	struct g2d_output_state *go = output;
+ 	struct fb_var_screeninfo *varinfo = &info->varinfo;
+@@ -1782,6 +1953,7 @@ fb_query_screen_info(struct g2d_output_state *output, int fd,
+ 		ioctl(fd, FBIOGET_VSCREENINFO, varinfo) < 0){
+ 		return -1;
+ 	}
++
+ 	/* Store the pertinent data. */
+ 	info->x_resolution = varinfo->xres;
+ 	info->y_resolution = varinfo->yres;
+@@ -1789,6 +1961,7 @@ fb_query_screen_info(struct g2d_output_state *output, int fd,
+ 	info->buffer_length = fixinfo->smem_len;
+ 	info->stride = fixinfo->line_length / (varinfo->bits_per_pixel >> 3);
+ 	info->stride_bytes = fixinfo->line_length;
++
+ 	calculate_g2d_format(varinfo, &info->pixel_format);
+ 
+ 	if (info->pixel_format < 0) {
+@@ -1799,9 +1972,13 @@ fb_query_screen_info(struct g2d_output_state *output, int fd,
+ 	return 0;
+ }
+ 
++
++/* Open the file fb_dev and save the file descriptor in the
++   screen_info structure. Save screen info in the screen_info
++   structure.*/
+ static int
+ fb_frame_buffer_open(struct g2d_output_state *output, const char *fb_dev,
+-						struct fb_screeninfo *screen_info)
++		struct fb_screeninfo *screen_info)
+ {
+ 	/* Open the frame buffer device. */
+ 	screen_info->fb_fd = open(fb_dev, O_RDWR | O_CLOEXEC);
+@@ -1813,7 +1990,6 @@ fb_frame_buffer_open(struct g2d_output_state *output, const char *fb_dev,
+ 	/* Grab the screen info. */
+ 	if (fb_query_screen_info(output, screen_info->fb_fd, screen_info) < 0) {
+ 		weston_log("Failed to get frame buffer info \n");
+-
+ 		close(screen_info->fb_fd);
+ 		return -1;
+ 	}
+@@ -1821,6 +1997,7 @@ fb_frame_buffer_open(struct g2d_output_state *output, const char *fb_dev,
+ 	return 0;
+ }
+ 
++
+ static void
+ getBufferNumber(struct g2d_output_state *go)
+ {
+@@ -1846,26 +2023,33 @@ getBufferNumber(struct g2d_output_state *go)
+ 	weston_log("The number of the Framebuffer: %d\n", go->nNumBuffers);
+ }
+ 
++
++/*
++ * Create one or many g2d surfaces that are backed by a frame buffer
++ * device file.
++ */
+ static int
+ g2d_renderer_surface_create(struct g2d_output_state *go,
+-		struct g2d_renderer *gr,
+-		const char *device)
++			    struct g2d_renderer *gr,
++			    const char *device)
+ {
+ 	int i = 0;
+ 	int offset = 0;
+ 	weston_log("Opend device=%s\n", device);
++
+ 	if(fb_frame_buffer_open(go, device, &go->fb_info) < 0)
+ 	{
+ 		weston_log("Open frame buffer failed.\n");
+ 		return -1;
+ 	}
++
+ 	go->renderSurf = zalloc(sizeof(struct g2d_surfaceEx) * go->nNumBuffers);
+ 	offset = go->fb_info.stride_bytes * go->fb_info.y_resolution;
++
+ 	for(i = 0; i < go->nNumBuffers; i++)
+ 	{
+ 		get_G2dSurface_from_screeninfo(&go->fb_info, &go->renderSurf[i]);
+-		go->renderSurf[i].base.planes[0] = go->fb_info.physical
+-											+ (offset * i);
++		go->renderSurf[i].base.planes[0] = go->fb_info.physical+(offset * i);
+ 		g2d_clear(gr->handle, &go->renderSurf[i].base);
+ 	}
+ 
+@@ -1881,8 +2065,8 @@ g2d_renderer_surface_create(struct g2d_output_state *go,
+ 
+ static int
+ g2d_fbdev_renderer_output_create(struct weston_output *output,
+-		struct wl_display *wl_display,
+-		const char *device)
++				 struct wl_display *wl_display,
++				 const char *device)
+  {
+ 	struct g2d_renderer *gr = get_renderer(output->compositor);
+ 	struct g2d_output_state *go;
+@@ -1890,10 +2074,18 @@ g2d_fbdev_renderer_output_create(struct weston_output *output,
+ 	int clone_display_num = 0;
+ 	int count = 0;
+ 	int k=0, dispCount = 0;
++
+ 	char displays[5][32];
++
+ 	weston_log("g2d_renderer_output_create device=%s\n", device);
+ 	count = strlen(device);
+ 
++	/*
++	 * Iterate through the device name. The device name can be
++	 * composed of multiple device files divided by commas. Each
++	 * given device filename will be saved in the array
++	 * "displays". Note: max 5 device files.
++	 */
+ 	if(count > 0)
+ 	{
+ 		for(i= 0; i < count; i++)
+@@ -1911,6 +2103,7 @@ g2d_fbdev_renderer_output_create(struct weston_output *output,
+ 			}
+ 		}
+ 		displays[dispCount][k] = '\0';
++
+ 		clone_display_num = dispCount++;
+ 		weston_log("clone_display_num = %d\n", clone_display_num);
+ 	}
+@@ -1934,7 +2127,6 @@ g2d_fbdev_renderer_output_create(struct weston_output *output,
+ 		gr->bind_display(gr->egl_display, wl_display);
+ #endif
+ 	getBufferNumber(go);
+-
+ 	if(g2d_renderer_surface_create(go, gr, displays[0]) < 0)
+ 	{
+ 		weston_log("Create Render surface failed.\n");
+@@ -1960,20 +2152,23 @@ g2d_fbdev_renderer_output_create(struct weston_output *output,
+ 			g2d_clear(gr->handle, &go->mirrorSurf[i].base);
+ 		}
+ 	}
++
+ 	g2d_finish(gr->handle);
+ 	if(go->renderSurf->base.format == G2D_RGB565)
+ 		g2d_enable(gr->handle, G2D_DITHER);
++
+ 	for (i = 0; i < BUFFER_DAMAGE_COUNT; i++)
+ 		pixman_region32_init(&go->buffer_damage[i]);
+ 	return 0;
+  }
+ 
+  WL_EXPORT struct g2d_renderer_interface g2d_renderer_interface = {
+-	.create = g2d_renderer_create,
++	.create              = g2d_renderer_create,
+ 	.drm_display_create  = g2d_drm_display_create,
+ 	.drm_output_create   = g2d_drm_renderer_output_create,
+ 	.fbdev_output_create = g2d_fbdev_renderer_output_create,
+ 	.create_g2d_image    = drm_create_g2d_image,
+ 	.output_set_buffer   = g2d_renderer_output_set_buffer,
+ 	.output_destroy      = g2d_renderer_output_destroy,
++	.get_bpp_from_shm_format = get_bpp_from_shm_format,
+ };
+diff --git a/libweston/g2d-renderer.h b/libweston/g2d-renderer.h
+index 15e39a1c..828e57ba 100644
+--- a/libweston/g2d-renderer.h
++++ b/libweston/g2d-renderer.h
+@@ -69,6 +69,8 @@ struct g2d_renderer_interface {
+ 				struct g2d_surfaceEx *buffer);
+ 
+ 	void (*output_destroy)(struct weston_output *output);
++
++	int (*get_bpp_from_shm_format)(uint32_t format);
+ };
+ 
+ #endif
+diff --git a/libweston/screenshooter.c b/libweston/screenshooter.c
+index f4e3f4de..3a9bb48b 100644
+--- a/libweston/screenshooter.c
++++ b/libweston/screenshooter.c
+@@ -115,15 +115,40 @@ screenshooter_frame_notify(struct wl_listener *listener, void *data)
+ {
+ 	struct screenshooter_frame_listener *l =
+ 		container_of(listener,
+-			     struct screenshooter_frame_listener, listener);
++			struct screenshooter_frame_listener, listener);
+ 	struct weston_output *output = data;
+ 	struct weston_compositor *compositor = output->compositor;
+ 	int32_t stride;
+ 	uint8_t *pixels, *d, *s;
++	int bpp;
++	uint32_t format;
+ 
+ 	output->disable_planes--;
+ 	wl_list_remove(&listener->link);
+-	stride = l->buffer->width * (PIXMAN_FORMAT_BPP(compositor->read_format) / 8);
++
++	/*
++	 * compositor->read_format is not set for the
++	 * g2d_renderer. PIXMAN_FORMAT_BPP returns 0 in this case and
++	 * pixels is 0 bytes in size. In the case of g2d renderer use
++	 * the format associated to the shared buffer.
++	 */
++	if(!compositor->read_format){
++		format = wl_shm_buffer_get_format(l->buffer->shm_buffer);
++		bpp = compositor->renderer->get_bpp_from_shm_format(format) * 8;
++	}else{
++		format = compositor->read_format;
++		bpp=PIXMAN_FORMAT_BPP(compositor->read_format);
++	}
++
++	stride = l->buffer->width * (bpp / 8);
++
++	/*
++	 * pixels' size is calculated using the dimensions specified
++	 * in the shared buffer. The format used to determined the
++	 * stride is either the format from the shared buffer as in
++	 * the case when using g2d renderer or the format of the
++	 * screen.
++	 */
+ 	pixels = malloc(stride * l->buffer->height);
+ 
+ 	if (pixels == NULL) {
+@@ -132,10 +157,20 @@ screenshooter_frame_notify(struct wl_listener *listener, void *data)
+ 		return;
+ 	}
+ 
++	/*
++	 * read_pixels populates pixels with bytes from frame. Note,
++	 * the dimensions sent in as arguments are the screen
++	 * dimensions. The size of the frame read into pixels will be
++	 * of the same size only if the buffer dimensions are the same
++	 * as the screen dimensions.
++	 */
+ 	compositor->renderer->read_pixels(output,
+-			     compositor->read_format, pixels,
+-			     0, 0, output->current_mode->width,
+-			     output->current_mode->height);
++					format,
++					pixels,
++					0,
++					0,
++					output->current_mode->width,
++					output->current_mode->height);
+ 
+ 	stride = wl_shm_buffer_get_stride(l->buffer->shm_buffer);
+ 
+@@ -144,25 +179,32 @@ screenshooter_frame_notify(struct wl_listener *listener, void *data)
+ 
+ 	wl_shm_buffer_begin_access(l->buffer->shm_buffer);
+ 
+-	switch (compositor->read_format) {
+-	case PIXMAN_a8r8g8b8:
+-	case PIXMAN_x8r8g8b8:
+-		if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
+-			copy_bgra_yflip(d, s, output->current_mode->height, stride);
+-		else
+-			copy_bgra(d, pixels, output->current_mode->height, stride);
+-		break;
+-	case PIXMAN_x8b8g8r8:
+-	case PIXMAN_a8b8g8r8:
+-		if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
+-			copy_rgba_yflip(d, s, output->current_mode->height, stride);
+-		else
+-			copy_rgba(d, pixels, output->current_mode->height, stride);
+-		break;
+-	default:
+-		break;
++	/*
++	 * If g2d renderer, just copy over pixels to shared
++	 * buffer.
++	 */
++	if(!compositor->read_format){
++		memcpy(d, pixels, l->buffer->height * stride);
++	}else{
++		switch (compositor->read_format) {
++		case PIXMAN_a8r8g8b8:
++		case PIXMAN_x8r8g8b8:
++			if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
++				copy_bgra_yflip(d, s, output->current_mode->height, stride);
++			else
++				copy_bgra(d, pixels, output->current_mode->height, stride);
++			break;
++		case PIXMAN_x8b8g8r8:
++		case PIXMAN_a8b8g8r8:
++			if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
++				copy_rgba_yflip(d, s, output->current_mode->height, stride);
++			else
++				copy_rgba(d, pixels, output->current_mode->height, stride);
++			break;
++		default:
++			break;
++		}
+ 	}
+-
+ 	wl_shm_buffer_end_access(l->buffer->shm_buffer);
+ 
+ 	l->done(l->data, WESTON_SCREENSHOOTER_SUCCESS);

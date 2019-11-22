@@ -6,7 +6,10 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 SRC_URI_append += "\
 	file://0001-support-flir-live-background.patch \
+	file://0002-Add-implementation-of-read_pixels-to-g2d_renderer.patch \
 "
+
+FILES_${PN} += " ${bindir}/weston-screenshooter"
 
 # enable g2d and configure shell in weston.ini
 do_install_append() {
