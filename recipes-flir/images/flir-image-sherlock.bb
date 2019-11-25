@@ -67,7 +67,6 @@ IMAGE_INSTALL = " \
     gstreamer1.0-plugins-base-tcp \
     gstreamer1.0-plugins-base-videorate \
     gstreamer1.0-rtsp-server \
-    i2c-tools \
     imx-gst1.0-plugin \
     iperf3 \
     iputils-ping \
