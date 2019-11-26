@@ -66,6 +66,7 @@ SRC_URI_append = " \
     file://0069-mxc-mipi-dsi-suspend-sherlock-display-enter-deep-sta.patch \
     file://0070-Set-standby-state-of-camera-pins-also-when-not-strea.patch \
     file://0071-Add-boottime-measurements-on-imx7ulp-separate-config.patch \
+    file://0072-mxc-mipi-dsi-sherlock-display-fix-for-slow-display-t.patch \
     file://defconfig \
 "
 
