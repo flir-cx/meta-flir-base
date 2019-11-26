@@ -1,0 +1,26 @@
+From b49439fdfadca4e7302987c138f7198dd9eb321a Mon Sep 17 00:00:00 2001
+From: Patrik Lindergren <patrik.lindergren@flir.se>
+Date: Fri, 23 May 2014 10:16:38 +0200
+Subject: [PATCH] Change Makefile to use external CC and LD
+
+Signed-off-by: Patrik Lindergren <patrik.lindergren@flir.se>
+---
+ Makefile |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 60267e2..2dc14d1 100644
+--- a/Makefile
++++ b/Makefile
+@@ -91,7 +91,7 @@ ARCH =
+ 
+ #### Toolchain options.
+ # GCC is normally used both for compiling and linking.
+-CC = gcc
++CC ?= gcc
+ LD = $(CC)
+ 
+ #### Debug flags (typically "-g").
+-- 
+1.7.9.5
+
