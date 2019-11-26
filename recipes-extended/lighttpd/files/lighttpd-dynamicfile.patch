@@ -1,33 +1,45 @@
-# Modifications:
-# 2018-09-24 / mkarrman:
-# - Don't open file with O_NOATIME (doesn't work if file owned by other user).
-# - 1ms delay before open retry to give producer a chance to finish.
-#
-diff -Nur lighttpd-1.4.28.old/src/Makefile.am lighttpd-1.4.28/src/Makefile.am
---- lighttpd-1.4.28.old/src/Makefile.am	2010-08-11 13:44:17.000000000 -0700
-+++ lighttpd-1.4.28/src/Makefile.am	2012-08-13 14:46:23.000000000 -0700
-@@ -149,6 +149,11 @@
- mod_staticfile_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
+From 82df030ee5c5042761455949fbbb1b48c30e94ec Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@flir.se>
+Date: Mon, 25 Nov 2019 11:56:37 +0100
+Subject: [PATCH] Added mod_dynamicfile
+
+---
+ src/Makefile.am       |   5 +
+ src/mod_dynamicfile.c | 386 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 391 insertions(+)
+ create mode 100644 src/mod_dynamicfile.c
+
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 8b2828b..d141e3e 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -210,6 +210,11 @@ mod_staticfile_la_SOURCES = mod_staticfile.c
+ mod_staticfile_la_LDFLAGS = $(common_module_ldflags)
  mod_staticfile_la_LIBADD = $(common_libadd)
  
 +lib_LTLIBRARIES += mod_dynamicfile.la
 +mod_dynamicfile_la_SOURCES = mod_dynamicfile.c
-+mod_dynamicfile_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
++mod_dynamicfile_la_LDFLAGS = $(common_module_ldflags)
 +mod_dynamicfile_la_LIBADD = $(common_libadd)
 +
  lib_LTLIBRARIES += mod_dirlisting.la
  mod_dirlisting_la_SOURCES = mod_dirlisting.c
- mod_dirlisting_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
-diff -Nur lighttpd-1.4.28.old/src/mod_dynamicfile.c lighttpd-1.4.28/src/mod_dynamicfile.c
---- lighttpd-1.4.28.old/src/mod_dynamicfile.c	1969-12-31 16:00:00.000000000 -0800
-+++ lighttpd-1.4.28/src/mod_dynamicfile.c	2012-10-03 18:00:45.422258521 -0700
-@@ -0,0 +1,369 @@
+ mod_dirlisting_la_LDFLAGS = $(common_module_ldflags)
+diff --git a/src/mod_dynamicfile.c b/src/mod_dynamicfile.c
+new file mode 100644
+index 0000000..2cddc52
+--- /dev/null
++++ b/src/mod_dynamicfile.c
+@@ -0,0 +1,386 @@
++#include "first.h"
++
 +#include "base.h"
 +#include "log.h"
 +#include "buffer.h"
 +
 +#include "plugin.h"
 +
++#include <ctype.h>
 +#include "stat_cache.h"
 +#include "etag.h"
 +#include "http_chunk.h"
@@ -70,6 +82,7 @@ diff -Nur lighttpd-1.4.28.old/src/mod_dynamicfile.c lighttpd-1.4.28/src/mod_dyna
 +	plugin_data *p;
 +
 +	p = calloc(1, sizeof(*p));
++        force_assert(p);
 +
 +	return p;
 +}
@@ -114,11 +127,15 @@ diff -Nur lighttpd-1.4.28.old/src/mod_dynamicfile.c lighttpd-1.4.28/src/mod_dyna
 +	if (!p) return HANDLER_ERROR;
 +
 +	p->config_storage = calloc(1, srv->config_context->used * sizeof(specific_config *));
++        force_assert(p->config_storage);
 +
 +	for (i = 0; i < srv->config_context->used; i++) {
-+		plugin_config *s;
++                data_config const* config = (data_config const*)srv->config_context->data[i];
++		plugin_config *s;;
 +
 +		s = calloc(1, sizeof(plugin_config));
++                force_assert(s);
++        
 +		s->include_ext    = array_init();
 +		s->retries	= 1;
 +
@@ -127,10 +144,19 @@ diff -Nur lighttpd-1.4.28.old/src/mod_dynamicfile.c lighttpd-1.4.28/src/mod_dyna
 +
 +		p->config_storage[i] = s;
 +
-+		if (0 != config_insert_values_global(srv, ((data_config *)srv->config_context->data[i])->value, cv)) {
++//		if (0 != config_insert_values_global(srv, ((data_config *)srv->config_context->data[i])->value, cv)) {
++//	                return HANDLER_ERROR;
++		
++                if (0 != config_insert_values_global(srv, config->value, cv, i == 0 ? T_CONFIG_SCOPE_SERVER : T_CONFIG_SCOPE_CONNECTION)) {
 +			return HANDLER_ERROR;
 +		}
-+	}
++                
++                if (!array_is_vlist(s->include_ext)) {
++			log_error_write(srv, __FILE__, __LINE__, "s",
++					"unexpected value for dynamicfile.array; expected list of \"urlpath\"");
++			return HANDLER_ERROR;
++		}
++        }
 +
 +	return HANDLER_GO_ON;
 +}
@@ -314,7 +340,7 @@ diff -Nur lighttpd-1.4.28.old/src/mod_dynamicfile.c lighttpd-1.4.28/src/mod_dyna
 +#ifdef USE_FOPEN
 +			if (1 != (ret = fread(mem_buffer, file_length, 1, fp))) {
 +#else
-+			if (file_length != (ret = read(fd, mem_buffer, file_length))) {
++                            if (file_length != (size_t)(ret = read(fd, mem_buffer, file_length))) {
 +#endif
 +#ifdef VALIDATE_READ_COMPLETE
 +#ifdef USE_FOPEN
@@ -391,3 +417,6 @@ diff -Nur lighttpd-1.4.28.old/src/mod_dynamicfile.c lighttpd-1.4.28/src/mod_dyna
 +
 +	return 0;
 +}
+-- 
+1.9.1
+
