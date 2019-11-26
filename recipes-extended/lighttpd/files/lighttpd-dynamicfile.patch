@@ -1,0 +1,393 @@
+# Modifications:
+# 2018-09-24 / mkarrman:
+# - Don't open file with O_NOATIME (doesn't work if file owned by other user).
+# - 1ms delay before open retry to give producer a chance to finish.
+#
+diff -Nur lighttpd-1.4.28.old/src/Makefile.am lighttpd-1.4.28/src/Makefile.am
+--- lighttpd-1.4.28.old/src/Makefile.am	2010-08-11 13:44:17.000000000 -0700
++++ lighttpd-1.4.28/src/Makefile.am	2012-08-13 14:46:23.000000000 -0700
+@@ -149,6 +149,11 @@
+ mod_staticfile_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
+ mod_staticfile_la_LIBADD = $(common_libadd)
+ 
++lib_LTLIBRARIES += mod_dynamicfile.la
++mod_dynamicfile_la_SOURCES = mod_dynamicfile.c
++mod_dynamicfile_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
++mod_dynamicfile_la_LIBADD = $(common_libadd)
++
+ lib_LTLIBRARIES += mod_dirlisting.la
+ mod_dirlisting_la_SOURCES = mod_dirlisting.c
+ mod_dirlisting_la_LDFLAGS = -module -export-dynamic -avoid-version -no-undefined
+diff -Nur lighttpd-1.4.28.old/src/mod_dynamicfile.c lighttpd-1.4.28/src/mod_dynamicfile.c
+--- lighttpd-1.4.28.old/src/mod_dynamicfile.c	1969-12-31 16:00:00.000000000 -0800
++++ lighttpd-1.4.28/src/mod_dynamicfile.c	2012-10-03 18:00:45.422258521 -0700
+@@ -0,0 +1,369 @@
++#include "base.h"
++#include "log.h"
++#include "buffer.h"
++
++#include "plugin.h"
++
++#include "stat_cache.h"
++#include "etag.h"
++#include "http_chunk.h"
++#include "response.h"
++
++#include <ctype.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include <stdio.h>
++#include <string.h>
++#include <errno.h>
++
++/**
++ * lighttpd plugin for serving frequently changing files
++ *
++ */
++
++
++//#define VALIDATE_READ_COMPLETE
++//#define USE_FOPEN
++
++/* plugin config for all request/connections */
++
++typedef struct {
++	array *include_ext;
++	int retries;
++} plugin_config;
++
++typedef struct {
++	PLUGIN_DATA;
++
++	plugin_config **config_storage;
++
++	plugin_config conf;
++} plugin_data;
++
++/* init the plugin data */
++INIT_FUNC(mod_dynamicfile_init) {
++	plugin_data *p;
++
++	p = calloc(1, sizeof(*p));
++
++	return p;
++}
++
++/* detroy the plugin data */
++FREE_FUNC(mod_dynamicfile_free) {
++	plugin_data *p = p_d;
++
++	UNUSED(srv);
++
++	if (!p) return HANDLER_GO_ON;
++
++	if (p->config_storage) {
++		size_t i;
++		for (i = 0; i < srv->config_context->used; i++) {
++			plugin_config *s = p->config_storage[i];
++
++			array_free(s->include_ext);
++
++			free(s);
++		}
++		free(p->config_storage);
++	}
++
++	free(p);
++
++	return HANDLER_GO_ON;
++}
++
++/* handle plugin config and check values */
++
++SETDEFAULTS_FUNC(mod_dynamicfile_set_defaults) {
++	plugin_data *p = p_d;
++	size_t i = 0;
++
++	config_values_t cv[] = {
++		{ "dynamic-file.include-extensions", NULL, T_CONFIG_ARRAY, T_CONFIG_SCOPE_CONNECTION },       /* 0 */
++		{ "dynamic-file.retries", NULL, T_CONFIG_SHORT, T_CONFIG_SCOPE_CONNECTION },       /* 1 */
++		{ NULL,			 NULL, T_CONFIG_UNSET, T_CONFIG_SCOPE_UNSET }
++	};
++
++	if (!p) return HANDLER_ERROR;
++
++	p->config_storage = calloc(1, srv->config_context->used * sizeof(specific_config *));
++
++	for (i = 0; i < srv->config_context->used; i++) {
++		plugin_config *s;
++
++		s = calloc(1, sizeof(plugin_config));
++		s->include_ext    = array_init();
++		s->retries	= 1;
++
++		cv[0].destination = s->include_ext;
++		cv[1].destination = &(s->retries);
++
++		p->config_storage[i] = s;
++
++		if (0 != config_insert_values_global(srv, ((data_config *)srv->config_context->data[i])->value, cv)) {
++			return HANDLER_ERROR;
++		}
++	}
++
++	return HANDLER_GO_ON;
++}
++
++#define PATCH(x) \
++	p->conf.x = s->x;
++static int mod_dynamicfile_patch_connection(server *srv, connection *con, plugin_data *p) {
++	size_t i, j;
++	plugin_config *s = p->config_storage[0];
++
++	PATCH(include_ext);
++	PATCH(retries);
++
++	/* skip the first, the global context */
++	for (i = 1; i < srv->config_context->used; i++) {
++		data_config *dc = (data_config *)srv->config_context->data[i];
++		s = p->config_storage[i];
++
++		/* condition didn't match */
++		if (!config_check_cond(srv, con, dc)) continue;
++
++		/* merge config */
++		for (j = 0; j < dc->value->used; j++) {
++			data_unset *du = dc->value->data[j];
++
++			if (buffer_is_equal_string(du->key, CONST_STR_LEN("dynamic-file.include-extensions"))) {
++				PATCH(include_ext);
++			}
++			if (buffer_is_equal_string(du->key, CONST_STR_LEN("dynamic-file.retries"))) {
++				PATCH(retries);
++			}
++		}
++	}
++
++	return 0;
++}
++#undef PATCH
++
++
++URIHANDLER_FUNC(mod_dynamicfile_subrequest) {
++	plugin_data *p = p_d;
++	int k;
++	stat_cache_entry *sce = NULL;
++	//buffer *mtime = NULL;
++	data_string *ds;
++	int is_dynamic_extension = 0, ret = -1;
++#ifdef USE_FOPEN
++	FILE *fp = NULL;
++#endif
++	int fd;
++	char *mem_buffer = NULL;
++	size_t file_length = 0, mem_length = 0;
++
++	/* someone else has done a decision for us */
++	if (con->http_status != 0) return HANDLER_GO_ON;
++	if (con->uri.path->used == 0) return HANDLER_GO_ON;
++	if (con->physical.path->used == 0) return HANDLER_GO_ON;
++
++	/* someone else has handled this request */
++	if (con->mode != DIRECT) return HANDLER_GO_ON;
++
++	/* we only handle GET */
++	switch(con->request.http_method) {
++	case HTTP_METHOD_GET:
++		break;
++	default:
++		return HANDLER_GO_ON;
++	}
++
++	mod_dynamicfile_patch_connection(srv, con, p);
++
++	/* process certain extensions */
++	for (k = 0; k < p->conf.include_ext->used; k++) {
++		ds = (data_string *)p->conf.include_ext->data[k];
++
++		if (ds->value->used == 0) continue;
++
++		if (buffer_is_equal_right_len(con->physical.path, ds->value, ds->value->used - 1)) {
++			is_dynamic_extension = 1;
++			break;
++		}
++	}
++
++	if (!is_dynamic_extension) {
++		if (con->conf.log_request_handling) {
++			log_error_write(srv, __FILE__, __LINE__,  "s",  "-- NOT handling file as dynamic file, extension forbidden");
++		}
++		return HANDLER_GO_ON;
++	}
++
++
++	if (con->conf.log_request_handling) {
++		log_error_write(srv, __FILE__, __LINE__,  "s",  "-- handling file as dynamic file");
++	}
++
++	if (HANDLER_ERROR == stat_cache_get_entry(srv, con, con->physical.path, &sce)) {
++		con->http_status = 403;
++
++		log_error_write(srv, __FILE__, __LINE__, "sbsb",
++				"not a regular file:", con->uri.path,
++				"->", con->physical.path);
++
++		return HANDLER_FINISHED;
++	}
++
++	if (!S_ISREG(sce->st.st_mode)) {
++		con->http_status = 404;
++
++		if (con->conf.log_file_not_found) {
++			log_error_write(srv, __FILE__, __LINE__, "sbsb",
++					"not a regular file:", con->uri.path,
++					"->", sce->name);
++		}
++
++		return HANDLER_FINISHED;
++	}
++
++	/* mod_compress might set several data directly, don't overwrite them */
++
++	/* set response content-type, if not set already */
++
++	if (NULL == array_get_element(con->response.headers, "Content-Type")) {
++		if (buffer_is_empty(sce->content_type)) {
++			/* we are setting application/octet-stream, but also announce that
++			 * this header field might change in the seconds few requests 
++			 *
++			 * This should fix the aggressive caching of FF and the script download
++			 * seen by the first installations
++			 */
++			response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("application/octet-stream"));
++		} else {
++			response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_BUF_LEN(sce->content_type));
++		}
++	}
++
++	/* if we are still here, prepare body */
++
++	/* once file is opened, hold it open until done with it to make sure it 
++	 * doesn't get switched to a new file between getting size and reading data */
++	for (k = 0; k <= p->conf.retries; k++) {
++		struct stat st;
++
++		if (con->conf.log_request_handling) {
++			if (k) log_error_write(srv, __FILE__, __LINE__,  "sdsd",  "-- retry open ", k, " of ", p->conf.retries);
++		}
++#ifdef USE_FOPEN
++		fp = fopen(con->physical.path->ptr, "r");
++		if (NULL == fp) {
++			//if (con->conf.log_request_handling) {
++				log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- retry open ", k+1);
++			//}
++			usleep(1000);  // 1ms
++			continue;
++		}
++		fd = fileno(fp);
++#else
++		fd = open(con->physical.path->ptr, O_RDONLY /*|O_NOATIME*/);
++		if (fd < 0) {
++			//if (con->conf.log_request_handling) {
++				log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- retry open ", k+1);
++			//}
++			usleep(1000);  // 1ms
++			continue;
++		}
++#endif
++    /* track 2 different sizes because the chunk code assumes memory segments 
++     * are null terminated: buffer has 1 extra byte over actual file size */
++		st.st_size = 0;
++		if (fstat(fd, &st)) {
++			log_error_write(srv, __FILE__, __LINE__,  "ss",  "-- fstat failed ", strerror(errno));
++			return HANDLER_ERROR;
++		}
++
++		file_length = st.st_size;
++		mem_length = file_length + 1; 
++		mem_buffer = calloc(1, mem_length);
++		if (!mem_buffer) {
++			log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- failed to calloc ", mem_length);
++			close(fd);
++		} else {
++#ifdef USE_FOPEN
++			if (1 != (ret = fread(mem_buffer, file_length, 1, fp))) {
++#else
++			if (file_length != (ret = read(fd, mem_buffer, file_length))) {
++#endif
++#ifdef VALIDATE_READ_COMPLETE
++#ifdef USE_FOPEN
++				if (ferror(fp))
++					log_error_write(srv, __FILE__, __LINE__,  "sssd",  "-- file read failed: ", strerror(errno), ", size ", file_length);
++				if (feof(fp))
++					log_error_write(srv, __FILE__, __LINE__,  "sdsd",  "-- file read failed: EOF, size ", file_length, ", pos ", ftell(fp));
++#endif
++#endif
++				close(fd);
++				free(mem_buffer);
++				//con->http_status = 409;
++				//return HANDLER_FINISHED;
++			} else {
++#ifdef VALIDATE_READ_COMPLETE
++				char c;
++				// force a final read, which had better fail and set EOF
++				if (1 != fread(&c, 1, 1, fp)) {
++					if (ferror(fp)) {
++						log_error_write(srv, __FILE__, __LINE__,  "sssd",  "-- final file read failed: ", strerror(errno), ", size ", file_length);
++					} else if (feof(fp)) {
++						if (k) log_error_write(srv, __FILE__, __LINE__,  "sdsd",  "-- recovered after retry ", k, ", size ", file_length);
++						//else log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- final file read failed, but, OKAY...at EOF: size ", file_length);
++						break;
++					} else {
++						log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- final file read failed, but not at EOF:  size ", file_length);
++					}
++				} else {
++					log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- final file read did NOT fail, must not be at EOF:  size ", file_length);
++				}
++				close(fd);
++				free(mem_buffer);
++#else
++				break;
++#endif
++			}
++		}
++		fd = -1;
++	}	// for
++
++	if (0 > fd) {
++		con->http_status = 404;
++		con->file_finished = 0;
++
++		//if (con->conf.log_file_not_found) {
++			log_error_write(srv, __FILE__, __LINE__,  "s",  "-- failed to open file ");
++		//}
++		return HANDLER_FINISHED;
++	}
++	close(fd);
++
++	http_chunk_append_mem(srv, con, mem_buffer, mem_length);
++	free(mem_buffer);
++
++	con->http_status = 200;
++	con->file_finished = 1;
++
++	return HANDLER_FINISHED;
++}
++
++/* this function is called at dlopen() time and inits the callbacks */
++
++int mod_dynamicfile_plugin_init(plugin *p);
++int mod_dynamicfile_plugin_init(plugin *p) {
++	p->version     = LIGHTTPD_VERSION_ID;
++	p->name	= buffer_init_string("dynamicfile");
++
++	p->init	= mod_dynamicfile_init;
++	p->handle_subrequest_start = mod_dynamicfile_subrequest;
++	p->set_defaults  = mod_dynamicfile_set_defaults;
++	p->cleanup     = mod_dynamicfile_free;
++
++	p->data	= NULL;
++
++	return 0;
++}
