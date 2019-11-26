@@ -14,6 +14,9 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
 
 inherit systemd
 
+DEPENDS += "openssl"
+
+RDEPENDS_${PN} += "bash"
 RPROVIDES_${PN} += "${PN}-systemd"
 RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
