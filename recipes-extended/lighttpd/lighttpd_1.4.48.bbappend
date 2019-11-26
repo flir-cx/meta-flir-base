@@ -1,3 +1,5 @@
+RDEPENDS_${PN} += "bash"
+
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
@@ -24,3 +26,4 @@ do_install_append() {
 		${D}${systemd_unitdir}/system/lighttpd.service
     install -m 0755 ${WORKDIR}/lighttpd_env_check.sh ${D}${sbindir}
 } 
+
