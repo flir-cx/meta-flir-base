@@ -1,0 +1,14 @@
+
+[Unit]
+Description=The Reliable, High Performance TCP/HTTP Load Balancer
+After=flirapp.service
+
+[Service]
+ExecStartPre=/bin/bash -c '/usr/sbin/haproxy_env_check.sh'
+ExecStartPre=/bin/bash -c '/usr/sbin/haproxy_frontend_config.sh'
+ExecStart=/usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -f /var/run/haproxy/haproxy_frontends.cfg
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
