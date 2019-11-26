@@ -19,6 +19,7 @@ SRC_URI += "file://0019-fixed-duplicate-config-define-warnings.patch"
 SRC_URI += "file://0020-ec201-init-fuelgauge-and-shutdown-camera-on-onoff-bu.patch"
 SRC_URI += "file://0021-add-boot-state-functionalty.patch"
 SRC_URI += "file://0022-Add-cmd-chargeapp.patch"
+SRC_URI += "file://0023-ec201-display-fix-for-slow-display-turn-on-move-slee.patch"
 
 
 
