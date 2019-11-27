@@ -21,6 +21,23 @@ TEST_SUITES = "ping ssh flir_test_valid_platform df connman builddate scp python
 
 DISTRO_SSH_DAEMON ?= "openssh"
 
+WEB_PACKAGES = " \
+    haproxy \
+    lighttpd \
+    lighttpd-module-alias \
+    lighttpd-module-cgi \
+    lighttpd-module-compress \
+    lighttpd-module-dynamicfile \
+    lighttpd-module-fastcgi \
+    lighttpd-module-proxy \
+    lighttpd-module-redirect \
+    lighttpd-module-rewrite \
+    php \
+    php-cgi \
+    php-cli \
+    php-opcache \
+"
+
 IMAGE_INSTALL = " \
     ${DISTRO_SSH_DAEMON} \
     aufsrootfs \
@@ -94,6 +111,7 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     umtp-responder \
+    ${WEB_PACKAGES} \
     videorender \
     wifi-test-suite \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
