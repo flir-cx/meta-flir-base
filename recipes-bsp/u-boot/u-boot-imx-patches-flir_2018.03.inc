@@ -1,5 +1,3 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-imx-2018.03:"
-
 SRC_URI += "file://0001-Support-for-FLIR-bblc.patch"
 SRC_URI += "file://0002-mx7ulp-should-have-support-for-bootaux-command.patch"
 SRC_URI += "file://0003-bblc-environment-boot-with-flir-emmc-layout-and-supp.patch"
