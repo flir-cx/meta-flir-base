@@ -22,5 +22,10 @@ fi
 
 VIDEORENDER_ARG="$VR_INPUT_DEVICES"
 
+# TODO: FIX ISSUE BELOW IN APPLICATION
+#
+# Add small sleep to let weston start up before launching videorender
+sleep 0.2
+
 echo "Executing: $VIDEORENDER $VIDEORENDER_ARG"
 exec $VIDEORENDER $VIDEORENDER_ARG
