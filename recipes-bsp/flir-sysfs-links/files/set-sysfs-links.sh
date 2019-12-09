@@ -23,6 +23,7 @@ lcd2dp_sink_caps_lnk=$lnk_base_dir/lcd2dp_sink_caps
 usbc_control_lnk=$lnk_base_dir/usbc_control
 usb2_control_lnk=$lnk_base_dir/usb2_control
 battery_lnk=$lnk_base_dir/battery
+pmic_lnk=$lnk_base_dir/pmic_charger
 tpleds_folder=$lnk_base_dir/tp-leds
 tpleds_detect_lnk=$lnk_base_dir/tp-leds/tp-leds
 tpleds_camera_lnk=$lnk_base_dir/tp-leds/tp-camera
@@ -61,6 +62,7 @@ set_paths () {
 	"$bblc"|"$ec201")
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		battery_path=/sys/class/power_supply/battery
+		pmic_path=/sys/class/power_supply/pf1550-charger
 		tpleds_camera_path=/sys/class/leds/tp-camera
 		tpleds_gallery_path=/sys/class/leds/tp-gallery
 		tpleds_settings_path=/sys/class/leds/tp-settings
@@ -83,6 +85,7 @@ create_links () {
 	create_link "$usb2_control_path" "$usb2_control_lnk"
 
 	create_link "$battery_path" "$battery_lnk"
+	create_link "$pmic_path" "$pmic_lnk"
 	
 	[ -n "$tpleds_camera_path" ] && \
 		mkdir -p $tpleds_folder
