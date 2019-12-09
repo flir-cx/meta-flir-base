@@ -67,6 +67,7 @@ SRC_URI_append = " \
     file://0070-Set-standby-state-of-camera-pins-also-when-not-strea.patch \
     file://0071-Add-boottime-measurements-on-imx7ulp-separate-config.patch \
     file://0072-mxc-mipi-dsi-sherlock-display-fix-for-slow-display-t.patch \
+    file://0073-Make-sure-that-also-dmabuf-v4l-buffers-are-freed-whe.patch \
     file://defconfig \
 "
 
