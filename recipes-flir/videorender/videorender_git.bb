@@ -13,7 +13,7 @@ SYSTEMD_SERVICE_${PN} = "${PN}.service"
 RDEPENDS_${PN} += "bash"
 
 #SRCREV = "${AUTOREV}"
-SRCREV = "a4026a7e3cbc13b723c9b000ab8d714125a188e8"
+SRCREV = "601603feb31255d9e07edc62dc680626cc44ef53"
 
 SRC_URI = "\
            git://bitbucketcommercial.flir.com:7999/im7/videorender.git;protocol=ssh;branch=master \
