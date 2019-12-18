@@ -69,8 +69,8 @@ SRC_URI_append = " \
     file://0072-mxc-mipi-dsi-sherlock-display-fix-for-slow-display-t.patch \
     file://0073-Make-sure-that-also-dmabuf-v4l-buffers-are-freed-whe.patch \
     file://0074-ov5640_v2.c-Enable-auto-exposure-for-5MP-mode.patch \
-    file://defconfig \
-"
+    file://0075-UVC-Bulk.patch \
+    file://defconfig" 
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
 
@@ -78,5 +78,3 @@ EXTRA_OEMAKE += "KCFLAGS=-Werror"
 # To enable building a rootfs without a kernel-image on, we have to remove the rdepend from kernel-base.
 # Images that need a kernel-image have to add it explicitly.
 RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
-
-
