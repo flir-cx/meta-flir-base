@@ -7,7 +7,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 SRC_URI_append += "\
 	file://0001-support-flir-live-background.patch \
 	file://0002-Add-implementation-of-read_pixels-to-g2d_renderer.patch \
-"
+	file://0003-Add-streaming-functionality-to-Weston.patch"
 
 FILES_${PN} += " ${bindir}/weston-screenshooter"
 

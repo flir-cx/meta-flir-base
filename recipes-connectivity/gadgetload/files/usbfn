@@ -2,44 +2,44 @@
 #
 # Called from appcore when USB MSD function driver is changed
 #
-#
 
 usage()
 {
   echo "Usage: usbfn [<usbmode>]"
-#  echo "UVC     - video function driver"
-#  echo "UVC_MSD - combined mass storage and video function driver"
   echo "RNDIS   - ethernet function driver"
   echo "MTP     - media transfer function driver"
   echo "RNDIS_MTP     - combined media transfer and ethernet driver"
+  echo "UVC     - video function driver"
   echo
   echo "--help  - show this text"
-
 }
 
 if [ $# -eq 0 ]; then
-    if [ ! -e /etc/usbmode ]; then
-        USBMODE="MTP_RNDIS"
-    else
-        USBMODE="$(cat /etc/usbmode 2>/dev/null)"
-        echo $USBMODE
+    if [ ! -e /etc/usbmode ]
+    then
+	usage
+	exit 0
     fi
-    exit
-fi
-if [ "$1" == "--help" ]; then
-    usage
+    echo "$(cat /etc/usbmode 2>/dev/null)"
     exit
 fi
 
+if [ "$1" == "--help" ]; then
+    usage
+    exit 0
+fi
+
 USBMODE=$1
-logger "USB function driver changed to ${USBMODE}"
 if [ "${USBMODE}" != "RNDIS" ] &&
    [ "${USBMODE}" != "MTP" ] &&
-   [ "${USBMODE}" != "RNDIS_MTP" ]; then
+   [ "${USBMODE}" != "UVC" ] &&
+   [ "${USBMODE}" != "RNDIS_MTP" ]
+then
     echo "Unknown USB mode ${USBMODE}"
     usage
-    exit
+    exit 1
 fi
+logger "USB function driver changed to ${USBMODE}"
 
 if [ -d "/sys/kernel/config/usb_gadget/g1" ]; then
     CURRUSBMODE="$(cat /etc/usbmode  2>/dev/null)"
@@ -64,12 +64,15 @@ logger "USB function driver loaded is ${USBFNDRV}"
 USBCMDRV="$(lsmod | grep -o '^usb_[a-z_]*')"
 logger "USB composite driver loaded is ${USBCMDRV}"
 
-
 gadget.sh unload
+
 #indicate USB FN mode change
 touch /var/lock/ufnchange
+
 logger "New USB Composite driver is $usbmode"
+
 #load desired USB function driver
 gadget.sh load
 sleep 2
+
 rm /var/lock/ufnchange
