@@ -2,9 +2,11 @@
 
 case $1 in
     pre)
+        systemctl stop btload
         modprobe -r qca9377
     ;;
     post)
         modprobe qca9377
+        systemctl start btload
     ;;
 esac
