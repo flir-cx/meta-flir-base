@@ -10,7 +10,7 @@ HOMEPAGE = "https://github.com/viveris/uMTP-Responder"
 PR = "r1"
 
 SRC_URI = "git://github.com/viveris/uMTP-Responder.git;protocol=https"
-SRCREV = "78d244b30dd4c2a8f04a86a92f9ec51cf08756e6"
+SRCREV = "761f7205e63444d88d218b14516217733dcfba44"
 SRC_URI[md5sum] = "6316eea31615c6261fd4053aeb405961"
 SRC_URI[sha256sum] = "6d5bb2fb217bb41268e3c20063b7307acacac66a3d31a9b2c4e777e3b99c77d8"
 
