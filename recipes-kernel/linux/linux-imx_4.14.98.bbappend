@@ -68,6 +68,7 @@ SRC_URI_append = " \
     file://0071-Add-boottime-measurements-on-imx7ulp-separate-config.patch \
     file://0072-mxc-mipi-dsi-sherlock-display-fix-for-slow-display-t.patch \
     file://0073-Make-sure-that-also-dmabuf-v4l-buffers-are-freed-whe.patch \
+    file://0074-ov5640_v2.c-Enable-auto-exposure-for-5MP-mode.patch \
     file://defconfig \
 "
 
