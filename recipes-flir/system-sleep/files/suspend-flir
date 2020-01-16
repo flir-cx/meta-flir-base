@@ -1,0 +1,15 @@
+#!/bin/sh
+export LD_LIBRARY_PATH=/FLIR/usr/lib/
+timeout=10000
+case $1 in
+    pre)
+	/FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareStandby true
+	# Sleep added to let facets delayed standby have time to run
+	sleep 0.5
+    ;;
+    post)
+	# Added sleep for no communication with lepton until it has time to wake up
+	sleep 1.0
+	/FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareResume true
+    ;;
+esac
