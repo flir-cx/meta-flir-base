@@ -47,12 +47,13 @@ IMAGE_INSTALL = " \
     brcm-patchram \
     btload \
     chargelogo \
+    cjson \
     connman \
     connman-client \
     crda \
     dosfstools \
     e2fsprogs \
-    exfat-utils \ 
+    exfat-utils \
     firmware-qca9377 \
     flir-sysfs-links-service \
     flirapp-service \
@@ -133,5 +134,3 @@ ROOTFS_POSTPROCESS_COMMAND += "set_root_passwd;"
 # done in "IMAGE_PREPROCESS_COMMAND"
 # poky/meta/lib/oe/image.py will remove all links in image creation
 IMAGE_POSTPROCESS_COMMAND += "link_licenses_info ; "
-
-
