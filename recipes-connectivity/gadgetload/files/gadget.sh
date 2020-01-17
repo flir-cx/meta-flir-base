@@ -5,6 +5,10 @@ export PATH=$PATH:/usr/bin:/bin:/sbin:/FLIR/usr/bin
 
 udc_device=`ls /sys/class/udc/ | head -n1`
 
+usbmode_mtp=false
+usbmode_rndis=false
+usbmode_uvc=false
+
 # Device info
 product="FLIR Camera" # TODO: Populate with product name
 manufacturer="FLIR Systems"
@@ -13,6 +17,7 @@ product_id=""
 product_id_rndis="0x1002"
 product_id_mtp="0x100A"
 product_id_rndis_mtp="0x100C"
+product_id_uvc_mtp="0x100B"
 product_id_uvc="0x1004"
 
 usbmode="RNDIS_MTP"
@@ -94,15 +99,39 @@ get_mode(){
 		usbmode=`cat /etc/usbmode`
 	fi
 
+	echo "validate usbmode"
+
 	# Validate USB mode.
 	if [ ! $usbmode = "MTP" ] &&
-		   [ ! $usbmode = "RNDIS" ] &&
-		   [ ! $usbmode = "RNDIS_MTP" ] &&
-		   [ ! $usbmode = "UVC" ]
+			[ ! $usbmode = "RNDIS" ] &&
+			[ ! $usbmode = "UVC" ] &&
+			[ ! $usbmode = "RNDIS_MTP" ] &&
+			[ ! $usbmode = "RNDIS_UVC" ] &&
+			[ ! $usbmode = "UVC_MTP" ] &&
+			[ ! $usbmode = "UVC_RNDIS_MTP" ]
 	then
 		printf "Usb mode \"$usbmode\" is not supported, setting usbmode to default \"$usbmode_default\"\n"
 		usbmode="${usbmode_default}"
 	fi
+
+	if [[ $usbmode == *"MTP"* ]]
+	then
+		echo "	MTP usbmode set"
+		usbmode_mtp=true
+	fi
+
+	if [[ $usbmode == *"UVC"* ]]
+	then
+		echo "	UVC usbmode set"
+		usbmode_uvc=true
+	fi
+
+	if [[ $usbmode == *"RNDIS"* ]]
+	then
+		echo "	RNDIS usbmode set"
+		usbmode_rndis=true
+	fi
+
 }
 
 config_load() {
@@ -119,10 +148,14 @@ config_load() {
 	cd "$gadget_path"
 
 	case "$usbmode" in
-	RNDIS) product_id="$product_id_rndis" ;;
-	MTP) product_id="$product_id_mtp" ;;
-	UVC) product_id="$product_id_uvc" ;;
-	*) product_id="$product_id_rndis_mtp" ;;
+	RNDIS) product_id="$product_id_rndis"; config_string="RNIS" ;;
+	MTP) product_id="$product_id_mtp"; config_string="MTP"  ;;
+	UVC) product_id="$product_id_uvc"; config_string="UVC" ;;
+	UVC_MTP) product_id="$product_id_uvc_mtp"; config_string="CDC UVC+MTP" ;;
+	UVC_RNDIS) product_id="$product_id_uvc"; config_string="CDC UVC+RNDIS" ;;
+	RNDIS_MTP) product_id="$product_id_rndis_mtp"; config_string="CDC RNDIS+MTP" ;;
+	UVC_RNDIS_MTP) product_id="$product_id_uvc"; config_string="CDC UVC+RNDIS+MTP" ;;
+	*) product_id="$product_id_rndis"; config_string="RNDIS" ;;
 	esac
 
 	# Device Descriptor setup.
@@ -140,67 +173,17 @@ config_load() {
 
 	# Configuration Descriptor, config 1.
 	mkdir -p configs/c.1
+	
 	echo "${usb_attr}"	    > configs/c.1/bmAttributes
 	echo "${usb_max_power}" > configs/c.1/MaxPower
+	
 	mkdir -p configs/c.1/strings/0x409
+	echo "$config_string" > configs/c.1/strings/0x409/configuration
 
-	if [ $usbmode = "RNDIS_MTP" ] || [ $usbmode = "RNDIS" ] ; then
-		echo "RNDIS" > configs/c.1/strings/0x409/configuration
-		# This is together with the ms additions in the rndis function
-		# is to make windows detect the RNDIS device and choose the 6.0
-		# RNDIS driver, even if FLIR Device Drivers are not installed.
-		echo "1"		    > os_desc/use
-		echo "${ms_vendor_code}"    > os_desc/b_vendor_code
-		echo "${ms_qw_sign}"	    > os_desc/qw_sign
-
-		# Create the RNDIS function
-		# the first digit in the first number of the MAC address is important,
-		# the two first bits of that digit, b10 (d2) means it is reserved to
-		# locally assigned unicast adresses to avoid clashes with existing
-		# "external" MAC adresses
-		mac_base=`get_base_mac_addr`
-		mac_dev="02${mac_base}"
-		mac_host="12${mac_base}"
-
-		mkdir functions/rndis.usb0
-		echo "${mac_dev}"	    > functions/rndis.usb0/dev_addr
-		echo "${mac_host}"	    > functions/rndis.usb0/host_addr
-		echo "${ms_compat_id}"	    > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
-		echo "${ms_subcompat_id}"   > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
-
-		# Link everything up and bind the USB device
-		ln -s functions/rndis.usb0 configs/c.1
-	fi
-
-	if [ $usbmode = "RNDIS_MTP" ] || [ $usbmode = "MTP" ] ; then
-		# create and link mtp
-		if mkdir -p functions/ffs.umtp ; then
-			ln -s functions/ffs.umtp configs/c.1
-
-			# Mount and start MTP
-			mkdir -p /dev/ffs-umtp && mount -t functionfs umtp /dev/ffs-umtp
-			if [ $? != 0 ]
-			then
-				printf "config_load: Failed to mount /dev/ffs-umtp\n"
-				exit 1
-			fi
-
-			umtprd &
-			if [ $? != 0 ]
-			then
-				printf "config_load: Failed to start umtprd\n"
-				exit 1
-			fi
-		else
-			echo "config_load: Unable to mount MTP"
-		fi
-	fi
-
-	if [ $usbmode = "UVC" ] ; then
+	if [ "$usbmode_uvc" = true ] ; then
 		# Control endpoint packet size is 64 bytes.
 		echo 0x40 > bMaxPacketSize0
 
-		echo "UVC" > configs/c.1/strings/0x409/configuration
 		mkdir functions/uvc.usb0
 		mkdir -p functions/uvc.usb0/streaming/uncompressed/yuv/480p
 
@@ -241,11 +224,69 @@ EOF
 		ln -s functions/uvc.usb0 configs/c.1
 	fi
 
+	if [ "$usbmode_rndis" = true ] ; then
+		# This is together with the ms additions in the rndis function
+		# is to make windows detect the RNDIS device and choose the 6.0
+		# RNDIS driver, even if FLIR Device Drivers are not installed.
+		echo "1"		    > os_desc/use
+		echo "${ms_vendor_code}"    > os_desc/b_vendor_code
+		echo "${ms_qw_sign}"	    > os_desc/qw_sign
+
+		# Create the RNDIS function
+		# the first digit in the first number of the MAC address is important,
+		# the two first bits of that digit, b10 (d2) means it is reserved to
+		# locally assigned unicast adresses to avoid clashes with existing
+		# "external" MAC adresses
+		mac_base=`get_base_mac_addr`
+		mac_dev="02${mac_base}"
+		mac_host="12${mac_base}"
+
+		mkdir functions/rndis.usb0
+		echo "${mac_dev}"	    > functions/rndis.usb0/dev_addr
+		echo "${mac_host}"	    > functions/rndis.usb0/host_addr
+		echo "${ms_compat_id}"	    > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
+		echo "${ms_subcompat_id}"   > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
+
+		# Link everything up and bind the USB device
+		ln -s functions/rndis.usb0 configs/c.1
+	fi
+
+	if [ "$usbmode_mtp" = true ] ; then
+		# create and link mtp
+		if mkdir -p functions/ffs.umtp ; then
+			ln -s functions/ffs.umtp configs/c.1
+
+			# Mount and start MTP
+			mkdir -p /dev/ffs-umtp && mount -t functionfs umtp /dev/ffs-umtp
+			if [ $? != 0 ]
+			then
+				printf "config_load: Failed to mount /dev/ffs-umtp\n"
+				exit 1
+			fi
+
+			umtprd &
+			if [ $? != 0 ]
+			then
+				printf "config_load: Failed to start umtprd\n"
+				exit 1
+			fi
+		else
+			echo "config_load: Unable to mount MTP"
+		fi
+	fi
+
+	enable_gadget
+
+	echo "Loaded: Done."
+}
+
+enable_gadget() {
+	echo "enable gadget"
 	ln -s configs/c.1 os_desc
 	sleep 1
 	echo "${udc_device}" > UDC
 
-	if [ $usbmode = "RNDIS_MTP" ] || [ $usbmode = "RNDIS" ] ; then
+	if [ "$usbmode_rndis" = true ] ; then
 		# Set ip adress to default adress
 		ifconfig usb0 `get_default_usb_ip_addr`
 
@@ -253,15 +294,10 @@ EOF
 		killall -USR1 fis 2>/dev/null
 	fi
 
-	if [ $usbmode = "UVC" ] ; then
-		rset -t 1000 .rtp.uvc.enable true 2>/dev/null
-		if [ $? != 0 ]
-		then
-			printf "config_load: Failed setting .rtp.uvc.enable to true\n"
-		fi
+	if [ "$usbmode_uvc" = true ] && [ "$(pidof videoserver)" ]; then
+		#signal to videoserver to enable uvc stream
+		killall -USR1 videoserver 2>/dev/null
 	fi
-
-	echo "Loaded: Done."
 }
 
 remove_if_exists() {
@@ -276,12 +312,9 @@ config_unload() {
 		exit 0 #This is not a failure.
 	fi
 
-	# Close handle to /dev/video2.
-	rset -t 1000 .rtp.uvc.enable false 2>/dev/null
-	if [ $? != 0 ]
-	then
-		printf "config_unload: Failed setting .rtp.uvc.enable to false\n"
-	fi
+	# Signal to videoserver to disable stream
+	killall -USR2 videoserver  2>/dev/null
+	sleep 1 # allow stream to disable
 
 	# unbind usb device
 	# echo "" > ${gadget_path}/UDC 2>&1 /dev/null
@@ -299,14 +332,18 @@ config_unload() {
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv/480p
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv
+	
 	remove_if_exists ${gadget_path}/configs/c.1/rndis.usb0
 	remove_if_exists ${gadget_path}/configs/c.1/ffs.umtp
 	remove_if_exists ${gadget_path}/configs/c.1/uvc.usb0
+	
 	remove_if_exists ${gadget_path}/functions/rndis.usb0
 	remove_if_exists ${gadget_path}/functions/ffs.umtp
 	remove_if_exists ${gadget_path}/functions/uvc.usb0
+	
 	remove_if_exists ${gadget_path}/configs/c.1/strings/0x409
 	remove_if_exists ${gadget_path}/configs/c.1
+	
 	remove_if_exists ${gadget_path}/strings/0x409
 	remove_if_exists ${gadget_path}
 
@@ -330,5 +367,6 @@ config_unload() {
 case $1 in
 load) config_load ;;
 unload) config_unload ;;
+reload) config_unload && config_load ;;
 *) usage ;;
 esac

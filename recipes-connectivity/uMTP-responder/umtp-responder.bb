@@ -14,7 +14,9 @@ SRCREV = "761f7205e63444d88d218b14516217733dcfba44"
 SRC_URI[md5sum] = "6316eea31615c6261fd4053aeb405961"
 SRC_URI[sha256sum] = "6d5bb2fb217bb41268e3c20063b7307acacac66a3d31a9b2c4e777e3b99c77d8"
 
-S="${WORKDIR}/git"
+SRC_URI += "file://umtprd.conf"
+
+S = "${WORKDIR}/git"
 
 do_compile(){
     make
@@ -23,4 +25,7 @@ do_compile(){
 do_install() {
     install -d ${D}/sbin
     install -m 0744 ${S}/umtprd ${D}/sbin/umtprd
+    install -d ${D}/etc/
+    install -d ${D}/etc/umtprd
+    install -m 0644 ${S}/../umtprd.conf ${D}/etc/umtprd/umtprd.conf
 }

@@ -6,10 +6,12 @@
 usage()
 {
   echo "Usage: usbfn [<usbmode>]"
-  echo "RNDIS   - ethernet function driver"
-  echo "MTP     - media transfer function driver"
-  echo "RNDIS_MTP     - combined media transfer and ethernet driver"
-  echo "UVC     - video function driver"
+  echo "RNDIS           - ethernet function driver"
+  echo "MTP             - media transfer function driver"
+  echo "UVC             - video function driver"
+  echo "RNDIS_MTP       - combined media transfer and ethernet driver"
+  echo "UVC_MTP         - combined video function and media transfer driver"
+  echo "RNDIS_UVC       - combined video function and ethernet driver"
   echo
   echo "--help  - show this text"
 }
@@ -33,7 +35,9 @@ USBMODE=$1
 if [ "${USBMODE}" != "RNDIS" ] &&
    [ "${USBMODE}" != "MTP" ] &&
    [ "${USBMODE}" != "UVC" ] &&
-   [ "${USBMODE}" != "RNDIS_MTP" ]
+   [ "${USBMODE}" != "RNDIS_MTP" ] &&
+   [ "${USBMODE}" != "UVC_MTP" ] &&
+   [ "${USBMODE}" != "RNDIS_UVC" ]
 then
     echo "Unknown USB mode ${USBMODE}"
     usage
