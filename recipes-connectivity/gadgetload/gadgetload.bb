@@ -16,7 +16,6 @@ SYSTEMD_SERVICE_${PN} = "gadget.service"
 SRC_URI += "file://gadget.sh"
 SRC_URI += "file://gadget.service"
 SRC_URI += "file://usbfn"
-SRC_URI += "file://umtprd.conf"
 
 S = "${WORKDIR}/"
 
@@ -26,7 +25,4 @@ do_install_append() {
     install -d ${D}/sbin/
     install -m 0744 ${S}/gadget.sh ${D}/sbin/gadget.sh
     install -m 0744 ${S}/usbfn ${D}/sbin/usbfn
-    install -d ${D}/etc/
-    install -d ${D}/etc/umtprd
-    install -m 0644 ${S}/umtprd.conf ${D}/etc/umtprd/umtprd.conf
 }
