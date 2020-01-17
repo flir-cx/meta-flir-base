@@ -1,0 +1,26 @@
+From 9eb964f858eb85cf52183a09e69cda89a966d366 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Wed, 22 Jan 2020 14:03:47 +0100
+Subject: [PATCH] ec201 use trigger to check recovery boot - prodtest version
+
+prodtest version ONLY adds to u-boot environment
+---
+ include/configs/ec201.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/configs/ec201.h b/include/configs/ec201.h
+index 729a822..e25560e 100644
+--- a/include/configs/ec201.h
++++ b/include/configs/ec201.h
+@@ -149,7 +149,7 @@
+ #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
+ 
+ #define CONFIG_BOOTCOMMAND \
+-	"if recoverykey && kbd_secret; then " \
++	"if recoverytrigger; then " \
+ 		"run recoveryboot;" \
+ 	"else " \
+ 		"run mmcbootflir;" \
+-- 
+1.9.1
+

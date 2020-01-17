@@ -1,4 +1,4 @@
-From 89352c7b7063d623d3db60377575114f69277ba3 Mon Sep 17 00:00:00 2001
+From c1fea4635e041d2655080309f72b1c59b48d775f Mon Sep 17 00:00:00 2001
 From: Felix Hammarstrand <felix.hammarstrand@flir.se>
 Date: Thu, 5 Sep 2019 13:10:08 +0200
 Subject: [PATCH] add hx8394 mipi display
@@ -134,7 +134,7 @@ index e04e4f2..a71a553 100644
  # CONFIG_USB_GADGET=y
  # CONFIG_USB_GADGET_DOWNLOAD=y
 diff --git a/drivers/video/Makefile b/drivers/video/Makefile
-index b9e9efd..edaf376 100644
+index d0d484c..dcc38d5 100644
 --- a/drivers/video/Makefile
 +++ b/drivers/video/Makefile
 @@ -67,6 +67,7 @@ obj-$(CONFIG_IMX_NORTHWEST_MIPI_DSI) += mipi_dsi_northwest.o
@@ -143,8 +143,8 @@ index b9e9efd..edaf376 100644
  obj-$(CONFIG_HX8363) += hx8363_wvga.o
 +obj-$(CONFIG_HX8394) += hx8394_vga.o
  obj-$(CONFIG_RM67191) += rm67191.o
+ obj-$(CONFIG_RM68200) += rm68200.o
  
- obj-y += bridge/
 diff --git a/drivers/video/hx8394_vga.c b/drivers/video/hx8394_vga.c
 new file mode 100644
 index 0000000..5a3c913
@@ -269,3 +269,6 @@ index e1af049..aa20f59 100644
  /* Override imx standard behavior when loading u-boot from usb */
  #ifdef is_boot_from_usb
  #undef is_boot_from_usb
+-- 
+1.9.1
+

@@ -1,0 +1,317 @@
+From c934227ece01fa4e143d992ddebdac33fb20652c Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Wed, 22 Jan 2020 14:03:47 +0100
+Subject: [PATCH] ec201 use trigger to check recovery boot.
+
+---
+ arch/arm/dts/imx7ulp-ec201.dts         |  12 +-
+ board/flir/ec201/Makefile              |   1 +
+ board/flir/ec201/cmd_recoverytrigger.c | 242 +++++++++++++++++++++++++++++++++
+ include/configs/ec201.h                |   2 +-
+ 4 files changed, 246 insertions(+), 11 deletions(-)
+ create mode 100644 board/flir/ec201/cmd_recoverytrigger.c
+
+diff --git a/arch/arm/dts/imx7ulp-ec201.dts b/arch/arm/dts/imx7ulp-ec201.dts
+index 095ae08..2375305 100644
+--- a/arch/arm/dts/imx7ulp-ec201.dts
++++ b/arch/arm/dts/imx7ulp-ec201.dts
+@@ -32,14 +32,6 @@
+ 
+ &iomuxc1 {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_hog_1>;
+-
+-	pinctrl_hog_1: hoggrp-1 {
+-		fsl,pins = <
+-			IMX7ULP_PAD_PTC0__PTC0 0x30100  //SHUTTER_IN
+-			IMX7ULP_PAD_PTC1__PTC1 0x30100  //SHUTTER_OUT
+-		>;
+-	};
+ 
+ 	pinctrl_usdhc0: usdhc0grp {
+ 		fsl,pins = <
+@@ -85,8 +77,8 @@
+ 
+ 	pinctrl_lpi2c7: lpi2c7grp {
+ 		fsl,pins = <
+-			IMX7ULP_PAD_PTC12__LPI2C7_SCL  0x27
+-			IMX7ULP_PAD_PTC13__LPI2C7_SDA  0x27
++			IMX7ULP_PAD_PTE12__LPI2C7_SCL   0x27
++			IMX7ULP_PAD_PTE13__LPI2C7_SDA   0x27
+ 		>;
+ 	};
+ 
+diff --git a/board/flir/ec201/Makefile b/board/flir/ec201/Makefile
+index 3a4daf1..47d98dc 100644
+--- a/board/flir/ec201/Makefile
++++ b/board/flir/ec201/Makefile
+@@ -10,3 +10,4 @@ obj-y  += ec201.o
+ obj-y  += bootstate.o
+ obj-y  += chargeapp.o
+ obj-y  += pf1550.o
++obj-y  += cmd_recoverytrigger.o
+diff --git a/board/flir/ec201/cmd_recoverytrigger.c b/board/flir/ec201/cmd_recoverytrigger.c
+new file mode 100644
+index 0000000..8d6cd6d
+--- /dev/null
++++ b/board/flir/ec201/cmd_recoverytrigger.c
+@@ -0,0 +1,242 @@
++/* * Copyright (C) 2019 FLIR Systems.
++ *
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of
++ * the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/*
++ * Recovery sequence
++ * 
++ *  1. Hold trigger and power button while booting, release when screen lights up.
++ *  2. Press trigger button 5 times
++ *  3. Wait until 2 stars appears on screen
++ *  4. Press trigger button 6 times
++ *  5. Camera goes to recovery.
++ * 
++ */
++
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/arch/mx7ulp-pins.h>
++#include <asm/arch/iomux.h>
++#include <asm/gpio.h>
++#include <command.h>
++#include <stdio_dev.h>
++#include <dm.h>
++#include <i2c.h>
++#include <asm/arch/pcc.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define CSI "\x1b["
++
++#define TRIG_GPIO   IMX_GPIO_NR(3, 12)
++
++#define BTN_GPIO_PAD_CTRL	(PAD_CTL_IBE_ENABLE | PAD_CTL_PUS_UP)
++
++#define TRIG_ON 0
++#define TRIG_OFF 1
++#define POLL_TIME 10
++
++#define OK 0
++#define FAIL 1
++
++static iomux_cfg_t const btn_trig_pad[] = {
++	MX7ULP_PAD_PTC12__PTC12 | MUX_PAD_CTRL(BTN_GPIO_PAD_CTRL),
++};
++
++void print_display(char *s)
++{
++	static struct stdio_dev *dev = NULL;
++	dev = stdio_get_by_name("vga");
++	if(!dev)
++		return;
++
++	dev->puts(dev,s);
++}
++
++void print_recovery(char *s)
++{
++    char buf[64];
++	int y = video_get_screen_columns() /2-(strlen(s)/2);
++	int x = video_get_screen_rows() /2+4;
++
++	print_display(CSI "l");
++	snprintf(buf,64,CSI "%d;%dH",x,y);
++	print_display(buf);
++	
++	snprintf(buf,64, "%s",s);
++	print_display(buf);
++}
++
++// timeout in ms
++int trigger_wait_until(int btn_state, int mtimeout)
++{
++    int t = 0;
++    int ret = FAIL;
++
++    while(gpio_get_value(TRIG_GPIO) != btn_state && t < mtimeout)
++    {
++        mdelay(POLL_TIME);
++        t += POLL_TIME;
++    }
++
++    if(t < mtimeout)
++    {
++        ret = OK;
++    }
++    else
++        ret = FAIL;
++
++    return ret;
++}
++
++int get_press(int mtimeout)
++{
++    int ret = FAIL;
++    ret = trigger_wait_until(TRIG_ON, mtimeout);
++
++    if(ret == OK)
++        ret = trigger_wait_until(TRIG_OFF, mtimeout);
++
++    return ret;
++}
++
++int seq(int no)
++{
++    if(get_press(2000) == OK)
++    {
++        for(int i=0; i<no-1;i++)
++        {
++            if(get_press(700) != OK)
++               return FAIL;
++        }
++    }
++    else
++        return FAIL;
++
++    return OK;
++}
++
++int get_serial(char *buf)
++{
++    struct udevice *dev;
++    int ret = i2c_get_chip_for_busnum(6, 0x57, 1, &dev); //get eprom
++    if (ret) {
++		printf("Can not find eeprom: %d\n", ret);
++		return ret;
++	}
++
++    ret = dm_i2c_read(dev, 0x24, buf, 10);
++
++    return ret;
++}
++
++int check_recovery_sequence(void)
++{
++    int ret = -1;
++
++    //turn_on_display();
++    
++    print_recovery(" *");
++    //wait for 0
++    ret = trigger_wait_until(TRIG_OFF, 3000);
++
++    if(ret == OK)
++    {
++        // sequence 1
++        printf("sequence 1 start \n");
++        
++        if(seq(5) == FAIL)
++            return FAIL;
++
++        if(trigger_wait_until(TRIG_ON, 1000) == OK)
++            return FAIL; // dont press again.
++
++        printf("sequence 1 ok\n");
++
++        // display dot
++        print_recovery("**");
++        // sequence 2
++        printf("sequence 2 start \n");
++        
++        if(seq(6) == FAIL)
++            return FAIL;
++
++        printf("sequence 2 ok\n");
++
++        if(trigger_wait_until(TRIG_ON, 2000) == OK)
++            return FAIL; // dont press again.
++
++        char buf[24];
++        buf[0] = '\0';
++        char buf2[24];
++        get_serial(buf);
++        
++        if(buf[0] == 0xff || strlen(buf) == 0)
++            print_recovery("Recovery *");//No Serial
++        else
++        {
++            snprintf(buf2, 19, "Recovery %s", buf);
++            print_recovery(buf2);
++        }
++            
++        
++    }
++
++    printf("get_recovery_sequence: %d\n", ret);
++    return ret;
++}
++
++int do_recoverytrigger(void)
++{
++    int trig = 0;
++    int res = FAIL;
++
++    printf("Check recovery\n");
++
++    pcc_clock_enable(PER_CLK_PCTLC, true);
++
++    mx7ulp_iomux_setup_multiple_pads(btn_trig_pad, ARRAY_SIZE(btn_trig_pad));
++
++    gpio_request(TRIG_GPIO, "trig_gpio");
++
++	trig = gpio_direction_input(TRIG_GPIO);
++
++    if(trig == -1)
++    {
++        return FAIL;
++    }
++
++	trig = gpio_get_value(TRIG_GPIO);
++    
++    if(trig == 0)
++    {
++        // Check recovery sequence
++        printf("Trigger on, check recovery.\n");
++        res = check_recovery_sequence();
++
++        if(res == FAIL)
++        {
++            print_recovery("                      "); //clear screen
++        }
++    }
++    
++    return res;
++}
++
++U_BOOT_CMD(
++    recoverytrigger,	2,	1,	do_recoverytrigger,
++    "do_recoverytrigger",
++    "do_recoverytrigger"
++);
+\ No newline at end of file
+diff --git a/include/configs/ec201.h b/include/configs/ec201.h
+index 940e5a0..2ec20e9 100644
+--- a/include/configs/ec201.h
++++ b/include/configs/ec201.h
+@@ -163,7 +163,7 @@
+ #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
+ 
+ #define CONFIG_BOOTCOMMAND \
+-	"if recoverykey && kbd_secret; then " \
++	"if recoverytrigger; then " \
+ 		"run recoveryboot;" \
+ 	"else " \
+ 		"run mmcbootflir;" \
+-- 
+2.7.4
+

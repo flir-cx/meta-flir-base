@@ -19,6 +19,9 @@ SRC_URI += "file://0021-add-boot-state-functionalty.patch"
 SRC_URI += "file://0022-Add-cmd-chargeapp.patch"
 SRC_URI += "file://0023-ec201-display-fix-for-slow-display-turn-on-move-slee.patch"
 SRC_URI += "file://0024-ec201-sett-battery-charge-current-based-on-usb-charg.patch"
+SRC_URI += "file://0025-ec201-use-trigger-to-check-recovery-boot.patch"
+
+
 
 
 
