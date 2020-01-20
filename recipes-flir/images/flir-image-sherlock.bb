@@ -77,7 +77,7 @@ IMAGE_INSTALL = " \
     kernel-modules \
     kernel-module-qca9377 \
     kmod \
-    lepton-m4-bin \
+    lepton-m4 \
     libevdev \
     libiio \
     mmc-utils \

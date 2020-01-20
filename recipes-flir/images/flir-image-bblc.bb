@@ -58,7 +58,7 @@ IMAGE_INSTALL = " \
     kernel-image \
     kernel-modules \
     kmod \
-    lepton-m4-bin \
+    lepton-m4 \
     libevdev \
     mmc-utils \
     mtd-utils \
