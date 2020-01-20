@@ -70,6 +70,9 @@ SRC_URI_append = " \
     file://0073-Make-sure-that-also-dmabuf-v4l-buffers-are-freed-whe.patch \
     file://0074-ov5640_v2.c-Enable-auto-exposure-for-5MP-mode.patch \
     file://0075-UVC-Bulk.patch \
+    file://0076-ec201-dtb-enable-usb-phy-charger-detection-set-pmic-.patch\
+    file://0077-usb-phy-mxs-fix-usb-charge-detection.patch \
+    file://0078-power-supply-pmic-pf1550-set-battery-charge-current-.patch \            
     file://defconfig" 
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
