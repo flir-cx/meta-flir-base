@@ -28,10 +28,10 @@ device_class="0xEF"
 device_sub_class="0x2"
 device_protocol="0x1"
 
-# USB attributes.
-usb_attr="0xC0"		# Self-powered device
-usb_max_power="0xF9"	# 500 mA, 2mA per increment
-usb_version="0x0200"	# USB2
+# USB attributes
+usb_attr="0xC0"         # Self-powered device
+usb_max_power="500"     # 500 mA
+usb_version="0x0200"    # USB2
 
 gadget_name="g1"
 gadget_root="/sys/kernel/config/usb_gadget"
