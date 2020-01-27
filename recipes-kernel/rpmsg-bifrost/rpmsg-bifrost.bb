@@ -12,7 +12,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 inherit module
 
-SRCREV = "${AUTOREV}"
+SRCREV = "d3b9be64a2a93c3a56fed12b6c039fc4f24cf5ef"
 SRC_URI = "git://bitbucketcommercial.flir.com/scm/im7/flirdrv-rpmsg-bifrost.git;protocol=https"
 
 EXTRA_OEMAKE += "KERNELDIR=${STAGING_KERNEL_DIR} -Werror"
