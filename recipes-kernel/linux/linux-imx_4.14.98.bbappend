@@ -72,7 +72,8 @@ SRC_URI_append = " \
     file://0075-UVC-Bulk.patch \
     file://0076-ec201-dtb-enable-usb-phy-charger-detection-set-pmic-.patch\
     file://0077-usb-phy-mxs-fix-usb-charge-detection.patch \
-    file://0078-power-supply-pmic-pf1550-set-battery-charge-current-.patch \            
+    file://0078-power-supply-pmic-pf1550-set-battery-charge-current-.patch \
+    file://0079-imx7ulp-ec201.dtsi-Set-backlight-PWM-period-to-1-ms-.patch \
     file://defconfig" 
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"

@@ -1,0 +1,26 @@
+From 6569ce6f71034e5b5c110fabca99aa255672accf Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Tue, 28 Jan 2020 15:44:05 +0100
+Subject: [PATCH] imx7ulp-ec201.dtsi: Set backlight PWM period to 1 ms (1kHz)
+
+Previous setting (50 us -> 20KHz) resulted in problems with setting 10% duty cycle (5 us pulse). According to data sheet the shortest pulse reliably supported is 50 us. Now 10% duty cycle should result in pulse of 100 us.
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 052dc568042c..d90c7e47a0ca 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -23,7 +23,7 @@
+ 
+ 	backlight_lcd {
+ 		compatible = "pwm-backlight";
+-		pwms = <&pwm0 5 50000>;
++		pwms = <&pwm0 5 1000000>;
+ 		brightness-levels = <0 10 20 30 40 50 60 70 80 90 100>;
+ 		default-brightness-level = <7>;
+ 		status = "okay";
+-- 
+2.17.1
+
