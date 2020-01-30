@@ -53,6 +53,7 @@ IMAGE_INSTALL = " \
     connman \
     connman-client \
     crda \
+    data-collection-service \
     dosfstools \
     e2fsprogs \
     exfat-utils \
@@ -116,7 +117,7 @@ IMAGE_INSTALL = " \
     udev-extraconf \
     umtp-responder \
     ${WEB_PACKAGES} \
-    videorender \
+    videorender-service \
     wifi-test-suite \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \

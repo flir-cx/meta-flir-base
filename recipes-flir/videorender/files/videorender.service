@@ -4,7 +4,8 @@ After=weston.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/videorender.sh
+ExecStart=/FLIR/usr/bin/videorender.sh
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 
 [Install]
 WantedBy=multi-user.target

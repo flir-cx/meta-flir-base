@@ -1,0 +1,11 @@
+[Unit]
+Description=FLIR Data Collection Service
+
+[Service]
+ExecStartPre=-/bin/mkdir -p /FLIR/system/data-collection/minidumps
+ExecStartPre=-/bin/mkdir -p /FLIR/system/data-collection/statistics
+ExecStart=/FLIR/usr/bin/data-collection /FLIR/usr/etc/data-collection.conf
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
+
+[Install]
+WantedBy=multi-user.target
