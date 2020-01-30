@@ -1,0 +1,27 @@
+SUMMARY = "Data-collection service starter"
+SECTION = "flir/application"
+PRIORITY = "optional"
+LICENSE = "CLOSED"
+PACKAGES = "data-collection-service"
+
+inherit autotools systemd
+RPROVIDES_${PN} += "${PN}-systemd"
+RREPLACES_${PN} += "${PN}-systemd"
+RCONFLICTS_${PN} += "${PN}-systemd"
+SYSTEMD_SERVICE_${PN} = "data-collection.service"
+RDEPENDS_${PN} += "bash"
+
+FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
+
+SRC_URI = "\
+           file://data-collection.service \
+"
+
+S = "${WORKDIR}"
+
+do_compile[noexec] = "1"
+
+do_install() {
+    install -d ${D}${systemd_unitdir}/system
+    install -m 0644 ${WORKDIR}/data-collection.service ${D}${systemd_unitdir}/system
+}
