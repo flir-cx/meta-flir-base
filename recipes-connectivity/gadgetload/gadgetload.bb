@@ -4,7 +4,7 @@ AUTHOR = "David Sernelius <david.sernelius@flir.se>"
 SECTION = "flir/applications"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
-PR = "r2"
+PR = "r3"
 
 inherit systemd
 
