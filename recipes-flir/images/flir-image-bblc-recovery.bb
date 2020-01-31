@@ -12,6 +12,7 @@ IMAGE_INSTALL = "bash \
                  dosfstools \
                  e2fsprogs \
                  exfat-utils \ 
+                 i2c-tools \
                  gadgetload \
                  kernel-module-ci-hdrc \
                  kernel-module-ci-hdrc-imx \
