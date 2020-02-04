@@ -7,7 +7,7 @@ WantedBy=multi-user.target
 
 [Service]
 ExecStartPre=/bin/bash -c '/usr/sbin/lighttpd_env_check.sh'
-ExecStartPre=@SBINDIR@/lighttpd -t -f @SYSCONFDIR@/lighttpd.conf
-ExecStart=@SBINDIR@/lighttpd -D -f @SYSCONFDIR@/lighttpd.conf
+ExecStartPre=@SBINDIR@/lighttpd -t -f @SYSCONFDIR@/lighttpd/lighttpd.conf
+ExecStart=@SBINDIR@/lighttpd -D -f @SYSCONFDIR@/lighttpd/lighttpd.conf
 ExecReload=@BASE_BINDIR@/kill -HUP $MAINPID
 Environment="LD_LIBRARY_PATH=/FLIR/usr/lib"

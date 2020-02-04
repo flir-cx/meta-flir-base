@@ -43,7 +43,7 @@ index 0000000..2cddc52
 +#include "stat_cache.h"
 +#include "etag.h"
 +#include "http_chunk.h"
-+#include "response.h"
++#include "http_header.h"
 +
 +#include <ctype.h>
 +#include <stdlib.h>
@@ -286,9 +286,9 @@ index 0000000..2cddc52
 +			 * This should fix the aggressive caching of FF and the script download
 +			 * seen by the first installations
 +			 */
-+			response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("application/octet-stream"));
++			http_header_response_set(con, HTTP_HEADER_CONTENT_TYPE, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("application/octet-stream"));
 +		} else {
-+			response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_BUF_LEN(sce->content_type));
++			http_header_response_set(con, HTTP_HEADER_CONTENT_TYPE, CONST_STR_LEN("Content-Type"), CONST_BUF_LEN(sce->content_type));
 +		}
 +	}
 +

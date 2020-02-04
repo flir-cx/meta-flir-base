@@ -7,10 +7,12 @@ PR = "r1"
 PV = "1.0"
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-DEPENDS = "wpa-supplicant"
+DEPENDS = "wpa-supplicant libtirpc"
 RDEPENDS_wifi-test-suite = "bash"
 
-CFLAGS_prepend = "-DWFA_STA_TB"
+CFLAGS_prepend = "-DWFA_STA_TB "
+CFLAGS_append = " -I${STAGING_INCDIR}/tirpc "
+LDFLAGS_append = " -ltirpc"
 
 #Version 9.2.0
 SRCREV = "4e610f6b20501572176640a9c11eeef588eb4e49"
@@ -25,6 +27,7 @@ SRC_URI += " \
 	file://0006-wpa_cli-in-usr-sbin-instead-of-sbin.patch \
 	file://0007-Improved-associate.patch \
 	file://0008-Build-for-target-instead-of-native.patch \
+    file://0009-Modify-Makefile.inc-to-use-environment-CFLAGS.patch \
 	file://sigma_init \
 "
 

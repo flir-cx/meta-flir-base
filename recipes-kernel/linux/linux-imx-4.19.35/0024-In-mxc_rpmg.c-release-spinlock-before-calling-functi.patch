@@ -1,0 +1,41 @@
+From aa5decf7207b99b22b55097960ea327b40b91276 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Thu, 25 Apr 2019 06:52:20 +0200
+Subject: [PATCH] In mxc_rpmg.c release spinlock before calling function using
+ mutex
+
+Spinlock disables preemption and can not call try to lock a mutex
+in that context.
+---
+ drivers/media/platform/mxc/capture/mxc_rpmsg.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index 6c521fdd87ee..f89b87746884 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -762,9 +762,9 @@ static int imx_rpmsg_dma_done_handle(struct imx_rpmsg_device *rpmsg_dev)
+ 		}
+ 
+ 		list_move_tail(rpmsg_dev->discard.next, &rpmsg_dev->active_queue);
++		spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
+ 
+ 		imx_rpmsg_config_dma(rpmsg_dev, rpmsg_dev->discard_buffer_dma, 0);
+-		spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
+ 
+ 		return 0;
+ 	}
+@@ -776,8 +776,9 @@ static int imx_rpmsg_dma_done_handle(struct imx_rpmsg_device *rpmsg_dev)
+ 	vb->state = VB2_BUF_STATE_ACTIVE;
+ 
+ 	dma_addr = vb2_dma_contig_plane_dma_addr(vb, 0);
+-	ret = imx_rpmsg_config_dma(rpmsg_dev, dma_addr, field);
+ 	spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
++
++	ret = imx_rpmsg_config_dma(rpmsg_dev, dma_addr, field);
+ 	return ret;
+ }
+ 
+-- 
+2.17.1
+

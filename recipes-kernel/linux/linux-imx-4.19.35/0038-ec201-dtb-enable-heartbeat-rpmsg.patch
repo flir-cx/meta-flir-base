@@ -1,0 +1,27 @@
+From 51005989e015105a10eb1de408db7d46cf0993a1 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Tue, 25 Jun 2019 14:29:21 +0200
+Subject: [PATCH] ec201 dtb: enable heartbeat rpmsg
+
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 32674de96894..44234f2d0770 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -598,10 +598,6 @@
+ 	status = "okay";
+ };
+ 
+-&heartbeat_rpmsg{
+-	status = "disabled";
+-};
+-
+ &rtc_rpmsg{
+ 	status = "disabled";
+ };
+-- 
+2.17.1
+

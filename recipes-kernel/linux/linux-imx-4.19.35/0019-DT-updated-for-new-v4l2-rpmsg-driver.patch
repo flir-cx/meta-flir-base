@@ -1,0 +1,117 @@
+From 52c146607e55082d690c37529c868767cdab3fbc Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Thu, 28 Feb 2019 13:27:15 +0100
+Subject: [PATCH] DT updated for new v4l2 rpmsg driver
+
+---
+ arch/arm/boot/dts/imx7ulp-bblc.dts   | 37 +++++++++++++++++++++++++---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 33 ++++++++++++++++++++++++-
+ 2 files changed, 66 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-bblc.dts b/arch/arm/boot/dts/imx7ulp-bblc.dts
+index 9512a6efd96e..413d1528b236 100644
+--- a/arch/arm/boot/dts/imx7ulp-bblc.dts
++++ b/arch/arm/boot/dts/imx7ulp-bblc.dts
+@@ -101,9 +101,40 @@
+ 		#reset-cells = <0>;
+ 	};
+ 
+-	v4l2_cap_0 {
++	v4l2_cap_rpmsg {
+ 		compatible = "fsl,imx7-rpmsg-capture";
+ 		status = "okay";
++		port {
++			v4l2_cap_rpmsg_ep: endpoint {
++				remote-endpoint = <&m4_rpmsg_ep>;
++			};
++		};
++	};
++	
++	m4_rpmsg: m4_rpmsg {
++		port {
++			m4_rpmsg_ep: endpoint {
++				remote-endpoint = <&v4l2_cap_rpmsg_ep>;
++			};
++		};
++	};
++
++	// Change memory access priorites (QoS) for AXI switches
++	// Refer to chapter 13.2.1 (NIC-301 block diagram) and
++	// chapter 13.4.2.3 (ASIB default values) of iMX7ULP reference manual
++	
++	nic0: nic0@41c00000 {
++		compatible = "arm,nic-301";
++		reg = <0x41c00000 0x100000>;
++		m3_prio = <4>;		// Reduce 3D GPU prio from 5 to 4
++		m4_prio = <4>;		// Reduce 2D GPU prio from 5 to 4
++	};
++
++	nic1: nic1@41d00000 {
++		compatible = "arm,nic-301";
++		reg = <0x41d00000 0x100000>;
++		m2_prio = <5>;		// Raise Cortex-M4 prio from 1 to 5
++		m5_prio = <5>;		// Raise VIU prio from 4 to 5
+ 	};
+ };
+ 
+@@ -364,9 +395,9 @@
+ 	pinctrl-1 = <&pinctrl_lpi2c6>;
+ 	status = "okay";
+ 
+-	ov5640: ov5640@21 {
++	ov5640: ov5640@3c {
+ 		compatible = "ovti,ov5640";
+-		reg = <0x21>;
++		reg = <0x3c>;
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&pinctrl_camera>;
+ 		clocks = <&clks IMX7ULP_CLK_DUMMY>;
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index f9d8fc770cd4..9f81bf701423 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -104,9 +104,40 @@
+ 		#reset-cells = <0>;
+ 	};
+ 
+-	v4l2_cap_0 {
++	v4l2_cap_rpmsg {
+ 		compatible = "fsl,imx7-rpmsg-capture";
+ 		status = "okay";
++		port {
++			v4l2_cap_rpmsg_ep: endpoint {
++				remote-endpoint = <&m4_rpmsg_ep>;
++			};
++		};
++	};
++
++	m4_rpmsg: m4_rpmsg {
++		port {
++			m4_rpmsg_ep: endpoint {
++				remote-endpoint = <&v4l2_cap_rpmsg_ep>;
++			};
++		};
++	};
++
++	// Change memory access priorites (QoS) for AXI switches
++	// Refer to chapter 13.2.1 (NIC-301 block diagram) and
++	// chapter 13.4.2.3 (ASIB default values) of iMX7ULP reference manual
++
++	nic0: nic0@41c00000 {
++		compatible = "arm,nic-301";
++		reg = <0x41c00000 0x100000>;
++		m3_prio = <4>;		// Reduce 3D GPU prio from 5 to 4
++		m4_prio = <4>;		// Reduce 2D GPU prio from 5 to 4
++	};
++
++	nic1: nic1@41d00000 {
++		compatible = "arm,nic-301";
++		reg = <0x41d00000 0x100000>;
++		m2_prio = <5>;		// Raise Cortex-M4 prio from 1 to 5
++		m5_prio = <5>;		// Raise VIU prio from 4 to 5
+ 	};
+ };
+ 
+-- 
+2.17.1
+

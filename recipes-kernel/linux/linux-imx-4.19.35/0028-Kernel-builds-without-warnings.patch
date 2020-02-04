@@ -1,0 +1,181 @@
+From 5d6dad320dd6ce54f01e937c4d82afa002b619d2 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Tue, 14 May 2019 15:30:24 +0200
+Subject: [PATCH] Kernel builds without warnings
+
+---
+ arch/arm/common/nic_301.c                      |  4 ++--
+ arch/arm/mm/cache-l2x0.c                       |  4 ----
+ drivers/hwmon/tmp116.c                         |  2 +-
+ drivers/media/platform/mxc/capture/m4_rpmsg.c  | 16 ----------------
+ drivers/media/platform/mxc/capture/mxc_rpmsg.c |  3 ++-
+ drivers/media/platform/mxc/capture/ov5640_v2.c | 10 ++++++----
+ 6 files changed, 11 insertions(+), 28 deletions(-)
+
+diff --git a/arch/arm/common/nic_301.c b/arch/arm/common/nic_301.c
+index 6fdae6fa2d0d..496d146f6156 100644
+--- a/arch/arm/common/nic_301.c
++++ b/arch/arm/common/nic_301.c
+@@ -38,8 +38,8 @@ static int nic_301_probe(struct platform_device *dev)
+ 		err = of_property_read_u32(dev->dev.of_node, name, &prio);
+ 
+ 		if (!err) {
+-			writel(prio, ((uint32_t)base + 0x42000 + 0x1000 * i + 0x100));	// Read prio
+-			writel(prio, ((uint32_t)base + 0x42000 + 0x1000 * i + 0x104));	// Write prio
++			writel(prio, (void*)((uint32_t)base + 0x42000 + 0x1000 * i + 0x100));	// Read prio
++			writel(prio, (void*)((uint32_t)base + 0x42000 + 0x1000 * i + 0x104));	// Write prio
+ 			dev_info(&dev->dev, "m%d has prio %d\n", i, prio);
+ 		}
+ 	}
+diff --git a/arch/arm/mm/cache-l2x0.c b/arch/arm/mm/cache-l2x0.c
+index 6bd9c658a8c6..27179795f143 100644
+--- a/arch/arm/mm/cache-l2x0.c
++++ b/arch/arm/mm/cache-l2x0.c
+@@ -148,10 +148,6 @@ static DEFINE_RAW_SPINLOCK(l2x0_lock);
+ #define l2x0_spin_unlock(lock, flags) raw_spin_unlock_irqrestore(lock, flags)
+ 
+ #define l2x0_spin_lock_init(lock)
+-static int l2c_set_mutex(void *mutex)
+-{
+-	return -EINVAL;
+-}
+ 
+ #endif
+ 
+diff --git a/drivers/hwmon/tmp116.c b/drivers/hwmon/tmp116.c
+index 8b9326a59e10..c7b3983f579e 100644
+--- a/drivers/hwmon/tmp116.c
++++ b/drivers/hwmon/tmp116.c
+@@ -191,6 +191,7 @@ static int tmp116_probe(struct i2c_client *client,
+ {
+ 	struct tmp116 *tmp116;
+ 	int status;
++	struct thermal_zone_of_device_ops tzodo = { tmp116_read_temp, NULL, NULL, NULL, NULL };
+ 
+ 	if (!i2c_check_functionality(client->adapter,
+ 				     I2C_FUNC_SMBUS_WORD_DATA)) {
+@@ -243,7 +244,6 @@ static int tmp116_probe(struct i2c_client *client,
+ 		goto fail_remove_sysfs;
+ 	}
+ 
+-    struct thermal_zone_of_device_ops tzodo = { tmp116_read_temp, NULL, NULL, NULL, NULL };
+ 	tmp116->tz = thermal_zone_of_sensor_register(&client->dev, 0,
+ 						     &client->dev,
+ 						     &tzodo);
+diff --git a/drivers/media/platform/mxc/capture/m4_rpmsg.c b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+index 4a23c96be756..4b0d67e4a05d 100644
+--- a/drivers/media/platform/mxc/capture/m4_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+@@ -142,19 +142,6 @@ static int rpmsg_change_mode(enum ovRpmsg_frame_rate frame_rate,
+ 	return retval;
+ }
+ 
+-/*!
+- * rpmsg_s_power - V4L2 sensor interface handler for VIDIOC_S_POWER ioctl
+- * @s: pointer to standard V4L2 device structure
+- * @on: indicates power mode (on or off)
+- *
+- * Turns the power on or off, depending on the value of on and returns the
+- * appropriate error code.
+- */
+-static int rpmsg_s_power(struct v4l2_subdev *sd, int on)
+-{
+-	return 0;
+-}
+-
+ /*!
+  * rpmsg_g_parm - V4L2 sensor interface handler for VIDIOC_G_PARM ioctl
+  * @s: pointer to standard V4L2 sub device structure
+@@ -456,9 +443,6 @@ EXPORT_SYMBOL(rpmsg_setup_callback);
+ static int rpmsg_lepton_probe(struct rpmsg_device *dev)
+ {
+ 	int err;
+-	void *vaddr;
+-	dma_addr_t paddr;
+-	struct csi_rx_msg msg;
+ 
+ 	dev_info(&dev->dev, "new channel: 0x%x -> 0x%x!\n", dev->src, dev->dst);
+ 
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index 2d7879c78523..894a620ac7e1 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -157,10 +157,12 @@ static const struct imx_rpmsg_fmt *rpmsg_fmt_by_pix_fmt(u32 pixelformat)
+ 	return NULL;
+ }
+ 
++#if 0
+ static struct imx_rpmsg_buffer *rpmsg_ibuf_to_buf(struct rpmsg_buf_internal *int_buf)
+ {
+ 	return container_of(int_buf, struct imx_rpmsg_buffer, internal);
+ }
++#endif
+ 
+ static int imx_rpmsg_set_fmt(struct imx_rpmsg_device *rpmsg_dev)
+ {
+@@ -631,7 +633,6 @@ static void imx_rpmsg_stop_streaming(struct vb2_queue *q)
+ 	struct imx_rpmsg_device *rpmsg_dev = vb2_get_drv_priv(q);
+ 	struct imx_rpmsg_buffer *pos, *tmp;
+ 	struct vb2_buffer *vb;
+-	void *tmpbuf;
+ 
+ 	rpmsg_dev->streaming = false;
+ 
+diff --git a/drivers/media/platform/mxc/capture/ov5640_v2.c b/drivers/media/platform/mxc/capture/ov5640_v2.c
+index 1d4931cceb4b..d198548e0e6e 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_v2.c
++++ b/drivers/media/platform/mxc/capture/ov5640_v2.c
+@@ -129,12 +129,14 @@ static int AE_Target = 52, night_mode;
+ static int prev_HTS;
+ static int AE_high, AE_low;
+ 
++#if 0
+ /* difference between 'ov5640_global_init_setting' and
+  * 'ov5640_init_setting_30fps_BT656':
+  * 0x3103, 0x3a19, 0x3c07
+  */
+ static struct reg_value ov5640_global_init_setting[] = {
+ };
++#endif
+ 
+ static struct reg_value ov5640_bt656_720_480[] = {
+ #if 0
+@@ -552,7 +554,7 @@ static struct reg_value ov5640_init_setting_30fps_BT656[] = {
+ 	{0x3008, 0x02, 0x0, 0x0},
+ 
+ };
+-
++#if 0
+ static struct reg_value ov5640_init_setting_30fps_VGA[] = {
+ 	{0x3008, 0x42, 0, 0},
+ 	{0x3103, 0x03, 0, 0}, {0x3017, 0xff, 0, 0}, {0x3018, 0xff, 0, 0},
+@@ -641,7 +643,7 @@ static struct reg_value ov5640_init_setting_30fps_VGA[] = {
+ 	{0x3008, 0x02, 0, 0}, {0x3034, 0x1a, 0, 0}, {0x3035, 0x11, 0, 0},
+ 	{0x3036, 0x46, 0, 0}, {0x3037, 0x13, 0, 0},
+ };
+-
++#endif
+ static struct reg_value ov5640_setting_30fps_VGA_640_480[] = {
+ 	{0x3c07, 0x08, 0, 0}, {0x3820, 0x41, 0, 0}, {0x3821, 0x07, 0, 0},
+ 	{0x3814, 0x31, 0, 0}, {0x3815, 0x31, 0, 0}, {0x3800, 0x00, 0, 0},
+@@ -677,7 +679,7 @@ static struct reg_value ov5640_setting_15fps_VGA_640_480[] = {
+ 	{0x5001, 0xa3, 0, 0}, {0x3034, 0x1a, 0, 0}, {0x3035, 0x21, 0, 0},
+ 	{0x3036, 0x46, 0, 0}, {0x3037, 0x13, 0, 0}, {0x3503, 0x00, 0, 0},
+ };
+-
++#if 0
+ static struct reg_value ov5640_setting_30fps_QVGA_320_240[] = {
+ 	{0x3c07, 0x08, 0, 0}, {0x3820, 0x41, 0, 0}, {0x3821, 0x07, 0, 0},
+ 	{0x3814, 0x31, 0, 0}, {0x3815, 0x31, 0, 0}, {0x3800, 0x00, 0, 0},
+@@ -749,7 +751,7 @@ static struct reg_value ov5640_setting_15fps_NTSC_720_480[] = {
+ 	{0x5001, 0xa3, 0, 0}, {0x3034, 0x1a, 0, 0}, {0x3035, 0x21, 0, 0},
+ 	{0x3036, 0x46, 0, 0}, {0x3037, 0x13, 0, 0},
+ };
+-
++#endif
+ static struct reg_value ov5640_setting_30fps_PAL_720_576[] = {
+ 	{0x3c07, 0x08, 0, 0}, {0x3820, 0x41, 0, 0}, {0x3821, 0x07, 0, 0},
+ 	{0x3814, 0x31, 0, 0}, {0x3815, 0x31, 0, 0}, {0x3800, 0x00, 0, 0},
+-- 
+2.17.1
+

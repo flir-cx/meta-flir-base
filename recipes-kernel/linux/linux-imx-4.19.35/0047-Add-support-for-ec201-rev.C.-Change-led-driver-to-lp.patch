@@ -1,0 +1,380 @@
+From f94cb09f2cb6d108b22aedba425cd4e9a9ef456c Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Thu, 3 Oct 2019 14:43:43 +0200
+Subject: [PATCH] Add support for ec201 rev.C. Change led driver to lp5562,
+ change accel to kxtj3. Get accel driver from newer linux kernel to enable
+ devicetree support.
+
+---
+ arch/arm/boot/dts/imx7ulp-ec201-b.dtsi   | 86 ++++++++++++++++++++++++
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi     | 63 +++++++++--------
+ arch/arm/boot/dts/imx7ulp-sherlock-a.dts |  3 +-
+ arch/arm/boot/dts/imx7ulp-sherlock-b.dts | 21 ++++++
+ drivers/iio/accel/kxcjk-1013.c           | 30 ++++++---
+ 5 files changed, 163 insertions(+), 40 deletions(-)
+ create mode 100644 arch/arm/boot/dts/imx7ulp-ec201-b.dtsi
+ create mode 100644 arch/arm/boot/dts/imx7ulp-sherlock-b.dts
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201-b.dtsi b/arch/arm/boot/dts/imx7ulp-ec201-b.dtsi
+new file mode 100644
+index 000000000000..1e030f5023a3
+--- /dev/null
++++ b/arch/arm/boot/dts/imx7ulp-ec201-b.dtsi
+@@ -0,0 +1,86 @@
++
++/*
++ * Copyright 2019 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++ 
++/* This device tree is for board ec201 revision b  */
++/ {
++	regulators {
++		vcam_en_reg_avdd: vcam_en_reg_avdd {
++			status = "disabled";
++		};
++		vcam_en_reg_dovdd: vcam_en_reg_dovdd {
++			status = "diabled";
++		};
++
++		vcam_en_reg: vcam_en_reg {
++			compatible = "regulator-fixed";
++			regulator-name = "vcam_en";
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1800000>;
++			gpio = <&gpio_ptf 17 GPIO_ACTIVE_HIGH>;
++			startup-delay-us = <0>;
++			enable-active-high;
++			regulator-boot-on;
++			regulator-always-on;
++		};
++
++	};
++};
++
++&lpi2c6 {
++
++	ov5640: ov5640@3c {
++		/delete-property/ DOVDD-supply; /* 1.8v */
++		/delete-property/ AVDD-supply;  /* 2.8v */
++		clk-gpios = <&gpio_ptf 16 GPIO_ACTIVE_HIGH>;
++	};
++
++	acc_mma8452: acc_mma8452@1D {
++		compatible = "fsl,mma8452";
++		reg = <0x1D>;
++		interrupt-parent = <&gpio_ptc>;
++		interrupts = <10 IRQ_TYPE_LEVEL_HIGH>;
++	};
++
++	acc_kxtj3: acc_kxtj3@0F {
++		status = "disabled";
++	};
++
++	touchpad_leds: touchpad_leds@30 {
++		status = "disabled";
++	};
++
++	touchpad_leds2: touchpad_leds2@32 {
++		compatible = "national,lp5521";
++		reg = <0x32>;
++		
++		label = "touchpad-leds";
++		clock-mode = <1>;	/* Internal clock */
++		enable-gpio = <&gpio_ptc 11 GPIO_ACTIVE_HIGH>;
++
++		tp_led1 {
++			chan-name = "tp-camera";
++			led-cur = /bits/ 8 <0x32>;
++			max-cur = /bits/ 8 <0x32>;
++			linux,default-trigger = "none";
++		};
++		tp_led2 {
++			chan-name = "tp-settings";
++			led-cur = /bits/ 8 <0x32>;
++			max-cur = /bits/ 8 <0x32>;
++			linux,default-trigger = "none";
++		};
++		tp_led3 {
++			chan-name = "tp-gallery";
++			led-cur = /bits/ 8 <0x32>;
++			max-cur = /bits/ 8 <0x32>;
++			linux,default-trigger = "none";
++		};
++	};
++};
+\ No newline at end of file
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 882c6e23270a..bde1cdcb4408 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -56,17 +56,26 @@
+ 			regulator-always-on;
+ 		};
+ 
+-		vcam_en_reg: vcam_en_reg {
++		vcam_en_reg_dovdd: vcam_en_reg_dovdd {
+ 			compatible = "regulator-fixed";
+-			regulator-name = "vcam_en";
++			regulator-name = "vcam_en_reg_dovdd";
+ 			regulator-min-microvolt = <1800000>;
+ 			regulator-max-microvolt = <1800000>;
++			gpio = <&gpio_ptf 16 GPIO_ACTIVE_HIGH>;
++			startup-delay-us = <0>;
++			enable-active-high;
++		};
++		
++		vcam_en_reg_avdd: vcam_en_reg_avdd {
++			compatible = "regulator-fixed";
++			regulator-name = "vcam_en_reg_avdd";
++			regulator-min-microvolt = <2700000>;
++			regulator-max-microvolt = <2700000>;
+ 			gpio = <&gpio_ptf 17 GPIO_ACTIVE_HIGH>;
+ 			startup-delay-us = <0>;
+ 			enable-active-high;
+-			regulator-boot-on;
+-			regulator-always-on;
+ 		};
++
+ 	};
+ 
+ 	gpio_keys {
+@@ -172,14 +181,6 @@
+ 
+ &iomuxc1 {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_hog_1>;
+-
+-	pinctrl_hog_1: hoggrp-1 {
+-    	fsl,pins = <
+- 			IMX7ULP_PAD_PTC0__PTC0      0x20002  /* SHUTTER_IN */
+- 			IMX7ULP_PAD_PTC1__PTC1      0x20002  /* SHUTTER_OUT */
+- 			>;
+-	};
+ 
+ 	pinctrl_pwm0: pwm0grp {
+ 		fsl,pins = <
+@@ -280,10 +281,6 @@
+ 
+ 	pinctrl_camera: camera_grp {
+ 		fsl,pins = <
+-			IMX7ULP_PAD_PTF16__PTF16    0x20043  /* CAMERA CLK ENABLE*/
+-			IMX7ULP_PAD_PTF15__PTF15    0x20043  /* CAMERA PWDN */
+-			IMX7ULP_PAD_PTF14__PTF14    0x20043  /* CAMERA RESET */
+-			IMX7ULP_PAD_PTF17__PTF17    0x20043  /* CAMERA ENABLE */
+ 			IMX7ULP_PAD_PTF3__VIU_PCLK  0x10043
+ 			IMX7ULP_PAD_PTF6__VIU_D2    0x43
+ 			IMX7ULP_PAD_PTF7__VIU_D3    0x43
+@@ -293,6 +290,11 @@
+ 			IMX7ULP_PAD_PTF11__VIU_D7   0x43
+ 			IMX7ULP_PAD_PTF12__VIU_D8   0x43
+ 			IMX7ULP_PAD_PTF13__VIU_D9   0x43
++			IMX7ULP_PAD_PTF14__PTF14    0x20043  /* CAMERA RESET */
++			IMX7ULP_PAD_PTF15__PTF15    0x20043  /* CAMERA PWDN */
++			IMX7ULP_PAD_PTF16__PTF16    0x20043  /* CAMERA 1V8 ENABLE*/
++			IMX7ULP_PAD_PTF17__PTF17    0x20043  /* CAMERA 2V8 ENABLE */
++			IMX7ULP_PAD_PTC0__PTC0    	0x3  	 /* CAMERA DUMMY CLK ENABLE */
+ 			>;
+ 	};
+ };
+@@ -410,14 +412,15 @@
+ 		pinctrl-0 = <&pinctrl_camera>;
+ 		clocks = <&clks IMX7ULP_CLK_DUMMY>;
+ 		clock-names = "csi_mclk";
+-		pwn-gpios = <&gpio_ptf 15 GPIO_ACTIVE_HIGH>;
++		DOVDD-supply = <&vcam_en_reg_dovdd>; /* 1.8v */
++		AVDD-supply = <&vcam_en_reg_avdd>;  /* 2.8v */
++        pwn-gpios = <&gpio_ptf 15 GPIO_ACTIVE_HIGH>;
+ 		rst-gpios = <&gpio_ptf 14 GPIO_ACTIVE_HIGH>;
+-		clk-gpios = <&gpio_ptf 16 GPIO_ACTIVE_HIGH>;
++		clk-gpios = <&gpio_ptc 0 GPIO_ACTIVE_HIGH>;
+ 		csi_id = <0>;
+ 		mclk = <24000000>;
+ 		mclk_source = <0>;
+ 		status = "okay";
+-
+ 		port {
+ 			ov5640_ep: endpoint {
+ 				remote-endpoint = <&viu_ep>;
+@@ -425,9 +428,9 @@
+ 		};
+ 	};
+ 
+-	acc_mma8452: acc_mma8452@1D {
+-		compatible = "fsl,mma8452";
+-		reg = <0x1D>;
++	acc_kxtj3: acc_kxtj3@0F {
++		compatible = "kionix,kxtj21009";
++		reg = <0x0F>;
+ 		interrupt-parent = <&gpio_ptc>;
+ 		interrupts = <10 IRQ_TYPE_LEVEL_HIGH>;
+ 	};
+@@ -437,7 +440,6 @@
+ 		reg = <0x48>;
+ 	};
+ 
+-
+ 	eeprom_24c02: eeprom_24c02@57 {
+ 		compatible = "atmel,24c02";
+ 		reg = <0x57>;
+@@ -446,8 +448,7 @@
+ 	
+ 	torch: torch@63 {
+ 		compatible = "leds-lm3642";
+-		reg = <0x63>;
+-		
++		reg = <0x63>;		
+ 		flash-ramp = <3>;       /* 011b = 2 ms */
+ 		flash-time-out = <7>;   /* 111b = 800 ms */ 
+ 		torch-max-current = <3>;/* 011b = 375 mA */
+@@ -458,9 +459,9 @@
+ 		strobe-gpios = <&gpio_ptc 16 GPIO_ACTIVE_HIGH>;
+ 	};
+ 	
+-	touchpad_leds: toucpad_leds@32 {
+-		compatible = "national,lp5521";
+-		reg = <0x32>;
++	touchpad_leds: touchpad_leds@30 {
++		compatible = "national,lp5562";
++		reg = <0x30>;
+ 		
+ 		label = "touchpad-leds";
+ 		clock-mode = <1>;	/* Internal clock */
+@@ -484,6 +485,12 @@
+ 			max-cur = /bits/ 8 <0x32>;
+ 			linux,default-trigger = "none";
+ 		};
++		tp_led4 {
++			chan-name = "tp-NA";
++			led-cur = /bits/ 8 <0x32>;
++			max-cur = /bits/ 8 <0x32>;
++			linux,default-trigger = "none";
++		};
+ 	};
+ };
+ 
+diff --git a/arch/arm/boot/dts/imx7ulp-sherlock-a.dts b/arch/arm/boot/dts/imx7ulp-sherlock-a.dts
+index 241f58d037a4..e443c5c4137d 100644
+--- a/arch/arm/boot/dts/imx7ulp-sherlock-a.dts
++++ b/arch/arm/boot/dts/imx7ulp-sherlock-a.dts
+@@ -13,9 +13,10 @@
+ #include <dt-bindings/input/input.h>
+ #include "imx7ulp.dtsi"
+ #include "imx7ulp-ec201.dtsi"
++#include "imx7ulp-ec201-b.dtsi"
+ #include "imx7ulp-ec201-a.dtsi"
+ 
+ / {
+ 	model = "FLIR i.MX7ULP Sherlock rev a board";
+-	compatible = "flir,imx7ulp-sherlock", "flir,imx7ulp-ec201-a","flir,imx7ulp-ec201", "fsl,imx7ulp", "Generic DT based system";
++	compatible = "flir,imx7ulp-sherlock", "flir,imx7ulp-ec201-a", "flir,imx7ulp-ec201-b", "flir,imx7ulp-ec201", "fsl,imx7ulp", "Generic DT based system";
+ };
+diff --git a/arch/arm/boot/dts/imx7ulp-sherlock-b.dts b/arch/arm/boot/dts/imx7ulp-sherlock-b.dts
+new file mode 100644
+index 000000000000..3a7c3de1f5df
+--- /dev/null
++++ b/arch/arm/boot/dts/imx7ulp-sherlock-b.dts
+@@ -0,0 +1,21 @@
++/*
++ * Copyright 2019 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/dts-v1/;
++
++/* This device tree is for board ec201 revision b  */
++
++#include <dt-bindings/input/input.h>
++#include "imx7ulp.dtsi"
++#include "imx7ulp-ec201.dtsi"
++#include "imx7ulp-ec201-b.dtsi"
++
++/ {
++	model = "FLIR i.MX7ULP Sherlock rev b board";
++	compatible = "flir,imx7ulp-sherlock", "flir,imx7ulp-ec201-b","flir,imx7ulp-ec201", "fsl,imx7ulp", "Generic DT based system";
++};
+diff --git a/drivers/iio/accel/kxcjk-1013.c b/drivers/iio/accel/kxcjk-1013.c
+index 471caa5323e4..fee535d6e45b 100644
+--- a/drivers/iio/accel/kxcjk-1013.c
++++ b/drivers/iio/accel/kxcjk-1013.c
+@@ -1,15 +1,7 @@
++// SPDX-License-Identifier: GPL-2.0-only
+ /*
+  * KXCJK-1013 3-axis accelerometer driver
+  * Copyright (c) 2014, Intel Corporation.
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms and conditions of the GNU General Public License,
+- * version 2, as published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope it will be useful, but WITHOUT
+- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+- * more details.
+  */
+ 
+ #include <linux/module.h>
+@@ -451,7 +443,7 @@ static int kxcjk1013_set_power_state(struct kxcjk1013_data *data, bool on)
+ 	}
+ 	if (ret < 0) {
+ 		dev_err(&data->client->dev,
+-			"Failed: kxcjk1013_set_power_state for %d\n", on);
++			"Failed: %s for %d\n", __func__, on);
+ 		if (on)
+ 			pm_runtime_put_noidle(&data->client->dev);
+ 		return ret;
+@@ -1437,6 +1429,8 @@ static int kxcjk1013_resume(struct device *dev)
+ 
+ 	mutex_lock(&data->mutex);
+ 	ret = kxcjk1013_set_mode(data, OPERATION);
++	if (ret == 0)
++		ret = kxcjk1013_set_range(data, data->range);
+ 	mutex_unlock(&data->mutex);
+ 
+ 	return ret;
+@@ -1489,9 +1483,13 @@ static const struct acpi_device_id kx_acpi_match[] = {
+ 	{"KXCJ1013", KXCJK1013},
+ 	{"KXCJ1008", KXCJ91008},
+ 	{"KXCJ9000", KXCJ91008},
++	{"KIOX0008", KXCJ91008},
++	{"KIOX0009", KXTJ21009},
+ 	{"KIOX000A", KXCJ91008},
+-	{"KIOX010A", KXCJ91008}, /* KXCJ91008 inside the display of a 2-in-1 */
++	{"KIOX010A", KXCJ91008}, /* KXCJ91008 in the display of a yoga 2-in-1 */
++	{"KIOX020A", KXCJ91008}, /* KXCJ91008 in the base of a yoga 2-in-1 */
+ 	{"KXTJ1009", KXTJ21009},
++	{"KXJ2109",  KXTJ21009},
+ 	{"SMO8500",  KXCJ91008},
+ 	{ },
+ };
+@@ -1508,10 +1506,20 @@ static const struct i2c_device_id kxcjk1013_id[] = {
+ 
+ MODULE_DEVICE_TABLE(i2c, kxcjk1013_id);
+ 
++static const struct of_device_id kxcjk1013_of_match[] = {
++	{ .compatible = "kionix,kxcjk1013", },
++	{ .compatible = "kionix,kxcj91008", },
++	{ .compatible = "kionix,kxtj21009", },
++	{ .compatible = "kionix,kxtf9", },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, kxcjk1013_of_match);
++
+ static struct i2c_driver kxcjk1013_driver = {
+ 	.driver = {
+ 		.name	= KXCJK1013_DRV_NAME,
+ 		.acpi_match_table = ACPI_PTR(kx_acpi_match),
++		.of_match_table = kxcjk1013_of_match,
+ 		.pm	= &kxcjk1013_pm_ops,
+ 	},
+ 	.probe		= kxcjk1013_probe,
+-- 
+2.17.1
+

@@ -1,0 +1,94 @@
+From 1fac37126f5fe3ce87967bdfd5ae20a7d6901c36 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Thu, 6 Feb 2020 10:42:03 +0100
+Subject: [PATCH] Adjust to modified v4l data structures
+
+---
+ drivers/media/platform/mxc/capture/mxc_rpmsg.c | 11 ++++++++---
+ drivers/media/platform/mxc/capture/mxc_viu.c   | 13 +++++++++----
+ 2 files changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index 894a620ac7e1..381242c35ae6 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -827,6 +827,11 @@ static int imx_rpmsg_async_subdevs_register(struct imx_rpmsg_device *rpmsg_dev)
+ 	struct fwnode_handle *remote = NULL;
+ 	struct v4l2_async_notifier *notifier = &rpmsg_dev->notifier;
+ 	struct v4l2_async_subdev *asd;
++	static const struct v4l2_async_notifier_operations notifier_ops = {
++		.bound  = imx_rpmsg_subdev_bound,
++		.complete = NULL,
++		.unbind = imx_rpmsg_subdev_unbind,
++	};
+ 
+ 	while (num_subdevs < IMX_RPMSG_MAX_SUBDEV_NUM) {
+ 		endpoint = fwnode_graph_get_next_endpoint(np, endpoint);
+@@ -841,7 +846,7 @@ static int imx_rpmsg_async_subdevs_register(struct imx_rpmsg_device *rpmsg_dev)
+ 
+ 		asd = &rpmsg_dev->subdevs[num_subdevs];
+ 		asd->match_type = V4L2_ASYNC_MATCH_FWNODE;
+-		asd->match.fwnode.fwnode = remote;
++		asd->match.fwnode = remote;
+ 		rpmsg_dev->async_subdevs[num_subdevs] = asd;
+ 
+ 		num_subdevs++;
+@@ -857,8 +862,8 @@ static int imx_rpmsg_async_subdevs_register(struct imx_rpmsg_device *rpmsg_dev)
+ 
+ 	notifier->subdevs = rpmsg_dev->async_subdevs;
+ 	notifier->num_subdevs = num_subdevs;
+-	notifier->bound  = imx_rpmsg_subdev_bound;
+-	notifier->unbind = imx_rpmsg_subdev_unbind;
++	notifier->max_subdevs = IMX_RPMSG_MAX_SUBDEV_NUM;
++	notifier->ops = &notifier_ops;
+ 
+ 	ret = v4l2_async_notifier_register(&rpmsg_dev->v4l2_dev, notifier);
+ 	if (ret) {
+diff --git a/drivers/media/platform/mxc/capture/mxc_viu.c b/drivers/media/platform/mxc/capture/mxc_viu.c
+index d5d8b06b353e..2389136331c6 100644
+--- a/drivers/media/platform/mxc/capture/mxc_viu.c
++++ b/drivers/media/platform/mxc/capture/mxc_viu.c
+@@ -25,6 +25,7 @@
+ #include <linux/of_graph.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
++#include <linux/pinctrl/consumer.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+ #include <linux/videodev2.h>
+@@ -1327,6 +1328,11 @@ static int imx_viu_async_subdevs_register(struct imx_viu_device *viu_dev)
+ 	struct fwnode_handle *remote = NULL;
+ 	struct v4l2_async_notifier *notifier = &viu_dev->notifier;
+ 	struct v4l2_async_subdev *asd;
++	static const struct v4l2_async_notifier_operations notifier_ops = {
++		.bound  = imx_viu_subdev_bound,
++		.complete = NULL,
++		.unbind = imx_viu_subdev_unbind,
++	};
+ 
+ 	while (num_subdevs < IMX_VIU_MAX_SUBDEV_NUM) {
+ 		endpoint = fwnode_graph_get_next_endpoint(np, endpoint);
+@@ -1341,7 +1347,7 @@ static int imx_viu_async_subdevs_register(struct imx_viu_device *viu_dev)
+ 
+ 		asd = &viu_dev->subdevs[num_subdevs];
+ 		asd->match_type = V4L2_ASYNC_MATCH_FWNODE;
+-		asd->match.fwnode.fwnode = remote;
++		asd->match.fwnode = remote;
+ 		viu_dev->async_subdevs[num_subdevs] = asd;
+ 
+ 		num_subdevs++;
+@@ -1357,9 +1363,8 @@ static int imx_viu_async_subdevs_register(struct imx_viu_device *viu_dev)
+ 
+ 	notifier->subdevs = viu_dev->async_subdevs;
+ 	notifier->num_subdevs = num_subdevs;
+-	notifier->bound  = imx_viu_subdev_bound;
+-	notifier->unbind = imx_viu_subdev_unbind;
+-
++	notifier->max_subdevs = IMX_VIU_MAX_SUBDEV_NUM;
++	notifier->ops = &notifier_ops;
+ 	ret = v4l2_async_notifier_register(&viu_dev->v4l2_dev, notifier);
+ 	if (ret) {
+ 		dev_err(viu_dev->dev, "register async notifier failed\n");
+-- 
+2.17.1
+

@@ -1,0 +1,34 @@
+From 84dc444986cd2d52105348872cbf9ecce4c7cbe7 Mon Sep 17 00:00:00 2001
+From: Felix Hammarstrand <felix.hammarstrand@flir.se>
+Date: Tue, 26 Nov 2019 16:33:33 +0100
+Subject: [PATCH] mxc mipi dsi: sherlock display: fix for slow display turn on:
+ move sleep out command last
+
+---
+ drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c b/drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c
+index bbec208b0045..64b9df94a76d 100644
+--- a/drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c
++++ b/drivers/video/fbdev/mxc/mxcfb_hx8394_vga.c
+@@ -40,7 +40,7 @@ struct reg_value {
+ 
+ static struct reg_value lcd_setup[] =
+ {
+-	{0x05,150,0,{0x11}}, //Sleep out
++//	{0x15,0, 0,{0x35,0x01}}, //Tearing ON	
+ 	{0x29,0, 4,{0xB9,0xFF,0x83,0x94}}, //SETEXTC  extended command set access enable
+ 	{0x29,0,11,{0xB1,0x48,0x14,0x74,0x09,0x33,0x54,0x71,0x31,0x4D,0x2F}},  //SETPOWER
+ 	{0x29,0, 7,{0xBA,0x61,0x03,0x68,0x6B,0xB2,0xC0}}, //SETMIPI MIPI control: dsi 2-lane
+@@ -75,6 +75,7 @@ static struct reg_value lcd_setup[] =
+ 	{0x15,0, 0,{0xD4,0x02}}, //SETIOOPT Set I/O Option
+ 	{0x15,0, 0,{0xD2,0x77}}, //SETOFFSET
+ 	{0x15,0, 0,{0xC6,0xED}}, //??
++	{0x05,150,0,{0x11}}, //Sleep out
+ 	{0x05,50,0,{0x29}} //Display on
+ };
+ 
+-- 
+2.17.1
+

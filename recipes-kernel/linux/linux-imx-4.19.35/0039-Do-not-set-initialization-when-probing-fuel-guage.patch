@@ -1,0 +1,29 @@
+From 1c7fec3162374f68a3f73400c0479e647fcaa012 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Tue, 3 Sep 2019 12:13:16 +0200
+Subject: [PATCH] Do not set initialization when probing fuel-guage.
+
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index 44234f2d0770..55faa48eacc5 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -376,11 +376,10 @@
+ 	};
+ 	
+ 	/*Fuel guage */
+-	lc709203f: lc709203f@0b { 
++	lc709203f: lc709203f@0b {
+ 		compatible = "onsemi,lc709203f";
+ 		reg = <0x0b>;
+ 		thermistor-beta = <0x0d34>;
+-		initial-rsoc = <0xAA55>;
+ 		kernel-threshold-soc = <5>;
+ 		kernel-maximum-soc = <99>;
+ 		alert-low-rsoc = <0x0>;
+-- 
+2.17.1
+

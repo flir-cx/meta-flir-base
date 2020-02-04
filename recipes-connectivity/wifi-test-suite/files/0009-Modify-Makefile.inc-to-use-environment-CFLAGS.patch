@@ -1,0 +1,26 @@
+From aa5052558e32bf29fd15480fa469f24dd6039423 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Wed, 5 Feb 2020 07:35:11 +0100
+Subject: [PATCH] Modify Makefile.inc to use environment CFLAGS
+
+---
+ Makefile.inc | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile.inc b/Makefile.inc
+index ad2a5b6..d2aed25 100644
+--- a/Makefile.inc
++++ b/Makefile.inc
+@@ -42,7 +42,8 @@ WTG=WTGService
+ #CFLAGS = -g -O2 -D_REENTRANT  -DWFA_WMM_PS_EXT -DWFA_WMM_AC -DWFA_PC_CONSOLE -DWFA_STA_TB -Wall -I../inc
+ 
+ # This is for WPA2 as default
+-CFLAGS = -g -O2 -D_REENTRANT -DWFA_STA_TB -Wall -I../inc
++CFLAGS ?= -g -O2 -Wall
++CFLAGS += -D_REENTRANT -DWFA_STA_TB -I../inc
+ 
+ DUTLIBS = ../lib/libwfa_dut.a -lpthread
+ CALIBS = ../lib/libwfa_ca.a -lpthread
+-- 
+2.17.1
+
