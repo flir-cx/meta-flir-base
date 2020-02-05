@@ -1,0 +1,34 @@
+From 5ec1e9e4b39c0322160e436b2baaf11c0343934c Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Wed, 5 Feb 2020 10:26:13 +0100
+Subject: [PATCH] Set usb and bt mac-addresses from board serial prodtest
+ version
+
+---
+ include/configs/ec201.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/include/configs/ec201.h b/include/configs/ec201.h
+index 2ec20e9..8171eea 100644
+--- a/include/configs/ec201.h
++++ b/include/configs/ec201.h
+@@ -163,6 +163,7 @@
+ #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
+ 
+ #define CONFIG_BOOTCOMMAND \
++	"setmac;" \
+ 	"if recoverytrigger; then " \
+ 		"run recoveryboot;" \
+ 	"else " \
+@@ -176,8 +177,6 @@
+ 
+ /* protected environment variables (besides ethaddr and serial#) */
+ #define CONFIG_ENV_FLAGS_LIST_STATIC	\
+-	"wlanaddr:mc,"			\
+-	"btaddr:mc,"			\
+ 	"bootargs_once:sr"
+ 
+ 
+-- 
+2.7.4
+
