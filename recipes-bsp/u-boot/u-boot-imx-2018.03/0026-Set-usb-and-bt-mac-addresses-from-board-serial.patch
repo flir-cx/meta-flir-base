@@ -1,0 +1,130 @@
+From d30d62a3836e77f26dee0cc63d91f2da0ff7bfcf Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Wed, 5 Feb 2020 10:26:13 +0100
+Subject: [PATCH] Set usb and bt mac-addresses from board serial.
+
+---
+ board/flir/ec201/Makefile     |  1 +
+ board/flir/ec201/cmd_setmac.c | 78 +++++++++++++++++++++++++++++++++++++++++++
+ include/configs/ec201.h       |  3 +-
+ 3 files changed, 80 insertions(+), 2 deletions(-)
+ create mode 100644 board/flir/ec201/cmd_setmac.c
+
+diff --git a/board/flir/ec201/Makefile b/board/flir/ec201/Makefile
+index 47d98dc..770864c 100644
+--- a/board/flir/ec201/Makefile
++++ b/board/flir/ec201/Makefile
+@@ -11,3 +11,4 @@ obj-y  += bootstate.o
+ obj-y  += chargeapp.o
+ obj-y  += pf1550.o
+ obj-y  += cmd_recoverytrigger.o
++obj-y  += cmd_setmac.o
+diff --git a/board/flir/ec201/cmd_setmac.c b/board/flir/ec201/cmd_setmac.c
+new file mode 100644
+index 0000000..a5fedc2
+--- /dev/null
++++ b/board/flir/ec201/cmd_setmac.c
+@@ -0,0 +1,78 @@
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <command.h>
++#include <stdio_dev.h>
++#include <dm.h>
++#include <i2c.h>
++#include <asm/arch/pcc.h>
++
++int get_board_serial(char *buf)
++{
++    struct udevice *dev;
++    int ret = i2c_get_chip_for_busnum(6, 0x57, 1, &dev); //get eprom
++    if (ret) {
++		printf("Can not find eeprom: %d\n", ret);
++		return ret;
++	}
++
++    ret = dm_i2c_read(dev, 0x4A, buf, 8);
++	buf[8] = '\0';
++
++    return ret;
++}
++
++int setmac_func(bool bt)
++{
++    u8 addr[18];
++	u32 addrI = 0;
++    uint8_t buf[16];
++
++    int res = get_board_serial(buf);
++
++    if(res == 0)
++    {
++        strcpy(addr, "00:40:7f:00:00:00");
++
++        // convert to integer
++        for (int i = 0; buf[i] != '\0'; ++i)
++            addrI = addrI * 10 + buf[i] - '0';
++
++        addrI = addrI << 1; // shift up one to allow for different bt and usb mac address
++        if(bt)
++            addrI++;
++
++        snprintf(buf, 10, "%x", addrI);
++        int len = strlen(buf);
++
++        //address byte 6
++        addr[16] = buf[len-1];
++        addr[15] = buf[len-2];
++        //address byte 5
++        addr[13] = buf[len-3];
++        addr[12] = buf[len-4];
++        //address byte 4
++        addr[10] = buf[len-5];
++    }
++
++    if(res != 0)
++    {
++        strcpy(addr, bt?"00:04:f3:ff:ff:fc":"00:04:f3:ff:ff:fb");
++    }
++
++    env_set(bt?"btaddr":"wlanaddr", addr);
++
++    return 0;
++}
++
++int do_setmac(void)
++{
++    setmac_func(false);
++    setmac_func(true);
++}
++
++U_BOOT_CMD(
++    setmac,	2,	1,	do_setmac,
++    "setmac",
++    "setmac"
++);
+\ No newline at end of file
+diff --git a/include/configs/ec201.h b/include/configs/ec201.h
+index 2ec20e9..8171eea 100644
+--- a/include/configs/ec201.h
++++ b/include/configs/ec201.h
+@@ -163,6 +163,7 @@
+ #define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
+ 
+ #define CONFIG_BOOTCOMMAND \
++	"setmac;" \
+ 	"if recoverytrigger; then " \
+ 		"run recoveryboot;" \
+ 	"else " \
+@@ -176,8 +177,6 @@
+ 
+ /* protected environment variables (besides ethaddr and serial#) */
+ #define CONFIG_ENV_FLAGS_LIST_STATIC	\
+-	"wlanaddr:mc,"			\
+-	"btaddr:mc,"			\
+ 	"bootargs_once:sr"
+ 
+ 
+-- 
+2.7.4
+
