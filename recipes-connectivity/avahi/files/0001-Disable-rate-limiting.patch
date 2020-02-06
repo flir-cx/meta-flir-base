@@ -1,0 +1,25 @@
+From a9986595e1e3cbe96802413afeecaf4a0e39ce61 Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Tue, 21 Feb 2017 11:13:47 +0100
+Subject: [PATCH] Disable rate limiting
+
+Signed-off-by: Peter Fitger <peter.fitger@flir.se>
+---
+ avahi-daemon/avahi-daemon.service.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/avahi-daemon/avahi-daemon.service.in b/avahi-daemon/avahi-daemon.service.in
+index 548c834..dd96d30 100644
+--- a/avahi-daemon/avahi-daemon.service.in
++++ b/avahi-daemon/avahi-daemon.service.in
+@@ -25,6 +25,7 @@ BusName=org.freedesktop.Avahi
+ ExecStart=@sbindir@/avahi-daemon -s
+ ExecReload=@sbindir@/avahi-daemon -r
+ NotifyAccess=main
++StartLimitInterval=0
+ 
+ [Install]
+ WantedBy=multi-user.target
+-- 
+1.9.1
+

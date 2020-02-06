@@ -41,6 +41,8 @@ WEB_PACKAGES = " \
 IMAGE_INSTALL = " \
     ${DISTRO_SSH_DAEMON} \
     aufsrootfs \
+    avahi-daemon \
+    avahi-dnsconfd \
     bash \
     bluez5 \
     bootlogo \
