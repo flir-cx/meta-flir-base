@@ -12,6 +12,7 @@ usage()
   echo "RNDIS_MTP       - combined media transfer and ethernet driver"
   echo "UVC_MTP         - combined video function and media transfer driver"
   echo "RNDIS_UVC       - combined video function and ethernet driver"
+  echo "RNDIS_UVC_MTP   - combined video function, media transfer and ethernet driver"
   echo
   echo "--help  - show this text"
 }
@@ -37,7 +38,8 @@ if [ "${USBMODE}" != "RNDIS" ] &&
    [ "${USBMODE}" != "UVC" ] &&
    [ "${USBMODE}" != "RNDIS_MTP" ] &&
    [ "${USBMODE}" != "UVC_MTP" ] &&
-   [ "${USBMODE}" != "RNDIS_UVC" ]
+   [ "${USBMODE}" != "RNDIS_UVC" ] &&
+   [ "${USBMODE}" != "RNDIS_UVC_MTP" ]
 then
     echo "Unknown USB mode ${USBMODE}"
     usage

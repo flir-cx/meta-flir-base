@@ -15,10 +15,12 @@ manufacturer="FLIR Systems"
 vendor_id="0x09CB"
 product_id=""
 product_id_rndis="0x1002"
+product_id_uvc="0x1004"
 product_id_mtp="0x100A"
+product_id_rndis_uvc="0x1005"
 product_id_rndis_mtp="0x100C"
 product_id_uvc_mtp="0x100B"
-product_id_uvc="0x1004"
+product_id_rndis_uvc_mtp="0x100D"
 
 usbmode="RNDIS_MTP"
 usbmode_default="RNDIS_MTP"
@@ -108,7 +110,7 @@ get_mode(){
 			[ ! $usbmode = "RNDIS_MTP" ] &&
 			[ ! $usbmode = "RNDIS_UVC" ] &&
 			[ ! $usbmode = "UVC_MTP" ] &&
-			[ ! $usbmode = "UVC_RNDIS_MTP" ]
+			[ ! $usbmode = "RNDIS_UVC_MTP" ]
 	then
 		printf "Usb mode \"$usbmode\" is not supported, setting usbmode to default \"$usbmode_default\"\n"
 		usbmode="${usbmode_default}"
@@ -152,9 +154,9 @@ config_load() {
 	MTP) product_id="$product_id_mtp"; config_string="MTP"  ;;
 	UVC) product_id="$product_id_uvc"; config_string="UVC" ;;
 	UVC_MTP) product_id="$product_id_uvc_mtp"; config_string="CDC UVC+MTP" ;;
-	UVC_RNDIS) product_id="$product_id_uvc"; config_string="CDC UVC+RNDIS" ;;
+	RNDIS_UVC) product_id="$product_id_rndis_uvc"; config_string="CDC RNDIS+UVC" ;;
 	RNDIS_MTP) product_id="$product_id_rndis_mtp"; config_string="CDC RNDIS+MTP" ;;
-	UVC_RNDIS_MTP) product_id="$product_id_uvc"; config_string="CDC UVC+RNDIS+MTP" ;;
+	RNDIS_UVC_MTP) product_id="$product_id_rndis_uvc_mtp"; config_string="CDC RNDIS+UVC+MTP" ;;
 	*) product_id="$product_id_rndis"; config_string="RNDIS" ;;
 	esac
 
