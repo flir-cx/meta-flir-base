@@ -22,7 +22,8 @@ for (( i=15; i>-1; i-=3 )); do
     echo -n -e \\x${BTADDR:$i:2} >> $FW_ADDR_FILE
 done
 
-hciattach ttyLP2 qca
+#fills stderr with logs...
+hciattach ttyLP2 qca 2>/dev/null
 
 sleep 1
 rfkill unblock bluetooth
