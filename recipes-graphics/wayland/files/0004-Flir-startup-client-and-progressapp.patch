@@ -1,0 +1,70 @@
+diff --git a/compositor/main.c b/compositor/main.c
+index 92f61242..0b48d837 100644
+--- a/compositor/main.c
++++ b/compositor/main.c
+@@ -2431,6 +2431,7 @@ int main(int argc, char *argv[])
+ 	struct wl_event_loop *loop;
+ 	int i, fd;
+ 	char *backend = NULL;
++	char *startup_client = NULL;
+ 	char *shell = NULL;
+ 	int32_t xwayland = 0;
+ 	char *modules = NULL;
+@@ -2644,6 +2645,14 @@ int main(int argc, char *argv[])
+ 	if (argc > 1)
+ 		goto out;
+ 
++	/*
++	 * STARTUP CLIENT in weston.ini
++	 */
++	section = weston_config_get_section(config, "flir_startup", NULL, NULL);
++	weston_config_section_get_string(section, "client", &startup_client, NULL);
++	if(startup_client)
++		weston_client_start(wet.compositor, startup_client);
++
+ 	weston_compositor_wake(wet.compositor);
+ 
+ 	wl_display_run(display);
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index 19880153..a65297a2 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -1897,6 +1897,9 @@ shell_surface_calculate_layer_link (struct shell_surface *shsurf)
+         if (id && (strncmp(id, "se.flir.background", 20) == 0)) {
+             weston_log("Setting %s as background\n", id);
+             return &shsurf->shell->background_layer.view_list;
++        }else if (id && (strncmp(id, "se.flir.progressapp", 21) == 0)) {
++            weston_log("Setting %s as lock\n", id);
++            return &shsurf->shell->lock_layer.view_list;
+         }
+ 
+ 	/* Move the surface to a normal workspace layer so that surfaces
+@@ -5132,6 +5135,8 @@ wet_shell_init(struct weston_compositor *ec,
+ 				  WESTON_LAYER_POSITION_UI);
+ 	weston_layer_set_position(&shell->background_layer,
+ 				  WESTON_LAYER_POSITION_BACKGROUND);
++	weston_layer_set_position(&shell->lock_layer,
++				  WESTON_LAYER_POSITION_LOCK);
+ 
+ 	wl_array_init(&shell->workspaces.array);
+ 	wl_list_init(&shell->workspaces.client_list);
+diff --git a/libweston/g2d-renderer.c b/libweston/g2d-renderer.c
+index 28b0b1bb..51aace7e 100644
+--- a/libweston/g2d-renderer.c
++++ b/libweston/g2d-renderer.c
+@@ -2153,7 +2153,6 @@ g2d_renderer_surface_create(struct g2d_output_state *go,
+ 	{
+ 		get_G2dSurface_from_screeninfo(&go->fb_info, &go->renderSurf[i]);
+ 		go->renderSurf[i].base.planes[0] = go->fb_info.physical+(offset * i);
+-		g2d_clear(gr->handle, &go->renderSurf[i].base);
+ 	}
+ 
+ 	if(go->nNumBuffers == 1)
+@@ -2161,7 +2160,6 @@ g2d_renderer_surface_create(struct g2d_output_state *go,
+ 		go->offscreenSurface = (go->renderSurf[go->activebuffer]);
+ 		go->offscreen_buf = g2d_alloc(go->fb_info.buffer_length, 0);
+ 		go->offscreenSurface.base.planes[0] = go->offscreen_buf->buf_paddr;
+-		g2d_clear(gr->handle, &go->offscreenSurface.base);
+ 	}
+ 	return 0;
+ }
