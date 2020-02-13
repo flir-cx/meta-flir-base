@@ -1,6 +1,8 @@
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
+GROUPADD_PARAM_${PN} = "avahi"
+
 SRC_URI += " \
            file://0001-Disable-rate-limiting.patch \
            file://avahi-daemon.conf \
