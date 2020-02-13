@@ -117,6 +117,7 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     umtp-responder \
+    url-service \
     ${WEB_PACKAGES} \
     videorender-service \
     wifi-test-suite \
