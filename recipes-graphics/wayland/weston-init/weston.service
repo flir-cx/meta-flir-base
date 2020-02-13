@@ -26,6 +26,7 @@ StandardInput=tty
 StandardError=journal
 
 EnvironmentFile=-/etc/default/weston
+Environment='LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/FLIR/usr/lib'
 
 # Weston does not successfully change VT, nor does systemd place us on
 # the VT it just activated for us. Switch manually:
