@@ -21,3 +21,4 @@ SRC_URI += "file://0023-ec201-display-fix-for-slow-display-turn-on-move-slee.pat
 SRC_URI += "file://0024-ec201-sett-battery-charge-current-based-on-usb-charg.patch"
 SRC_URI += "file://0025-ec201-use-trigger-to-check-recovery-boot.patch"
 SRC_URI += "file://0026-Set-usb-and-bt-mac-addresses-from-board-serial.patch"
+SRC_URI += "file://0027-SHLK-1770-Check-THM_OK-if-charging-should-be-enabled.patch"
