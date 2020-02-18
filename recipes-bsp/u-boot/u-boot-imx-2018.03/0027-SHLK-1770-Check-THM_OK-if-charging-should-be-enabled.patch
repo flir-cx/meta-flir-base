@@ -1,0 +1,178 @@
+From babd1db106739e3ea969bbea1c63e229895307e5 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Tue, 18 Feb 2020 10:38:24 +0100
+Subject: [PATCH] SHLK-1770: Check THM_OK if charging should be enabled
+
+---
+ board/flir/ec201/chargeapp.c |  6 ++--
+ board/flir/ec201/ec201.c     |  4 ---
+ board/flir/ec201/pf1550.c    | 62 ++++++++++++++++++++++++++++++++----
+ board/flir/ec201/pf1550.h    | 13 ++++++++
+ 4 files changed, 71 insertions(+), 14 deletions(-)
+
+diff --git a/board/flir/ec201/chargeapp.c b/board/flir/ec201/chargeapp.c
+index 62add5d5d1..c06896aa72 100644
+--- a/board/flir/ec201/chargeapp.c
++++ b/board/flir/ec201/chargeapp.c
+@@ -98,9 +98,6 @@ void do_charge_update(int level)
+ 		print_charge(level);
+ }
+ 
+-
+-
+-
+ void turn_on_display(void)
+ {
+ 	gpio_direction_output(LED_PWM_EN_GPIO, 1);
+@@ -153,6 +150,9 @@ static int do_chargeapp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
+ 	{
+ 		int soc=0;
+ 
++		//if we are within allowed thermal range, enable charging, otherwise disable
++		pf1550_thm_ok_toogle_charging();
++
+ 		//get battery state of charge
+ 		get_battery_state_of_charge(&soc);
+ 		//update battery progressbar
+diff --git a/board/flir/ec201/ec201.c b/board/flir/ec201/ec201.c
+index 276f602c3f..a74ca3bc1c 100644
+--- a/board/flir/ec201/ec201.c
++++ b/board/flir/ec201/ec201.c
+@@ -139,10 +139,6 @@ int fuelgauge_init(void)
+ 	return 0;
+ }
+ 
+-
+-
+-
+-
+ int usb_charge_detect(void)
+ {
+ 	u32	dcd_status;
+diff --git a/board/flir/ec201/pf1550.c b/board/flir/ec201/pf1550.c
+index 9f912d5f74..039970df27 100644
+--- a/board/flir/ec201/pf1550.c
++++ b/board/flir/ec201/pf1550.c
+@@ -113,11 +113,11 @@ void reboot(void)
+ void init_pf1550_pmic(void)
+ {
+ 	//set Carger operation to charger=off, linear=on
+-	pf1550_write_reg(PF1550_CHARG_REG_CHG_OPER, 0x1);
+-	//set THM_CNFG=JEITA2 REGTEMP=95C THM_COLD=0C THM_HOT=55C TMP_FB_EN=1
+-	pf1550_write_reg(PF1550_CHARG_REG_THM_REG_CNFG, 0xa7);
+-	//set JEITA THM_WARM=45C THM_COOL=10C CV_ADJ=60mV CC_ADJ=100%
+-	pf1550_write_reg(PF1550_CHARG_REG_THM_ADJ_SETTING, 0x32);
++	pf1550_write_reg(PF1550_CHARG_REG_CHG_OPER, CHARGER_OFF_LINEAR_ON);
++	//set THM_CNFG=NO_THERMISTOR_CONTROL REGTEMP=95C THM_COLD=0C THM_HOT=55C TMP_FB_EN=1
++	pf1550_write_reg(PF1550_CHARG_REG_THM_REG_CNFG, 0xa4);
++	//set JEITA THM_WARM=50C THM_COOL=10C CV_ADJ=60mV CC_ADJ=25%
++	pf1550_write_reg(PF1550_CHARG_REG_THM_ADJ_SETTING, 0x03);
+ 	//set charger current to 1A PRECHGLB_THRS=2.8V
+ 	pf1550_write_reg(PF1550_CHARG_REG_CHG_CURR_CNFG, 0x12);
+ 
+@@ -126,6 +126,53 @@ void init_pf1550_pmic(void)
+ }
+ 
+ 
++void pf1550_thm_ok_toogle_charging(void)
++{
++	u8 chg_int_ok;
++	static u8 chg_oper = 0;
++	u8 chg_oper_reg;
++	u8 thm_ok;
++	u8 vbus_ok;
++	int res = 0;
++
++	res = pf1550_read_reg(PF1550_CHARG_REG_CHG_INT_OK, &chg_int_ok);
++	if (res)
++		return;
++
++	vbus_ok = chg_int_ok & PF1550_CHG_INT_OK_VBUS_OK;
++	thm_ok = chg_int_ok & PF1550_CHG_INT_OK_THM_OK;
++	vbus_ok >>= PF1550_CHG_INT_OK_VBUS_OK_SHIFT;
++	thm_ok >>= PF1550_CHG_INT_OK_THM_OK_SHIFT;
++
++	if (thm_ok && vbus_ok)
++	{
++		/* Inside THM range and VBUS is OK, enable charging. */
++		if (chg_oper != CHARGER_ON_LINEAR_ON) {
++			printf("Enable charging (THM_OK: %d, VBUS_OK: %d).\n", thm_ok, vbus_ok);
++			chg_oper = CHARGER_ON_LINEAR_ON;
++		}
++	}
++	else
++	{
++		/* Outside of THM range or VBUS is not OK, disable charging. */
++		if (chg_oper != CHARGER_OFF_LINEAR_ON) {
++			printf("Disable charging (THM_OK: %d, VBUS_OK: %d).\n", thm_ok, vbus_ok);
++			chg_oper = CHARGER_OFF_LINEAR_ON;
++		}
++	}
++
++	/* Apply charge operation mode if needed */
++	res = pf1550_read_reg(PF1550_CHARG_REG_CHG_OPER, &chg_oper_reg);
++	if (res)
++		return;
++
++	if ((chg_oper_reg & PF1550_CHARG_REG_CHG_OPER_CHG_OPER_MASK) != chg_oper)
++	{
++		chg_oper_reg = (chg_oper_reg & ~PF1550_CHARG_REG_CHG_OPER_CHG_OPER_MASK) | chg_oper;
++		pf1550_write_reg(PF1550_CHARG_REG_CHG_OPER, chg_oper_reg);
++	}
++}
++
+ 
+ void set_charging_current(int mA)
+ {
+@@ -143,7 +190,8 @@ void set_charging_current(int mA)
+ 		ilim = _10ma << VBUS_LIN_ILIM_SHIFT;
+ 
+ 	pf1550_write_reg(PF1550_CHARG_REG_VBUS_INLIM_CNFG, ilim);
+-	//set Carger operation to charger=on, linear=on
+-	pf1550_write_reg(PF1550_CHARG_REG_CHG_OPER, 0x2);
++
++	// turn on charging if within allowed thermal range
++	pf1550_thm_ok_toogle_charging();
+ }
+ 
+diff --git a/board/flir/ec201/pf1550.h b/board/flir/ec201/pf1550.h
+index ed0165b691..6d07016a9e 100644
+--- a/board/flir/ec201/pf1550.h
++++ b/board/flir/ec201/pf1550.h
+@@ -152,6 +152,9 @@ enum pf1550_pmic_reg {
+ #define PF1550_VBUS_VALID		BIT(5)
+ 
+ #define PF1550_CHG_INT_OK_VBUS_OK BIT(5)
++#define PF1550_CHG_INT_OK_THM_OK  BIT(7)
++#define PF1550_CHG_INT_OK_VBUS_OK_SHIFT 5
++#define PF1550_CHG_INT_OK_THM_OK_SHIFT  7
+ 
+ #define PF1550_CHARG_REG_BATT_REG_CHGCV_MASK		0x3f
+ #define PF1550_CHARG_REG_BATT_REG_VMINSYS_SHIFT		6
+@@ -159,6 +162,14 @@ enum pf1550_pmic_reg {
+ #define PF1550_CHARG_REG_THM_REG_CNFG_REGTEMP_SHIFT	2
+ #define PF1550_CHARG_REG_THM_REG_CNFG_REGTEMP_MASK	(0x3 << 2)
+ 
++#define PF1550_CHARG_REG_CHG_OPER_CHG_OPER_MASK 0x3
++
++enum pf1550_chg_oper{
++	CHARGER_OFF_LINEAR_OFF = 0,
++	CHARGER_OFF_LINEAR_ON  = 1,
++	CHARGER_ON_LINEAR_ON   = 2
++};
++
+ #define PMIC_IRQ_SW1_LS		BIT(0)
+ #define PMIC_IRQ_SW2_LS		BIT(1)
+ #define PMIC_IRQ_SW3_LS		BIT(2)
+@@ -257,6 +268,8 @@ enum pf1550_ilim {
+ 
+ void init_pf1550_pmic(void);
+ 
++void pf1550_thm_ok_toogle_charging(void);
++
+ void set_charging_current(int mA);
+ 
+ int pf1550_write_reg(int reg, u8 val);
+-- 
+2.17.1
+
