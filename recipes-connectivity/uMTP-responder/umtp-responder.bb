@@ -10,11 +10,12 @@ HOMEPAGE = "https://github.com/viveris/uMTP-Responder"
 PR = "r1"
 
 SRC_URI = "git://github.com/viveris/uMTP-Responder.git;protocol=https"
-SRCREV = "761f7205e63444d88d218b14516217733dcfba44"
+SRCREV = "227f3a97ded3be2c32b085c7ec6a4d50b6dd5ad8"
 SRC_URI[md5sum] = "6316eea31615c6261fd4053aeb405961"
 SRC_URI[sha256sum] = "6d5bb2fb217bb41268e3c20063b7307acacac66a3d31a9b2c4e777e3b99c77d8"
 
 SRC_URI += "file://umtprd.conf"
+SRC_URI += "file://0001-Fix-usb-driver-close-if-SUSPEND-RESUME-events-comes-.patch"
 
 S = "${WORKDIR}/git"
 

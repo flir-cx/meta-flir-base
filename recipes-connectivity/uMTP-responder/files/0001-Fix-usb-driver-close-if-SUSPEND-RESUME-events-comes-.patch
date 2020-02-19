@@ -1,0 +1,39 @@
+From 088764dde74a11d82b35e0ef0a0acab85351df8d Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Wed, 19 Feb 2020 10:51:03 +0100
+Subject: [PATCH] Fix usb-driver close if SUSPEND RESUME events comes when
+ disconnecting usb-cable.
+
+---
+ src/umtprd.c     | 1 +
+ src/usb_gadget.c | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/src/umtprd.c b/src/umtprd.c
+index c44014f..fd2a45c 100644
+--- a/src/umtprd.c
++++ b/src/umtprd.c
+@@ -54,6 +54,7 @@ void* io_thread(void* arg)
+ 		ret = mtp_incoming_packet(mtp_context);
+ 		if(ret < 0)
+ 		{
++			// Read error is generated when disconnecting the cable, seems like issue with usb-driver...
+ 			ctx->stop = 1;
+ 		}
+ 	}
+diff --git a/src/usb_gadget.c b/src/usb_gadget.c
+index 8304412..673facd 100644
+--- a/src/usb_gadget.c
++++ b/src/usb_gadget.c
+@@ -701,6 +701,8 @@ int handle_ffs_ep0(usb_gadget * ctx)
+ 				break;
+ 			case FUNCTIONFS_RESUME:
+ 				PRINT_DEBUG("EP0 FFS RESUME");
++				// Don't stop on RESUME event, read error when disconnect cable causes the usb-device to close
++				ctx->stop = 0;
+ 				break;
+ 			}
+ 		}
+-- 
+2.7.4
+
