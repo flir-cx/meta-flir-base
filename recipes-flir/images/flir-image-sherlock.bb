@@ -94,6 +94,7 @@ IMAGE_INSTALL = " \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     parted \
+    pubsftp \
     python \
     qca-tools \
     qtbase \
