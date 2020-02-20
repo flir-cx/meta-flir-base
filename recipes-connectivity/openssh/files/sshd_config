@@ -132,3 +132,11 @@ Subsystem sftp internal-sftp
 #	AllowTcpForwarding no
 #	PermitTTY no
 #	ForceCommand cvs server
+
+Match User pubsftp
+        ChrootDirectory /srv/sftp
+        ForceCommand internal-sftp
+        AllowTcpForwarding no
+        X11Forwarding no
+        PasswordAuthentication no
+        AuthorizedKeysFile  /etc/flirssl/authorized_keys

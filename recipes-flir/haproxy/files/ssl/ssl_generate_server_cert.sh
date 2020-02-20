@@ -30,6 +30,8 @@ function generate_cert_pem {
     else
         cat ${CERTLOC}/certs/server.cert.pem > ${CERTLOC}/cert.pem
     fi
+    echo "generate a authorized_keys file for pubsftp"
+    (cd ${CERTLOC}; ln -sf ${CERTLOC}/cert.pem authorized_keys)
 }
 
 function usage {

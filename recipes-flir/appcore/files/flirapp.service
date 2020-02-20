@@ -14,6 +14,7 @@ ExecStop=/usr/bin/killall -HUP appcore
 KillMode=control-group
 TimeoutStopSec=10
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
+Group=userdata
 
 [Install]
 WantedBy=multi-user.target

@@ -38,11 +38,16 @@ USERADD_PARAM_${PN} = " \
         --create-home --shell /bin/sh --password \"${FLIRUSERPASSWD}\" fliruser ; \
     --uid 1200 --gid haproxy \
         --home /var/run/haproxy --shell /bin/false --system haproxy \
+; \
+    --uid 1201 --gid userdata \
+        --home /srv/sftp --shell /bin/false --system --password '*' pubsftp \
+; \
 "
 
 GROUPMEMS_PARAM_${PN} = " \
     --group profile --add www-data ; \
-    --group userdata --add www-data \
+    --group userdata --add www-data ; \
+    --group userdata --add pubsftp ; \
 "
 
 ALLOW_EMPTY_${PN} = "1"

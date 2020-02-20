@@ -1,0 +1,15 @@
+[Unit]
+Description=Do necessary bind mounts for public sftp access
+DefaultDependencies=no
+Conflicts=shutdown.target
+After=systemd-remount-fs.service
+Before=sshd.socket shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/pubsftp-mounts.sh
+
+[Install]
+WantedBy=sockets.target
+
