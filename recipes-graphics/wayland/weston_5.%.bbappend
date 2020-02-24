@@ -9,7 +9,7 @@ SRC_URI_append += "\
 	file://0002-Add-implementation-of-read_pixels-to-g2d_renderer.patch \
 	file://0003-Add-streaming-functionality-to-Weston.patch \
 	file://0004-Flir-startup-client-and-progressapp.patch \
-	file://weston_environment"
+	file://0005-remove-flir_startup.patch"			    
 
 FILES_${PN} += "\
 	    ${bindir}/weston-screenshooter \
@@ -23,11 +23,4 @@ do_install_append() {
     echo "" >> ${WESTON_INI}
     echo "[shell]" >> ${WESTON_INI}
     echo "panel-position=\"\"" >> ${WESTON_INI}
-
-    echo "" >> ${WESTON_INI}
-    echo "[flir_startup]" >> ${WESTON_INI}
-    echo "client=/FLIR/usr/bin/progressapp_weston" >> ${WESTON_INI}
-
-    install -d ${D}/etc/default
-    install -m 0755 ${WORKDIR}/weston_environment ${D}/etc/default/weston
 }
