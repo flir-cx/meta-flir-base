@@ -120,6 +120,7 @@ IMAGE_INSTALL = " \
     url-service \
     ${WEB_PACKAGES} \
     videorender-service \
+    progressapp-service \
     wifi-test-suite \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
