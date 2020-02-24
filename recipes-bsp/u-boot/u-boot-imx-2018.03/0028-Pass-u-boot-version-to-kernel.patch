@@ -1,0 +1,35 @@
+From 1bdad69a62822e9f47294be24e81e648923c4376 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Mon, 24 Feb 2020 14:26:14 +0100
+Subject: [PATCH] Pass u-boot-version to kernel
+
+%% original patch: 0028-Pass-u-boot-version-and-reset-cause-to-kernel.patch
+---
+ board/flir/ec201/ec201.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/board/flir/ec201/ec201.c b/board/flir/ec201/ec201.c
+index a74ca3b..0e54a4b 100644
+--- a/board/flir/ec201/ec201.c
++++ b/board/flir/ec201/ec201.c
+@@ -24,6 +24,7 @@
+ #include <i2c.h>
+ #include <bootstate.h>
+ #include <pf1550.h>
++#include <version.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -377,6 +378,9 @@ int ft_board_setup(void *blob, bd_t *bd)
+ 	temp[0] = cpu_to_fdt32(gd->fb_base);
+ 	temp[1] = cpu_to_fdt32(dispanel.width * dispanel.height * dispanel.gdfbytespp);
+ 	do_fixup_by_path(blob, "lcdif", "bootlogo", temp, sizeof(temp), 0);
++
++	do_fixup_by_path_string(blob, "/u-boot", "version", U_BOOT_VERSION_STRING);
++
+ 	return 0;
+ }
+ #endif
+-- 
+2.7.4
+
