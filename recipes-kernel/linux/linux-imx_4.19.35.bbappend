@@ -1,8 +1,15 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}-${PV}:"
 
-do_copy_defconfig () {
-   echo "no copy"
+do_preconfigure_prepend () {
+  mv ${WORKDIR}/defconfig ${WORKDIR}/defconfig.saved
 }
+
+do_preconfigure_append () {
+  mv ${WORKDIR}/defconfig ${WORKDIR}/defconfig.nxp
+  mv ${WORKDIR}/defconfig.saved ${WORKDIR}/defconfig
+  sed -e "${CONF_SED_SCRIPT}" < '${WORKDIR}/defconfig' >> '${B}/.config'
+}
+
 
 SRC_URI_append = " \
     file://0001-Device-tree-for-FLIR-bblc-brass-board-based-on-imx7u.patch \
