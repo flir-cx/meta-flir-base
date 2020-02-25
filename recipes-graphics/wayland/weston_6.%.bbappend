@@ -9,7 +9,9 @@ SRC_URI_append += "\
 	file://0002-Add-implementation-of-read_pixels-to-g2d_renderer.patch \
 	file://0003-Add-streaming-functionality-to-Weston.patch \
 	file://0004-Flir-startup-client-and-progressapp.patch \
-	file://0005-remove-flir_startup.patch"			    
+	file://0005-remove-flir_startup.patch \
+  file://0006-Disables-screenshoter-permission-control.patch \
+"
 
 FILES_${PN} += "\
 	    ${bindir}/weston-screenshooter \
