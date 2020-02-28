@@ -1,0 +1,25 @@
+From d78fb6edf1e965652a78321c366952e9f1f689f9 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Thu, 27 Feb 2020 18:41:49 +0100
+Subject: [PATCH] Write ethaddr instead of wlanaddr. Fix hostname.
+
+---
+ board/flir/ec201/cmd_setmac.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/board/flir/ec201/cmd_setmac.c b/board/flir/ec201/cmd_setmac.c
+index a5fedc2..09c29a2 100644
+--- a/board/flir/ec201/cmd_setmac.c
++++ b/board/flir/ec201/cmd_setmac.c
+@@ -60,7 +60,7 @@ int setmac_func(bool bt)
+         strcpy(addr, bt?"00:04:f3:ff:ff:fc":"00:04:f3:ff:ff:fb");
+     }
+ 
+-    env_set(bt?"btaddr":"wlanaddr", addr);
++    env_set(bt?"btaddr":"ethaddr", addr);
+ 
+     return 0;
+ }
+-- 
+2.7.4
+
