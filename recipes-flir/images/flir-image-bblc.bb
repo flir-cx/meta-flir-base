@@ -36,6 +36,7 @@ IMAGE_INSTALL = " \
     exfat-utils \ 
     firmware-laird \
     firmware-qca9377 \
+    flir-activity-monitor \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
@@ -74,7 +75,6 @@ IMAGE_INSTALL = " \
     rpmsg-bifrost \
     screen \
     screen-service \
-    sleepd \
     sysfsutils \
     sysmon-service \
     systemd \
