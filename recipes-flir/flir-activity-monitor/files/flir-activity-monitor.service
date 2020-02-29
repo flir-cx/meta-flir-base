@@ -1,0 +1,11 @@
+[Unit]
+Description=FLIR Activity Monitor
+After=flirapp.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/flir-activity-monitor
+
+[Install]
+WantedBy=multi-user.target
+
