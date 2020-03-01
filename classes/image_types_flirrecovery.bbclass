@@ -36,6 +36,11 @@ IMAGE_CMD_recovery.vfat() {
             fi
         done
     fi
+    if [ -e "${DEPLOY_DIR_IMAGE}/rootfs.version" ]; then
+          echo 1
+          BOOTIMG_FILES="${BOOTIMG_FILES} $(readlink -e ${DEPLOY_DIR_IMAGE}/rootfs.version)"
+          BOOTIMG_FILES_SYMLINK="${BOOTIMG_FILES_SYMLINK} ${DEPLOY_DIR_IMAGE}/rootfs.version"
+    fi
     if [ -d ${DEPLOY_DIR_IMAGE}/boot-script ]; then
        file_list=`ls -1 ${DEPLOY_DIR_IMAGE}/boot-script`
        for file in $file_list
