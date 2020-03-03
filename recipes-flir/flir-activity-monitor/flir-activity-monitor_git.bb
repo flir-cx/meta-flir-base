@@ -6,7 +6,7 @@ LICENSE = "CLOSED"
 inherit systemd
 inherit cmake
 
-DEPENDS += "systemd libevdev"
+DEPENDS += "systemd libevdev gtest"
 
 RPROVIDES_${PN} += "${PN}-systemd"
 RREPLACES_${PN} += "${PN}-systemd"
