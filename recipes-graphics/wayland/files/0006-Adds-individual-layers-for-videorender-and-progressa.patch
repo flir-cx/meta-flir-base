@@ -1,0 +1,99 @@
+From 7e7b71c1153c2998117e04b19e60668e902c6657 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Thu, 5 Mar 2020 15:33:57 +0100
+Subject: [PATCH] Adds individual layers for videorender and progressapp
+
+---
+ desktop-shell/shell.c  | 23 +++++++++++++++--------
+ desktop-shell/shell.h  |  2 ++
+ libweston/compositor.h |  6 ++++++
+ 3 files changed, 23 insertions(+), 8 deletions(-)
+
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index a65297a2..74515c7c 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -1893,14 +1893,15 @@ shell_surface_calculate_layer_link (struct shell_surface *shsurf)
+ 		return &shsurf->shell->fullscreen_layer.view_list;
+ 	}
+ 
+-        const char *id = weston_desktop_surface_get_app_id(shsurf->desktop_surface);
+-        if (id && (strncmp(id, "se.flir.background", 20) == 0)) {
+-            weston_log("Setting %s as background\n", id);
+-            return &shsurf->shell->background_layer.view_list;
+-        }else if (id && (strncmp(id, "se.flir.progressapp", 21) == 0)) {
+-            weston_log("Setting %s as lock\n", id);
+-            return &shsurf->shell->lock_layer.view_list;
+-        }
++	const char *id = weston_desktop_surface_get_app_id(shsurf->desktop_surface);
++	if (id && ((strncmp(id, "se.flir.background", 18) == 0) ||
++				(strncmp(id, "se.flir.videorender", 19) == 0))) {
++		weston_log("Setting %s as videorender\n", id);
++		return &shsurf->shell->videorender_layer.view_list;
++	}else if (id && (strncmp(id, "se.flir.progressapp", 19) == 0)) {
++		weston_log("Setting %s as progressapp\n", id);
++		return &shsurf->shell->progressapp_layer.view_list;
++	}
+ 
+ 	/* Move the surface to a normal workspace layer so that surfaces
+ 	 * which were previously fullscreen or transient are no longer
+@@ -5126,6 +5127,8 @@ wet_shell_init(struct weston_compositor *ec,
+ 	weston_layer_init(&shell->fullscreen_layer, ec);
+ 	weston_layer_init(&shell->panel_layer, ec);
+ 	weston_layer_init(&shell->background_layer, ec);
++	weston_layer_init(&shell->videorender_layer, ec);
++	weston_layer_init(&shell->progressapp_layer, ec);
+ 	weston_layer_init(&shell->lock_layer, ec);
+ 	weston_layer_init(&shell->input_panel_layer, ec);
+ 
+@@ -5135,6 +5138,10 @@ wet_shell_init(struct weston_compositor *ec,
+ 				  WESTON_LAYER_POSITION_UI);
+ 	weston_layer_set_position(&shell->background_layer,
+ 				  WESTON_LAYER_POSITION_BACKGROUND);
++	weston_layer_set_position(&shell->videorender_layer,
++				  WESTON_LAYER_POSITION_VIDEORENDER);
++	weston_layer_set_position(&shell->progressapp_layer,
++				  WESTON_LAYER_POSITION_PROGRESSAPP);
+ 	weston_layer_set_position(&shell->lock_layer,
+ 				  WESTON_LAYER_POSITION_LOCK);
+ 
+diff --git a/desktop-shell/shell.h b/desktop-shell/shell.h
+index fb8c2bf0..11b7dfb1 100644
+--- a/desktop-shell/shell.h
++++ b/desktop-shell/shell.h
+@@ -149,6 +149,8 @@ struct desktop_shell {
+ 	struct weston_layer fullscreen_layer;
+ 	struct weston_layer panel_layer;
+ 	struct weston_layer background_layer;
++	struct weston_layer videorender_layer;
++	struct weston_layer progressapp_layer;
+ 	struct weston_layer lock_layer;
+ 	struct weston_layer input_panel_layer;
+ 
+diff --git a/libweston/compositor.h b/libweston/compositor.h
+index 1f15a0ef..b5fc11aa 100644
+--- a/libweston/compositor.h
++++ b/libweston/compositor.h
+@@ -850,6 +850,9 @@ enum weston_layer_position {
+ 	/* For "desktop widgets" and applications like conky. */
+ 	WESTON_LAYER_POSITION_BOTTOM_UI  = 0x30000000,
+ 
++	/* For videorender */
++	WESTON_LAYER_POSITION_VIDEORENDER = 0x40000000,
++
+ 	/* For regular applications, only one layer should have this value
+ 	 * to ensure proper stacking control. */
+ 	WESTON_LAYER_POSITION_NORMAL     = 0x50000000,
+@@ -864,6 +867,9 @@ enum weston_layer_position {
+ 	 * will need. */
+ 	WESTON_LAYER_POSITION_TOP_UI     = 0xe0000000,
+ 
++	/* For progressapp */
++	WESTON_LAYER_POSITION_PROGRESSAPP = 0xf0000000,
++
+ 	/* For the lock surface. */
+ 	WESTON_LAYER_POSITION_LOCK       = 0xffff0000,
+ 
+-- 
+2.17.1
+
