@@ -58,7 +58,6 @@ IMAGE_INSTALL = " \
     e2fsprogs \
     exfat-utils \
     firmware-qca9377 \
-    flir-activity-monitor \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
