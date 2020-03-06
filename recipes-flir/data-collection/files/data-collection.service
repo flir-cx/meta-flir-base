@@ -6,3 +6,5 @@ Wants=url.service
 ExecStart=/FLIR/usr/bin/start-data-collection
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 
+[Install]
+WantedBy=multi-user.target
