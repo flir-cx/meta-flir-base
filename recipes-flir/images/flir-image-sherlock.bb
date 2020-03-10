@@ -107,6 +107,7 @@ IMAGE_INSTALL = " \
     systemd \
     systemd-analyze \
     systemd-compat-units \
+    systemd-failure-notifier \
     system-sleep-qca9377 \
     system-sleep-flir \
     telnetd-service \

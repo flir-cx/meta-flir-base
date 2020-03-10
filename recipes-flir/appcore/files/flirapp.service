@@ -16,6 +16,8 @@ TimeoutStopSec=10
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 Group=userdata
 
+ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
+
 [Install]
 WantedBy=multi-user.target
 
