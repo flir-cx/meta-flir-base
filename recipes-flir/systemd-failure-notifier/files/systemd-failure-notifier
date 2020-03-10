@@ -1,0 +1,25 @@
+#!/bin/bash -eEu
+set -o pipefail
+
+# This script is expected to be called as an ExecStopPost handler in systemd unit service.
+# It will log the execution stop unless it is a normal termination, using data-collection.
+# To include this script in systemd definition, use:
+#   ExecStopPost=<path>/systemd-failure-notifier "%n" "%i"
+# The instance name (%i) is optional.
+
+COLLECT_STATISTICS=/FLIR/usr/bin/collect-statistics
+
+# Only log errors, and if collect-statistics is installed
+if [[ ${SERVICE_RESULT} == "success" || ! -x ${COLLECT_STATISTICS} ]]; then
+	exit 0
+fi
+
+readonly NAME="${1}"
+readonly INSTANCE="${2:-}"
+
+# Take last lines from system log, gzip them and make them ASCII without any newlines
+# to suite JSON format.
+readonly JOURNAL=$(journalctl --lines=2000 | gzip | base64 | tr -d '\n')
+
+${COLLECT_STATISTICS} --event-id "systemd-${SERVICE_RESULT}" --field "name=${NAME}" --field "instance=${INSTANCE:-<none>}" --field "exit-code=${EXIT_CODE:-<none>}" --field "exit-status=${EXIT_STATUS:-<none>}" --field "log=${JOURNAL}"
+
