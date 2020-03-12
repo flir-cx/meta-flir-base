@@ -18,9 +18,11 @@ FILES_${PN} += "\
 	    ${sysconfdir}/default/weston"
 
 # enable g2d and configure shell in weston.ini
+# set black background
 do_install_append() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
     sed -i -e 's/#use-g2d=.*/use-g2d=1/g' ${WESTON_INI}
+	echo "background-color=0xFF000000" >> ${WESTON_INI}
 
     echo "" >> ${WESTON_INI}
     echo "[shell]" >> ${WESTON_INI}
