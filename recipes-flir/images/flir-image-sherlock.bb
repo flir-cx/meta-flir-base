@@ -102,6 +102,7 @@ IMAGE_INSTALL = " \
     rpmsg-bifrost \
     screen \
     screen-service \
+    startup-event \
     sysfsutils \
     sysmon-service \
     systemd \

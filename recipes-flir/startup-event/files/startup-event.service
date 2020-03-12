@@ -1,0 +1,14 @@
+[Unit]
+Description=Create startup event to usage statistics logging device information
+After=flirapp.service data-collection.service
+Nice=10
+
+[Service]
+ExecStart=/sbin/startup-event
+Type=oneshot
+RemainAfterExit=yes
+ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
+
+[Install]
+WantedBy=multi-user.target
+

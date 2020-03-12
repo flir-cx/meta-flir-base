@@ -1,0 +1,46 @@
+#!/bin/bash -eEu
+set -o pipefail
+
+# Generate a startup event in usage statistics. This event is meant to be created
+# for each cold start, and give information about the device. The information is
+# expected to be in a resource file created by appcore each time appcore starts.
+
+# Array of all values, in key=value format
+declare -a values
+
+readonly file="/FLIR/images/FLIRVers.rsc"
+
+# Take a string and make it a valid key name
+make_valid_key_name() {
+	# Translate '.' to '-'
+	local name="${1//./-}"
+
+	# Translate to lower-case
+	name="${name,,}"
+
+	# Remove all illegal characters in path, i.e. characters _not_ being lower case
+	# letter, digit or '-'.
+	name=$(echo ${name} | tr -cd '[:lower:][:digit:]-')
+
+	printf '%s' "${name}"
+}
+
+field_name_from_type() {
+	local -r type="$1"
+
+	case "${type}" in
+		int* | double) printf 'value';;
+		bool) printf 'bool';;
+		*) printf 'text';;
+	esac
+}
+
+while read key type value; do
+	value="${value//\"/}"
+	[[ ${value} != '' ]] || continue
+	event=$(make_valid_key_name "deviceinfo${key}")
+	field=$(field_name_from_type "${type}")
+
+	collect-statistics --event-id ${event} --field ${field}="${value}" --field event-source=startup-event --field event-type=info
+done < <(egrep -v '^#' "${file}" | tr '\r' '\n')
+
