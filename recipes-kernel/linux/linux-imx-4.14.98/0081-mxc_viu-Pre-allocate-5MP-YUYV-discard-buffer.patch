@@ -1,0 +1,259 @@
+From 420dc6d5ac29bd441a5521ac145e24de27ab9dea Mon Sep 17 00:00:00 2001
+From: David Sernelius <david.sernelius@flir.se>
+Date: Fri, 6 Mar 2020 10:39:50 +0100
+Subject: [PATCH] mxc_viu: Pre-allocate 5MP YUYV discard buffer
+
+Pre-allocate discard buffer with room for 5MP YUYV and remove
+allocations and deallocations during start and stop streaming, which
+caused memory fragmentation.
+---
+ drivers/media/platform/mxc/capture/mxc_viu.c | 118 ++++++++++++++++++++-------
+ 1 file changed, 87 insertions(+), 31 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_viu.c b/drivers/media/platform/mxc/capture/mxc_viu.c
+index d5d8b06b..d7845b6 100644
+--- a/drivers/media/platform/mxc/capture/mxc_viu.c
++++ b/drivers/media/platform/mxc/capture/mxc_viu.c
+@@ -41,6 +41,8 @@
+ #define IMX_VIU_DRV_NAME	"imx-viu-v4l2"
+ #define IMX_VIU_MAX_SUBDEV_NUM	4
+ 
++#define IMX_VIU_MIN_BUFS 2
++
+ #define notifier_to_viu_dev(n) container_of(n, struct imx_viu_device, notifier)
+ #define v4l2_dev_to_viu_dev(d) container_of(d, struct imx_viu_device, v4l2_dev)
+ 
+@@ -454,7 +456,7 @@ static int imx_viu_wait_for_field(struct imx_viu_device *viu_dev,
+ 
+ 		imx_viu_irq_enable(viu_dev, FIELD_IRQ);
+ next_field:
+-		ret = wait_for_completion_timeout(&viu_dev->field, HZ / 10);
++		ret = wait_for_completion_timeout(&viu_dev->field, HZ / 5);
+ 		if (!ret) {
+ 			dev_err(viu_dev->dev, "wait for field timeout\n");
+ 			imx_viu_irq_disable(viu_dev, FIELD_IRQ);
+@@ -960,23 +962,23 @@ static int imx_viu_queue_setup(struct vb2_queue *q,
+ 
+ 	/* TODO: don't support multiple plane format */
+ 
+-	WARN_ON(*num_buffers < 3);
++	WARN_ON(*num_buffers < IMX_VIU_MIN_BUFS);
++
++	if (sizes[0] <= 0)
++		sizes[0] = fmt->sizeimage;
+ 
+ 	switch (fmt->pixelformat) {
+ 	case V4L2_PIX_FMT_UYVY:
+ 		if (!*num_planes || *num_planes > 1)
+ 			*num_planes = 1;
+-		sizes[0] = fmt->sizeimage;
+ 		break;
+ 	case V4L2_PIX_FMT_YUYV:
+ 		if (!*num_planes || *num_planes > 1)
+ 			*num_planes = 1;
+-		sizes[0] = fmt->sizeimage;
+ 		break;
+ 	case V4L2_PIX_FMT_ABGR32:
+ 		if (!*num_planes || *num_planes > 1)
+ 			*num_planes = 1;
+-		sizes[0] = fmt->sizeimage;
+ 		break;
+ 	default:
+ 		/* unsupported format */
+@@ -1020,20 +1022,35 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 	unsigned long flags;
+ 	struct imx_viu_device *viu_dev = vb2_get_drv_priv(q);
+ 	struct imx_viu_buffer *viu_buf;
++	struct imx_viu_buffer *pos, *tmp;
+ 	struct vb2_buffer *vb;
+ 	dma_addr_t dma_addr;
+ 
+-	if (WARN_ON(count < 3))
+-		return -ENOBUFS;
++	if (WARN_ON(count < IMX_VIU_MIN_BUFS)) {
++		ret = -ENOBUFS;
++		goto clean_up;
++	}
+ 
+-	/* discard buffers for no buffer available */
+-	viu_dev->discard_size = viu_dev->v4l2_pix_fmt.sizeimage;
+-	viu_dev->discard_buffer = dma_alloc_coherent(viu_dev->v4l2_dev.dev,
+-					PAGE_ALIGN(viu_dev->discard_size),
+-					&viu_dev->discard_buffer_dma,
+-					GFP_DMA | GFP_KERNEL);
+-	if (!viu_dev->discard_buffer)
+-		return -ENOMEM;
++	/* Check if current discard_buffer is big enough, otherwise allocate a larger buffer*/
++	if (viu_dev->discard_size < viu_dev->v4l2_pix_fmt.sizeimage ||
++			!viu_dev->discard_buffer) {
++		if (viu_dev->discard_buffer) {
++			dma_free_coherent(viu_dev->v4l2_dev.dev,
++					viu_dev->discard_size, viu_dev->discard_buffer,
++					viu_dev->discard_buffer_dma);
++			viu_dev->discard_buffer = NULL;
++		}
++		viu_dev->discard_size = viu_dev->v4l2_pix_fmt.sizeimage;
++		viu_dev->discard_buffer = dma_alloc_coherent(viu_dev->v4l2_dev.dev,
++				PAGE_ALIGN(viu_dev->discard_size),
++				&viu_dev->discard_buffer_dma,
++				GFP_DMA | GFP_KERNEL);
++	}
++
++	if (!viu_dev->discard_buffer) {
++		ret = -ENOMEM;
++		goto clean_up;
++	}
+ 
+ 	spin_lock_irqsave(&viu_dev->slock, flags);
+ 
+@@ -1045,7 +1062,8 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 	if (unlikely(list_empty(&viu_dev->active_queue))) {
+ 		WARN_ON(1);
+ 		spin_unlock_irqrestore(&viu_dev->slock, flags);
+-		return -ENOBUFS;
++		ret = -ENOBUFS;
++		goto clean_up_discard;
+ 	}
+ 
+ 	viu_buf = list_first_entry(&viu_dev->active_queue,
+@@ -1061,12 +1079,12 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 
+ 	ret = imx_viu_set_fmt(viu_dev);
+ 	if (ret)
+-		return ret;
++		goto clean_up_discard;
+ 
+ 	/* wait for the first field of a frame */
+ 	ret = imx_viu_wait_for_field(viu_dev, 0);
+ 	if (ret)
+-		return ret;
++		goto clean_up_discard;
+ 
+ 	/* enable ERROR interrupt here */
+ 	imx_viu_irq_enable(viu_dev, ERROR_IRQ);
+@@ -1074,7 +1092,34 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 	imx_viu_irq_enable(viu_dev, DMA_END_IRQ);
+ 	ret = imx_viu_config_dma(viu_dev, dma_addr, 0);
+ 	if (ret)
+-		return ret;
++		goto clean_up_irq;
++
++	return 0;
++
++clean_up_irq:
++	/* disable ERROR interrupt here */
++	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
++	/* enable dma transfer */
++	imx_viu_irq_disable(viu_dev, DMA_END_IRQ);
++
++clean_up_discard:
++	INIT_LIST_HEAD(&viu_dev->discard);
++
++clean_up:
++	spin_lock_irqsave(&viu_dev->slock, flags);
++	list_for_each_entry_safe(pos, tmp,
++			&viu_dev->active_queue, internal.queue) {
++
++		list_del_init(&pos->internal.queue);
++		vb = &pos->vb.vb2_buf;
++		if (vb->state == VB2_BUF_STATE_ACTIVE)
++			vb2_buffer_done(vb, VB2_BUF_STATE_QUEUED);
++	}
++
++	INIT_LIST_HEAD(&viu_dev->active_queue);
++
++	spin_unlock_irqrestore(&viu_dev->slock, flags);
++
+ 
+ 	return ret;
+ }
+@@ -1086,12 +1131,11 @@ static void imx_viu_stop_streaming(struct vb2_queue *q)
+ 	struct imx_viu_device *viu_dev = vb2_get_drv_priv(q);
+ 	struct imx_viu_buffer *pos, *tmp;
+ 	struct vb2_buffer *vb;
+-	void *tmpbuf;
+ 
+ 	/* It shall only be configured when DMA is
+ 	 * inactive, during vertical blanking.
+ 	 */
+-	ret = wait_for_completion_timeout(&viu_dev->dma_done, HZ / 10);
++	ret = wait_for_completion_timeout(&viu_dev->dma_done, HZ / 5);
+ 	if (!ret) {
+ 		dev_err(viu_dev->dev, "wait for dma done timeout\n");
+ 	}
+@@ -1110,20 +1154,13 @@ static void imx_viu_stop_streaming(struct vb2_queue *q)
+ 		list_del_init(&pos->internal.queue);
+ 		vb = &pos->vb.vb2_buf;
+ 		if (vb->state == VB2_BUF_STATE_ACTIVE)
+-			vb2_buffer_done(vb, VB2_BUF_STATE_ERROR);
++			vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+ 	}
+ 
+ 	INIT_LIST_HEAD(&viu_dev->active_queue);
+ 	INIT_LIST_HEAD(&viu_dev->discard);
+ 
+-	tmpbuf = viu_dev->discard_buffer;
+-	viu_dev->discard_buffer = NULL;
+-
+ 	spin_unlock_irqrestore(&viu_dev->slock, flags);
+-
+-	dma_free_coherent(viu_dev->v4l2_dev.dev,
+-				viu_dev->discard_size, tmpbuf,
+-				viu_dev->discard_buffer_dma);
+ }
+ 
+ static void imx_viu_buf_queue(struct vb2_buffer *vb)
+@@ -1425,7 +1462,7 @@ static int imx_viu_probe(struct platform_device *pdev)
+ 	vb2q->dev = viu_dev->dev;
+ 	vb2q->drv_priv = viu_dev;
+ 	vb2q->buf_struct_size = sizeof(struct imx_viu_buffer);
+-	vb2q->min_buffers_needed = 3;
++	vb2q->min_buffers_needed = IMX_VIU_MIN_BUFS;
+ 	vb2q->ops = &imx_viu_vb2_ops;
+ 	vb2q->mem_ops = &vb2_dma_contig_memops;
+ 	vb2q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+@@ -1474,6 +1511,19 @@ static int imx_viu_probe(struct platform_device *pdev)
+ 		goto release_video_device;
+ 	}
+ 
++	/* Pre-allocate discard buffer with room for 5MP YUYV */
++	viu_dev->discard_size = 2592 * 1944 * 2;
++	viu_dev->discard_buffer = dma_alloc_coherent(viu_dev->v4l2_dev.dev,
++			PAGE_ALIGN(viu_dev->discard_size),
++			&viu_dev->discard_buffer_dma,
++			GFP_DMA | GFP_KERNEL);
++
++	if (!viu_dev->discard_buffer) {
++		ret = -ENOMEM;
++		dev_err(viu_dev->dev, "failed to allocate discard buffer\n");
++		goto release_video_device;
++	}
++
+ 	pm_runtime_enable(viu_dev->dev);
+ 	init_completion(&viu_dev->field);
+ 	init_completion(&viu_dev->dma_done);
+@@ -1509,6 +1559,12 @@ static int imx_viu_remove(struct platform_device *pdev)
+ 	video_device_release(viu_dev->vdev);
+ 	v4l2_device_unregister(&viu_dev->v4l2_dev);
+ 
++	if (viu_dev->discard_buffer) {
++		dma_free_coherent(viu_dev->v4l2_dev.dev,
++				viu_dev->discard_size, viu_dev->discard_buffer,
++				viu_dev->discard_buffer_dma);
++		viu_dev->discard_buffer = NULL;
++	}
+ 	return 0;
+ }
+ 
+@@ -1524,7 +1580,7 @@ static int imx_viu_suspend(struct device *dev)
+ 	if (!vb2_is_streaming(&viu_dev->queue))
+ 		goto pin_sleep;
+ 
+-	ret = wait_for_completion_timeout(&viu_dev->dma_done, HZ / 10);
++	ret = wait_for_completion_timeout(&viu_dev->dma_done, HZ / 5);
+ 	if (!ret) {
+ 		dev_err(dev, "wait for dma done timeout\n");
+ 	}
+-- 
+2.7.4
+
