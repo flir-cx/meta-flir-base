@@ -20,6 +20,7 @@ SRC_URI = "file://systemd-failure-notifier"
 do_compile[noexec] = "1"
 
 do_install() {
+    install -d ${D}/sbin
     install -Dm 0755 --target-directory ${D}/sbin/ ${WORKDIR}/systemd-failure-notifier
 }
 
