@@ -24,4 +24,4 @@ SRC_URI += "file://0026-Set-usb-and-bt-mac-addresses-from-board-serial.patch"
 SRC_URI += "file://0027-SHLK-1770-Check-THM_OK-if-charging-should-be-enabled.patch"
 SRC_URI += "file://0028-Pass-u-boot-version-to-kernel.patch"
 SRC_URI += "file://0029-Write-ethaddr-instead-of-wlanaddr.-Fix-hostname.patch"
-
+SRC_URI += "file://0030-Increase-hard-reset-time.patch"

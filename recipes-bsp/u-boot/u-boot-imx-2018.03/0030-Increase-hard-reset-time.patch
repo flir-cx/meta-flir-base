@@ -1,0 +1,56 @@
+From 13d368edac76066c7aadc2850171dfd986135b46 Mon Sep 17 00:00:00 2001
+From: Erik Axelsson <erik.axelsson@flir.com>
+Date: Fri, 20 Mar 2020 08:42:05 +0100
+Subject: [PATCH] Increase PMIC hard reset time to 12 seconds
+
+---
+ board/flir/ec201/pf1550.c | 8 ++++++++
+ board/flir/ec201/pf1550.h | 6 ++++++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/board/flir/ec201/pf1550.c b/board/flir/ec201/pf1550.c
+index 039970df27..f402135799 100644
+--- a/board/flir/ec201/pf1550.c
++++ b/board/flir/ec201/pf1550.c
+@@ -112,6 +112,9 @@ void reboot(void)
+ 
+ void init_pf1550_pmic(void)
+ {
++	u8 curr_pwr_ctrl0;
++	u8 new_pwr_ctrl0;
++
+ 	//set Carger operation to charger=off, linear=on
+ 	pf1550_write_reg(PF1550_CHARG_REG_CHG_OPER, CHARGER_OFF_LINEAR_ON);
+ 	//set THM_CNFG=NO_THERMISTOR_CONTROL REGTEMP=95C THM_COLD=0C THM_HOT=55C TMP_FB_EN=1
+@@ -121,6 +124,11 @@ void init_pf1550_pmic(void)
+ 	//set charger current to 1A PRECHGLB_THRS=2.8V
+ 	pf1550_write_reg(PF1550_CHARG_REG_CHG_CURR_CNFG, 0x12);
+ 
++	//set time to press off button before triggering a PMIC reset
++	pf1550_read_reg(PF1550_PMIC_REG_PWRCTRL0, &curr_pwr_ctrl0);
++	new_pwr_ctrl0 = (curr_pwr_ctrl0 & ~PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK) | PF1550_PMIC_REG_PWRCTRL0_TGRESET_12S;
++	pf1550_write_reg(PF1550_PMIC_REG_PWRCTRL0, new_pwr_ctrl0);
++
+ 	mx7ulp_iomux_setup_multiple_pads(pmic_wdog_pad, ARRAY_SIZE(pmic_wdog_pad));
+ 	gpio_request(PMIC_WDOG_GPIO, "pmic_wdog");
+ }
+diff --git a/board/flir/ec201/pf1550.h b/board/flir/ec201/pf1550.h
+index 6d07016a9e..ead2aed38d 100644
+--- a/board/flir/ec201/pf1550.h
++++ b/board/flir/ec201/pf1550.h
+@@ -162,6 +162,12 @@ enum pf1550_pmic_reg {
+ #define PF1550_CHARG_REG_THM_REG_CNFG_REGTEMP_SHIFT	2
+ #define PF1550_CHARG_REG_THM_REG_CNFG_REGTEMP_MASK	(0x3 << 2)
+ 
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK		(0x3 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_4S 		(0x0 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_8S 		(0x1 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_12S		(0x2 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_16S		(0x3 << 6)
++
+ #define PF1550_CHARG_REG_CHG_OPER_CHG_OPER_MASK 0x3
+ 
+ enum pf1550_chg_oper{
+-- 
+2.17.1
+
