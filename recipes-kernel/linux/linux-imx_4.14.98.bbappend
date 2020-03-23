@@ -76,6 +76,7 @@ SRC_URI_append = " \
     file://0079-imx7ulp-ec201.dtsi-Set-backlight-PWM-period-to-1-ms-.patch \
     file://0080-pf1550-Toggle-charging-based-on-THM_SNS-change.patch \
     file://0081-mxc_viu-Pre-allocate-5MP-YUYV-discard-buffer.patch \
+    file://0082-mxc_rpmsg-Reset-buffers-in-m4-if-dma-addr-mismatch.patch \
     file://defconfig" 
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"

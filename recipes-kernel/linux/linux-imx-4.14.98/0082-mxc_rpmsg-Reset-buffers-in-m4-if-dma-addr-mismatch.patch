@@ -1,0 +1,215 @@
+From 4aeb94d50e03c3f80b7505423069161efa256cf6 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david@tinygiant.se>
+Date: Mon, 23 Mar 2020 09:49:23 +0100
+Subject: [PATCH] mxc_rpmsg: Reset buffers in m4 if dma addr mismatch
+
+---
+ drivers/media/platform/mxc/capture/m4_rpmsg.c | 33 ++++++--
+ .../media/platform/mxc/capture/mxc_rpmsg.c    | 79 +++++--------------
+ 2 files changed, 45 insertions(+), 67 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/m4_rpmsg.c b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+index 4b0d67e4a05d..0c14c8dd525a 100644
+--- a/drivers/media/platform/mxc/capture/m4_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+@@ -67,12 +67,13 @@ enum rxtypes {
+ 	RX_BUF_1,
+ 	RX_BUF_2,
+ 	RX_BUF_3,
++	DROP_BUFFERS = 100,
+ };
+ 
+-struct csi_rx_msg {
++typedef struct {
+ 	uint32_t type;
+ 	uint32_t addr;
+-};
++} csi_msg_t;
+ 
+ struct ovRpmsg {
+ 	struct v4l2_subdev		subdev;
+@@ -393,7 +394,7 @@ static struct v4l2_subdev_ops ovRpsg_subdev_ops = {
+ int rpmsg_send_buffer(dma_addr_t eba)
+ {
+ 	int err = 0;
+-	struct csi_rx_msg msg;
++	csi_msg_t msg;
+ 	static int buffer_num;
+ 
+ 	msg.type = RX_BUF_0 + buffer_num;
+@@ -407,6 +408,25 @@ int rpmsg_send_buffer(dma_addr_t eba)
+ }
+ EXPORT_SYMBOL(rpmsg_send_buffer);
+ 
++/*
++ * rpmsg_drop_buffers
++ *
++ * Tell M4 to drop all non-processed buffers
++ */
++
++int rpmsg_drop_buffers(void)
++{
++	int err = 0;
++	csi_msg_t msg;
++	msg.type = DROP_BUFFERS;
++	msg.addr = 0;
++
++	err = rpmsg_send(ovRpmsg_data.rpmsg_dev->ept, &msg, sizeof(msg));
++	return err;
++}
++EXPORT_SYMBOL(rpmsg_drop_buffers);
++
++
+ /*
+  * rpmsg_lepton_callback
+  *
+@@ -416,16 +436,13 @@ EXPORT_SYMBOL(rpmsg_send_buffer);
+ static int rpmsg_lepton_callback(struct rpmsg_device *dev, void *data, int len,
+ 		void *priv, u32 src)
+ {
+-	struct {
+-		uint32_t addr;
+-		uint32_t buf_num;
+-	} *msg = data;
++	csi_msg_t *msg = (csi_msg_t *)data;
+ //	print_hex_dump(KERN_INFO, "incoming message:", DUMP_PREFIX_NONE, 16, 1, data, len, true);
+ 
+ //	pr_info("Got %X %d\n", msg->addr, msg->buf_num);
+ 
+ 	if (ovRpmsg_data.callback) {
+-		ovRpmsg_data.callback(msg->addr, msg->buf_num, ovRpmsg_data.callback_dev);
++		ovRpmsg_data.callback(msg->addr, msg->type, ovRpmsg_data.callback_dev);
+ 	}
+ 
+ 	return 0;
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index 894a620ac7e1..f0cac2343f2e 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -50,6 +50,7 @@
+ #define REG_GET(x, e, s) (((x) & REG_MASK(e, s)) >> (s))
+ 
+ extern int rpmsg_send_buffer(dma_addr_t eba);
++extern int rpmsg_drop_buffers(void);
+ extern int rpmsg_setup_callback(void (*func)(uint32_t addr, uint32_t buf_num, void *ptr), void *ptr);
+ 
+ struct imx_rpmsg_input {
+@@ -695,18 +696,10 @@ static struct vb2_ops imx_rpmsg_vb2_ops = {
+ 
+ static int imx_rpmsg_dma_done_handle(struct imx_rpmsg_device *rpmsg_dev, dma_addr_t dma_addr)
+ {
+-#if 0 	/* Still problems with what seems to be "double reporting" of done dma transfers, use approach with no checks instead.
+-		/ TODO: this should be investigated more */
+-	bool found = false;
++	int buf_idx = 0;
+ 	unsigned long flags;
+ 	struct imx_rpmsg_buffer *buf, *tmp;
+ 	struct vb2_buffer *vb;
+-    static dma_addr_t last_dma = 0;
+-    if (dma_addr == last_dma) {
+-		dev_err(rpmsg_dev->dev, "Same dma addr: 0x%X as previous reported done.", dma_addr);
+-    }
+-
+-    last_dma = dma_addr;
+ 
+ 	spin_lock_irqsave(&rpmsg_dev->slock, flags);
+ 
+@@ -716,6 +709,7 @@ static int imx_rpmsg_dma_done_handle(struct imx_rpmsg_device *rpmsg_dev, dma_add
+ 		return -ENOBUFS;
+ 	}
+ 
++	/* Find the matching buffer by dma addr */
+ 	list_for_each_entry_safe(buf, tmp,
+ 			&rpmsg_dev->active_queue, internal.queue) {
+ 		vb = &buf->vb.vb2_buf;
+@@ -724,58 +718,29 @@ static int imx_rpmsg_dma_done_handle(struct imx_rpmsg_device *rpmsg_dev, dma_add
+ 			list_del_init(&buf->internal.queue);
+ 			to_vb2_v4l2_buffer(vb)->sequence = rpmsg_dev->frame_count++;
+ 			vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+-			found = true;
+ 			break;
+ 		}
++		buf_idx++;
+ 	}
+ 
+-	if (!found) {
+-        dma_addr_t dm[16] = {0};
+-        int d = 0, i = 0;
+-        list_for_each_entry_safe(buf, tmp,
+-                &rpmsg_dev->active_queue, internal.queue) {
++	/*
++	 * If the dma addr doesn't match the first buffer in the list a buffer
++	 * must have been lost so we have to reset the buffer list in the m4
++	 * and queue all active buffers again.
++	 */
++	if (buf_idx > 0) {
++		dma_addr_t dma_to_m4;
++		/* reset buffers in m4 */
++		rpmsg_drop_buffers();
++		/* readd buffers m4 with same order as in driver */
++		list_for_each_entry_safe(buf, tmp,
++				&rpmsg_dev->active_queue, internal.queue) {
+ 			vb = &buf->vb.vb2_buf;
+-			dm[d++] = vb2_dma_contig_plane_dma_addr(vb, 0);
+-			if (d >= 16) break;
+-        }
+-		spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
+-
+-		dev_err(rpmsg_dev->dev, "Couldn't find matching vb2_buf for dma addr: 0x%X "
+-				"[ 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X ]", dma_addr,
+-				dm[0], dm[1], dm[2], dm[3], dm[4], dm[5], dm[6], dm[7],
+-				dm[8], dm[9], dm[10], dm[11], dm[12], dm[13], dm[14], dm[15]);
+-		return 0;
+-	}
+-
+-	spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
+-#endif
+-
+-	unsigned long flags;
+-	struct imx_rpmsg_buffer *buf;
+-	struct vb2_buffer *vb;
+-
+-	spin_lock_irqsave(&rpmsg_dev->slock, flags);
+-
+-	if (unlikely(list_empty(&rpmsg_dev->active_queue))) {
+-		WARN_ON(1);
+-		spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
+-		return -ENOBUFS;
+-	}
+-
+-	buf = list_first_entry (&rpmsg_dev->active_queue,
+-			struct imx_rpmsg_buffer,
+-			internal.queue);
+-
+-	if (!buf) {
+-		spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
+-		return -ENOBUFS;
++			dma_to_m4 = vb2_dma_contig_plane_dma_addr(vb, 0);
++			imx_rpmsg_config_dma(rpmsg_dev, dma_to_m4, 0);
++		}
+ 	}
+ 
+-	vb = &buf->vb.vb2_buf;
+-	list_del_init(&buf->internal.queue);
+-	to_vb2_v4l2_buffer(vb)->sequence = rpmsg_dev->frame_count++;
+-	vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+-
+ 	spin_unlock_irqrestore(&rpmsg_dev->slock, flags);
+ 
+ 	return 0;
+@@ -784,11 +749,7 @@ static int imx_rpmsg_dma_done_handle(struct imx_rpmsg_device *rpmsg_dev, dma_add
+ static void imx_rpmsg_callback(uint32_t addr, uint32_t buf_num, void *ptr)
+ {
+ 	struct imx_rpmsg_device *rpmsg_dev = ptr;
+-/*    static u32 nbr = 0;
+-    if((++nbr % 900) == 0) {
+-        dev_err(rpmsg_dev->dev, "Received %d rpmsg done callback (streaming: %d).", nbr, rpmsg_dev->streaming);
+-    }
+-*/
++
+ 	if (rpmsg_dev->streaming)
+ 		imx_rpmsg_dma_done_handle(rpmsg_dev, (dma_addr_t)addr);
+ }
+-- 
+2.25.1
+
