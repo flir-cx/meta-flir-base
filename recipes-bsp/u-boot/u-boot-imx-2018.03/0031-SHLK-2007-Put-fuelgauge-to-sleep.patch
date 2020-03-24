@@ -1,0 +1,302 @@
+From f7d27a8ad7f4de0cb4da96c838ab85440c64a6e4 Mon Sep 17 00:00:00 2001
+From: Adrien Martinez <adrien.martinez@flir.com>
+Date: Tue, 24 Mar 2020 15:37:25 +0100
+Subject: [PATCH] SHLK-2007 Put fuelgauge to sleep
+
+%% original patch: 0031-SHLK-2007-Put-fuelgauge-to-sleep. Patch
+---
+ board/flir/ec201/Makefile    |   1 +
+ board/flir/ec201/bootstate.c |   4 ++
+ board/flir/ec201/chargeapp.c |   5 +-
+ board/flir/ec201/ec201.c     |  47 +--------------
+ board/flir/ec201/lc709203.c  | 114 +++++++++++++++++++++++++++++++++++
+ board/flir/ec201/lc709203.h  |  22 +++++++
+ 6 files changed, 146 insertions(+), 47 deletions(-)
+ create mode 100644 board/flir/ec201/lc709203.c
+ create mode 100644 board/flir/ec201/lc709203.h
+
+diff --git a/board/flir/ec201/Makefile b/board/flir/ec201/Makefile
+index 770864c681..4e89f8307e 100644
+--- a/board/flir/ec201/Makefile
++++ b/board/flir/ec201/Makefile
+@@ -10,5 +10,6 @@ obj-y  += ec201.o
+ obj-y  += bootstate.o
+ obj-y  += chargeapp.o
+ obj-y  += pf1550.o
++obj-y  += lc709203.o
+ obj-y  += cmd_recoverytrigger.o
+ obj-y  += cmd_setmac.o
+diff --git a/board/flir/ec201/bootstate.c b/board/flir/ec201/bootstate.c
+index f64bf7f54d..b7d367db41 100644
+--- a/board/flir/ec201/bootstate.c
++++ b/board/flir/ec201/bootstate.c
+@@ -23,6 +23,7 @@
+ #include <dm.h>
+ #include <i2c.h>
+ #include <pf1550.h>
++#include <lc709203.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -206,6 +207,7 @@ int boot_state_init(void)
+ 		break;
+ 	case INVALID_EVENT:
+ 		printf("Invalid boot event: INVALID_EVENT \n");
++		fuelgauge_sleep();
+ 		power_off();
+ 		break;
+ 
+@@ -233,11 +235,13 @@ static int do_boot_state(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
+ 
+ 	case NO_BATTERY:
+ 		printf("Battery missing\n");
++		fuelgauge_sleep();
+ 		power_off();
+ 		break;
+ 
+ 	case LOW_BATTERY:
+ 		printf("Battery low power\n");
++		fuelgauge_sleep();
+ 		power_off();
+ 		break;
+ 
+diff --git a/board/flir/ec201/chargeapp.c b/board/flir/ec201/chargeapp.c
+index c06896aa72..d5d7e57187 100644
+--- a/board/flir/ec201/chargeapp.c
++++ b/board/flir/ec201/chargeapp.c
+@@ -13,6 +13,7 @@
+ #include <stdio_dev.h>
+ #include <video.h>
+ #include <pf1550.h>
++#include <lc709203.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -171,8 +172,10 @@ static int do_chargeapp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
+ 		}
+ 
+ 		//poweroff camera if usb-cable is removed
+-		if(!get_usb_cable_state())
++		if(!get_usb_cable_state()){
++			fuelgauge_sleep();
+ 			power_off();
++		}
+ 
+ 		//exit if ctrlc is pressed
+ 		if(ctrlc())
+diff --git a/board/flir/ec201/ec201.c b/board/flir/ec201/ec201.c
+index 0e54a4b0ae..bfc9f8beec 100644
+--- a/board/flir/ec201/ec201.c
++++ b/board/flir/ec201/ec201.c
+@@ -24,6 +24,7 @@
+ #include <i2c.h>
+ #include <bootstate.h>
+ #include <pf1550.h>
++#include <lc709203.h>
+ #include <version.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+@@ -94,52 +95,6 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
+ }
+ #endif
+ 
+-#define CHANGE_OF_THE_PARAMETER_REG 0x12
+-#define IC_POWER_MODE_REG 0x15
+-#define STATUS_BIT_REG	0x16
+-#define THERMISTOR_MODE 0x1
+-#define OPERATIONAL_MODE 0x1
+-
+-int fuelgauge_init(void)
+-{
+-	struct udevice *dev;
+-	u8 buf[4];
+-	int ret;
+-
+-	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
+-	if (ret) {
+-		printf("Can not find fuelgauge LC 709203: %d\n", ret);
+-		return ret;
+-	}
+-
+-	//Power on fuelgauge from standby
+-	buf[0] = OPERATIONAL_MODE;
+-	buf[1] = 0x0;
+-	buf[2] = 0x64; //crc
+-	dm_i2c_write(dev, IC_POWER_MODE_REG, buf, 3); //any write to the device will make it ready to do i2c communication
+-	dm_i2c_write(dev, IC_POWER_MODE_REG, buf, 3); //second write will set it in operational mode
+-
+-	//Thermistor mode: fuelgague measures the attached resistor
+-	buf[0] = THERMISTOR_MODE;
+-	buf[1] = 0x0;
+-	buf[2] = 0xd9;
+-	dm_i2c_write(dev, STATUS_BIT_REG, buf, 3);
+-
+-	//Check if battery profile already is selected
+-	//Every write to this register will recalibrate the fuelgauge, 
+-	//which we only want to do once
+-	ret = dm_i2c_read(dev, CHANGE_OF_THE_PARAMETER_REG, buf, 2);
+-	if(ret==0 && *(u16*)buf == 0)
+-	{
+-		//Select battery profile 1
+-		buf[0] = 0x01;
+-		buf[1] = 0x0;
+-		buf[2] = 0x72;
+-		dm_i2c_write(dev, 0x12, buf, 3);
+-	}
+-	return 0;
+-}
+-
+ int usb_charge_detect(void)
+ {
+ 	u32	dcd_status;
+diff --git a/board/flir/ec201/lc709203.c b/board/flir/ec201/lc709203.c
+new file mode 100644
+index 0000000000..d1ec374b12
+--- /dev/null
++++ b/board/flir/ec201/lc709203.c
+@@ -0,0 +1,114 @@
++
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <lc709203.h>
++
++static uint8_t crc8(const void* vptr, int len) {
++	const uint8_t *data = vptr;
++	unsigned crc = 0;
++	int i, j;
++
++	for (j = len; j; j--, data++) {
++		crc ^= (*data << 8);
++		for(i = 8; i; i--) {
++			if (crc & 0x8000)
++				crc ^= (0x1070 << 3);
++			crc <<= 1;
++		}
++	}
++
++	return (uint8_t)(crc >> 8);
++}
++
++int fuelgauge_write_reg(uint reg, u8 lb, u8 hb)
++{
++	struct udevice *dev;
++	u8 buf[4];
++	int ret;
++	uint8_t crc;
++
++	ret = i2c_get_chip_for_busnum(FUELGAUGE_I2C_BUS, FUELGAUGE_I2C_ADDR, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC709203: %d\n", ret);
++		return ret;
++	}
++
++	/* Calculate crc */
++	buf[0] = FUELGAUGE_I2C_ADDR << 1;
++	buf[1] = reg;
++	buf[2] = lb;
++	buf[3] = hb;
++	crc = crc8(buf,4);
++
++	buf[0] = lb;
++	buf[1] = hb;
++	buf[2] = crc;
++	dm_i2c_write(dev, reg, buf, 3);
++
++	return 0;
++}
++
++int fuelgauge_sleep(void)
++{
++	return fuelgauge_write_reg(IC_POWER_MODE_REG, FUELGAUGE_SLEEP_MODE, 0);
++}
++
++int fuelgauge_operational(void)
++{
++	/* First write is to enable i2c communication with the fuelgauge */
++	int ret;
++	ret = fuelgauge_write_reg(IC_POWER_MODE_REG, OPERATIONAL_MODE, 0);
++	if(ret)
++		return ret;
++
++	udelay(1000);
++
++	return fuelgauge_write_reg(IC_POWER_MODE_REG, OPERATIONAL_MODE, 0);
++}
++
++int fuelgauge_thermistor_mode(void)
++{
++	return fuelgauge_write_reg(STATUS_BIT_REG, THERMISTOR_MODE, 0);
++}
++
++int fuelgauge_battery_profile_one(void)
++{
++	return fuelgauge_write_reg(CHANGE_OF_THE_PARAMETER_REG, BATTERY_PROFILE_ONE, 0);
++}
++
++int fuelgauge_init(void)
++{
++	struct udevice *dev;
++	u8 buf[4];
++	int ret;
++
++	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC 709203: %d\n", ret);
++		return ret;
++	}
++
++	/* Power on fuelgauge from standby */
++	fuelgauge_operational();
++
++	/* Thermistor mode: fuelgauge measures the attached resistor */
++	fuelgauge_thermistor_mode();
++
++	/* Check if battery profile already is selected
++	 * Every write to this register will recalibrate the fuelgauge,
++	 * which we only want to do once */
++	ret = dm_i2c_read(dev, CHANGE_OF_THE_PARAMETER_REG, buf, 2);
++	if(ret==0 && *(u16*)buf == 0)
++	{
++		/* Select battery profile 1 */
++		fuelgauge_battery_profile_one();
++	}
++	return 0;
++}
++
+diff --git a/board/flir/ec201/lc709203.h b/board/flir/ec201/lc709203.h
+new file mode 100644
+index 0000000000..26cf08a383
+--- /dev/null
++++ b/board/flir/ec201/lc709203.h
+@@ -0,0 +1,22 @@
++#include <dm.h>
++#include <i2c.h>
++
++#define FUELGAUGE_I2C_ADDR 0xb
++#define FUELGAUGE_I2C_BUS 5
++#define CHANGE_OF_THE_PARAMETER_REG 0x12
++#define BATTERY_PROFILE_ONE 0x01
++
++#define IC_POWER_MODE_REG 0x15
++#define STATUS_BIT_REG	0x16
++#define THERMISTOR_MODE 0x1
++#define OPERATIONAL_MODE 0x1
++#define FUELGAUGE_SLEEP_MODE 0x2
++
++int fuelgauge_init(void);
++
++int fuelgauge_sleep(void);
++int fuelgauge_operational(void);
++
++int fuelgauge_battery_profile_one(void);
++int fuelgauge_thermistor_mode(void);
++int fuelgauge_write_reg(uint reg, u8 lb, u8 hb);
+-- 
+2.26.0
+

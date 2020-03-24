@@ -25,3 +25,4 @@ SRC_URI += "file://0027-SHLK-1770-Check-THM_OK-if-charging-should-be-enabled.pat
 SRC_URI += "file://0028-Pass-u-boot-version-to-kernel.patch"
 SRC_URI += "file://0029-Write-ethaddr-instead-of-wlanaddr.-Fix-hostname.patch"
 SRC_URI += "file://0030-Increase-hard-reset-time.patch"
+SRC_URI += "file://0031-SHLK-2007-Put-fuelgauge-to-sleep.patch"
