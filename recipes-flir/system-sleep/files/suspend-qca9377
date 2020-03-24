@@ -5,10 +5,14 @@ case $1 in
         systemctl stop gadget
         systemctl stop bluetooth
         systemctl stop btload
+        systemctl stop connman
+        systemctl stop wpa_supplicant
         modprobe -r qca9377
     ;;
     post)
         modprobe qca9377
+        systemctl start wpa_supplicant
+        systemctl start connman
         systemctl start btload
         systemctl start bluetooth
         systemctl start gadget
