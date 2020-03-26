@@ -1,0 +1,42 @@
+From 5aeebc48e8449e39a8ad0f2f1c525464ad94e837 Mon Sep 17 00:00:00 2001
+From: Jouni Malinen <jouni@qca.qualcomm.com>
+Date: Wed, 29 Apr 2015 20:48:07 +0300
+Subject: D-Bus Fix network_is_persistent_group() for P2P operations
+
+Commit c2762e410fa319f75a174aeb12343beddf99fce4 ('P2P: Update D-Bus
+network object semantics during group formation') added this helper
+function to determine whether a network block is used for storing a
+persistent group information. However, it implemented this in a way that
+matches both persistent group storage and an operating persist group
+instance. This does not seem to match the expected behavior for the
+D-Bus objects, so fix this to match only the persistent group storage
+case to avoid registering/unregistered incorrect D-Bus objects for
+groups.
+
+Signed-off-by: Jouni Malinen <jouni@qca.qualcomm.com>
+---
+ wpa_supplicant/wpa_supplicant_i.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/wpa_supplicant/wpa_supplicant_i.h b/wpa_supplicant/wpa_supplicant_i.h
+index 8ed8b72..364ba19 100644
+--- a/wpa_supplicant/wpa_supplicant_i.h
++++ b/wpa_supplicant/wpa_supplicant_i.h
+@@ -1118,13 +1118,13 @@ struct wpa_bss * wpa_supplicant_pick_network(struct wpa_supplicant *wpa_s,
+ int eap_register_methods(void);
+ 
+ /**
+- * Utility method to tell if a given network is a persistent group
++ * Utility method to tell if a given network is for persistent group storage
+  * @ssid: Network object
+  * Returns: 1 if network is a persistent group, 0 otherwise
+  */
+ static inline int network_is_persistent_group(struct wpa_ssid *ssid)
+ {
+-	return ((ssid->disabled == 2) || ssid->p2p_persistent_group);
++	return ssid->disabled == 2 && ssid->p2p_persistent_group;
+ }
+ 
+ int wpas_network_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid);
+-- 
+cgit v0.12

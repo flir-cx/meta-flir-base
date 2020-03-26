@@ -1,0 +1,4 @@
+ctrl_interface=/var/run/wpa_supplicant
+ctrl_interface_group=0
+fast_reauth=1
+update_config=1

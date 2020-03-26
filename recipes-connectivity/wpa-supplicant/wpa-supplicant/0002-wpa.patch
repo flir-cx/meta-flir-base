@@ -1,0 +1,38 @@
+From 5441da2beb99c67e4f7790b114c65a2cc748f166 Mon Sep 17 00:00:00 2001
+From: Jouni Malinen <jouni@qca.qualcomm.com>
+Date: Wed, 29 Apr 2015 20:47:14 +0300
+Subject: Fix wpas_notify_network_removed()
+
+Commit bb3df9a569e4a33445c89ebc50019ba46b4f6704 ('notify: Do not raise
+any signal from a P2P management interface') was supposed to only change
+D-Bus behavior, but it ended up disabling non-D-Bus functionality as
+well for some sequences where the P2P Device interface is used.
+
+Signed-off-by: Jouni Malinen <jouni@qca.qualcomm.com>
+---
+ wpa_supplicant/notify.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/wpa_supplicant/notify.c b/wpa_supplicant/notify.c
+index ea7dbdb..184a95c 100644
+--- a/wpa_supplicant/notify.c
++++ b/wpa_supplicant/notify.c
+@@ -307,14 +307,12 @@ void wpas_notify_persistent_group_removed(struct wpa_supplicant *wpa_s,
+ void wpas_notify_network_removed(struct wpa_supplicant *wpa_s,
+ 				 struct wpa_ssid *ssid)
+ {
+-	if (wpa_s->p2p_mgmt)
+-		return;
+-
+ 	if (wpa_s->next_ssid == ssid)
+ 		wpa_s->next_ssid = NULL;
+ 	if (wpa_s->wpa)
+ 		wpa_sm_pmksa_cache_flush(wpa_s->wpa, ssid);
+-	if (!ssid->p2p_group && wpa_s->global->p2p_group_formation != wpa_s)
++	if (!ssid->p2p_group && wpa_s->global->p2p_group_formation != wpa_s &&
++	    !wpa_s->p2p_mgmt)
+ 		wpas_dbus_unregister_network(wpa_s, ssid->id);
+ 	if (network_is_persistent_group(ssid))
+ 		wpas_notify_persistent_group_removed(wpa_s, ssid);
+-- 
+cgit v0.12

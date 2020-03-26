@@ -1,0 +1,26 @@
+From 756e5ab518430d37e35a42a7a13c60217640ab6c Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Wed, 1 Mar 2017 11:07:32 +0100
+Subject: [PATCH] start wpa_supplicant with conf file
+
+Signed-off-by: Peter Fitger <peter.fitger@flir.se>
+---
+ wpa_supplicant/systemd/wpa_supplicant.service.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/wpa_supplicant/systemd/wpa_supplicant.service.in b/wpa_supplicant/systemd/wpa_supplicant.service.in
+index 4351ad8..0e91c04 100644
+--- a/wpa_supplicant/systemd/wpa_supplicant.service.in
++++ b/wpa_supplicant/systemd/wpa_supplicant.service.in
+@@ -4,7 +4,7 @@ Description=WPA supplicant
+ [Service]
+ Type=dbus
+ BusName=fi.epitest.hostap.WPASupplicant
+-ExecStart=@BINDIR@/wpa_supplicant -u
++ExecStart=@BINDIR@/wpa_supplicant -u -iwlan0 -Dnl80211 -c/etc/wpa_supplicant.conf
+ 
+ [Install]
+ WantedBy=multi-user.target
+-- 
+1.9.1
+
