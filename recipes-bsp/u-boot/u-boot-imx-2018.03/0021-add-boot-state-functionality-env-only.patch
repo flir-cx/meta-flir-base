@@ -1,0 +1,45 @@
+From 5bb3de67562727e98d252039c1655a5da6e97c4c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@flir.se>
+Date: Fri, 27 Mar 2020 09:36:30 +0100
+Subject: [PATCH] add boot state functionality env only
+
+---
+ configs/mx7ulp_ec201_defconfig | 3 +++
+ include/configs/ec201.h        | 2 ++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/configs/mx7ulp_ec201_defconfig b/configs/mx7ulp_ec201_defconfig
+index e04e4f2..3083c6f 100644
+--- a/configs/mx7ulp_ec201_defconfig
++++ b/configs/mx7ulp_ec201_defconfig
+@@ -72,3 +72,6 @@ CONFIG_CMD_GPT=y
+ CONFIG_EFI_PARTITION=y
+ CONFIG_AUTOBOOT=y
+ CONFIG_BOOTDELAY=0
++
++CONFIG_AUTO_COMPLETE=y
++CONFIG_CMDLINE_EDITING=y
+\ No newline at end of file
+diff --git a/include/configs/ec201.h b/include/configs/ec201.h
+index 729a822..734a2bd 100644
+--- a/include/configs/ec201.h
++++ b/include/configs/ec201.h
+@@ -92,6 +92,7 @@
+ 
+ #define CONFIG_SYS_HZ			1000
+ #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
++#define CONFIG_STANDALONE_LOAD_ADDR  CONFIG_SYS_LOAD_ADDR
+ 
+ #define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
+ #define CONFIG_SYS_INIT_RAM_SIZE	SZ_256K
+@@ -322,6 +323,7 @@
+ 			"run select_boot;\0" \
+ \
+ 	"mmcbootflir=echo Booting from mmc (flir)...;" \
++			"bootstate;" \
+ 			"run setup_boot;run update-fdt; run selectfdtfile; " \
+ 			"run hw_start;" \
+ 			"run mmcargs;" \
+-- 
+1.9.1
+
