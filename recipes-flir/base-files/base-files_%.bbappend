@@ -12,7 +12,8 @@ do_install_append() {
     fi
     if [ "${MACHINE}" = "ec501" ] ||
        [ "${MACHINE}" = "ec201" ] ||
-       [ "${MACHINE}" = "bblc" ]
+       [ "${MACHINE}" = "bblc" ] ||
+       [ "${MACHINE}" = "rebb" ]
     then
         install -m 0755 -d ${D}/FLIR/images
     fi
