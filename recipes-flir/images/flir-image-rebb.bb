@@ -17,10 +17,9 @@ COPY_LIC_MANIFEST = "1"
 COPY_LIC_DIRS = "1"
 
 TEST_SUITES = "ping ssh flir_test_valid_platform df connman builddate scp python gst1-0-fsl-plugin dmesg2 \
-               flirsystemd wi-fi bluetooth sysfs standby mmdc"
+               flirsystemd sysfs standby mmdc"
 
 DISTRO_SSH_DAEMON ?= "openssh"
-DISTRO_FEATURES_remove = "bluetooth bluez5 btload wifi"
 
 WEB_PACKAGES = " \
     haproxy \
@@ -52,11 +51,9 @@ IMAGE_INSTALL = " \
     connman \
     connman-client \
     crda \
-    data-collection-service \
     dosfstools \
     e2fsprogs \
     exfat-utils \
-    firmware-qca9377 \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
@@ -78,7 +75,6 @@ IMAGE_INSTALL = " \
     kernel-devicetree \
     kernel-image \
     kernel-modules \
-    kernel-module-qca9377 \
     kmod \
     lepton-m4 \
     libevdev \
@@ -107,7 +103,6 @@ IMAGE_INSTALL = " \
     systemd \
     systemd-analyze \
     systemd-compat-units \
-    system-sleep-qca9377 \
     system-sleep-flir \
     telnetd-service \
     tzdata \
@@ -116,7 +111,6 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     umtp-responder \
-    url-service \
     ${WEB_PACKAGES} \
     videorender-service \
     progressapp-service \
