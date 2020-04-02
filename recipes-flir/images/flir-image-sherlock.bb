@@ -59,6 +59,7 @@ IMAGE_INSTALL = " \
     exfat-utils \
     firmware-qca9377 \
     flir-sysfs-links-service \
+    flir-activity-monitor \
     flirapp-service \
     flirbase-files \
     flirmisc \

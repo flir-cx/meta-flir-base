@@ -1,5 +1,5 @@
 SUMMARY = "FLIR Activity Monitor"
-DESCRIPTION = "FLIR Activity monitor to perform different actions at different levels of inactivity"
+DESCRIPTION = "FLIR Activity Monitor to perform different actions at different levels of inactivity"
 AUTHOR = "David Sernelius <david.sernelius@flir.se"
 LICENSE = "CLOSED"
 
@@ -13,8 +13,8 @@ RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
-SRCREV = "fb74e7beb3191dbc7a9058089db5de9014ebe7e7"
-SRC_URI  = "git://bitbucketcommercial.flir.com:7999/im7/flir-activity-monitor.git;protocol=ssh"
+SRCREV = "c53906d7ba778548878e146f8a3274346d7e0c9f"
+SRC_URI  = "git://bitbucketcommercial.flir.com:7999/im7/flir-activity-monitor.git;protocol=ssh;nobranch=1"
 SRC_URI += " \
     file://${PN}.service \
     file://com.flir.activitymonitor.conf \
