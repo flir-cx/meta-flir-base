@@ -13,7 +13,7 @@ RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
-SRCREV = "c53906d7ba778548878e146f8a3274346d7e0c9f"
+SRCREV = "44a8fcff809a4c98b84807877ade0572cd465d79"
 SRC_URI  = "git://bitbucketcommercial.flir.com:7999/im7/flir-activity-monitor.git;protocol=ssh;nobranch=1"
 SRC_URI += " \
     file://${PN}.service \
