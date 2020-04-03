@@ -1,0 +1,520 @@
+From ef59cd409d9340a230dcd9050b8201beabdc2d20 Mon Sep 17 00:00:00 2001
+From: Adrien Martinez <adrien.martinez@flir.com>
+Date: Mon, 6 Apr 2020 09:37:49 +0200
+Subject: [PATCH] SHLK-2063 Postpone sampling of fuelgauge
+
+---
+ board/flir/ec201/Makefile       |   1 +
+ board/flir/ec201/bootstate.c    | 211 ++++++++++++++++++--------------
+ board/flir/ec201/ec201.c        |  40 +-----
+ board/flir/ec201/ec201_splash.c |  56 +++++++++
+ board/flir/ec201/ec201_splash.h |   9 ++
+ 5 files changed, 188 insertions(+), 129 deletions(-)
+ create mode 100644 board/flir/ec201/ec201_splash.c
+ create mode 100644 board/flir/ec201/ec201_splash.h
+
+diff --git a/board/flir/ec201/Makefile b/board/flir/ec201/Makefile
+index 4e89f8307e..e3b12fa532 100644
+--- a/board/flir/ec201/Makefile
++++ b/board/flir/ec201/Makefile
+@@ -13,3 +13,4 @@ obj-y  += pf1550.o
+ obj-y  += lc709203.o
+ obj-y  += cmd_recoverytrigger.o
+ obj-y  += cmd_setmac.o
++obj-y  += ec201_splash.o
+diff --git a/board/flir/ec201/bootstate.c b/board/flir/ec201/bootstate.c
+index b7d367db41..f511222ac5 100644
+--- a/board/flir/ec201/bootstate.c
++++ b/board/flir/ec201/bootstate.c
+@@ -1,4 +1,3 @@
+-
+ /*
+  * Copyright (C) 2019 FLIR Systems.
+  *
+@@ -14,9 +13,6 @@
+  * GNU General Public License for more details.
+  */
+ 
+-
+-
+-
+ #include <common.h>
+ #include <asm/io.h>
+ #include <asm/arch/sys_proto.h>
+@@ -24,10 +20,10 @@
+ #include <i2c.h>
+ #include <pf1550.h>
+ #include <lc709203.h>
++#include <ec201_splash.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+-
+ enum WAKE_EVENTS
+ {
+ 	USB_CABLE = 0,
+@@ -72,48 +68,64 @@ static struct boot_state
+ //Special register in pmic which we can use to force boot state between reboots
+ #define FORCE_BOOT_STATE PF1550_CHARG_REG_LED_PWM
+ 
+-
+-static int get_wake_event(void)
++static u8 get_force_boot_state(struct udevice *dev)
+ {
++	u8 force_boot_state, buf;
+ 
+-	u8 chg_int, chg_int_ok, pwrctrl3;
+-	u8 force_boot_state,buf;
+-	struct udevice *dev;
+-	int ret;
+-
+-	ret = i2c_get_chip_for_busnum(5, 0x8, 1, &dev);
+-	if (ret) {
+-		printf("Can not find pmic: %d\n", ret);
+-		return ret;
+-	}
+-
+-	dm_i2c_read(dev, PF1550_CHARG_REG_CHG_INT, &chg_int, 1);
+-	dm_i2c_write(dev, PF1550_CHARG_REG_CHG_INT, &chg_int, 1);
+-	dm_i2c_read(dev, PF1550_CHARG_REG_CHG_INT_OK, &chg_int_ok, 1);
+-	dm_i2c_read(dev, PF1550_PMIC_REG_PWRCTRL3, &pwrctrl3, 1);
+-	//read hidden state registers
++	//read hidden state register
+ 	dm_i2c_read(dev, FORCE_BOOT_STATE, &force_boot_state, 1);
+ 	buf = 0;
+ 	dm_i2c_write(dev, FORCE_BOOT_STATE, &buf, 1);
+-	printf("pmic chg_int=0x%x chg_int_ok=0x%x  pwrctrl3=0x%x force_boot_state=0x%x\n",chg_int,chg_int_ok,pwrctrl3,force_boot_state );
+ 
++	printf("Force Boot State 0x%x... ", force_boot_state);
++	if(force_boot_state > INVALID_STATE && force_boot_state < NUM_BOOT_STATES){
++
++		switch(force_boot_state)
++		{
++		case NORMAL_BOOT:
++			printf("%s\n", "NORMAL_BOOT");
++			break;
++		case LOW_BATTERY:
++			printf("%s\n", "LOW_BATTERY");
++			break;
++		case NO_BATTERY:
++			printf("%s\n", "NO_BATTERY");
++			break;
++		case USB_CHARGE:
++			printf("%s\n", "USB_CHARGE");
++			break;
++		default:
++			printf("%s\n", "UNKNOWN");
++			break;
++		}
++	}else{
++		printf("%s\n", "NONE");
++		force_boot_state = INVALID_STATE;
++	}
++	return force_boot_state;
++}
++
++static u8 get_wake_event(struct udevice *dev)
++{
++	u8 chg_int, wake_event;
+ 
+ 	//We have no way to detect onoff button events from poweroff or reboot.
+ 	//We use this as the default event
+-	state.wake_event = RESET;
++	wake_event = RESET;
+ 
+-	//usb cable already attached
+-	if(chg_int_ok & PF1550_CHG_INT_OK_VBUS_OK )
+-		state.usb_cable = true;
++	/* Check if a usb cable inserted interrupt has occured. */
++	dm_i2c_read(dev, PF1550_CHARG_REG_CHG_INT, &chg_int, 1);
++	dm_i2c_write(dev, PF1550_CHARG_REG_CHG_INT, &chg_int, 1);
+ 
+-	//usb cable is inserted
+-	if(chg_int & CHARG_IRQ_VBUSI )
+-		state.wake_event = USB_CABLE;
+-	
+-	if(force_boot_state < NUM_BOOT_STATES)
+-		state.force_boot_state = force_boot_state;
++	printf("USB cable inserted interrupt (CHG_INT 0x%x)... ", chg_int);
++	if(chg_int & CHARG_IRQ_VBUSI ){
++		printf("YES\n");
++		wake_event = USB_CABLE;
++	}else{
++		printf("NO\n");
++	}
+ 
+-	return 0;
++	return wake_event;
+ }
+ 
+ 
+@@ -126,16 +138,15 @@ int get_battery_voltage(int *voltage)
+ 
+ 	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
+ 	if (ret) {
+-		printf("Can not find fuelgauge LC 709203: %d\n", ret);
++		printf("Cannot find fuelgauge LC709203: %d\n", ret);
+ 		return ret;
+ 	}
+-	
++
+ 	ret = dm_i2c_read(dev, 0x9, buf, 2);
+ 	if(!ret)
+ 		*voltage = *(u16*)buf;
+ 
+ 	return ret;
+-
+ }
+ 
+ int get_battery_state_of_charge(int *soc)
+@@ -146,10 +157,10 @@ int get_battery_state_of_charge(int *soc)
+ 
+ 	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
+ 	if (ret) {
+-		printf("Can not find fuelgauge LC 709203: %d\n", ret);
++		printf("Cannot find fuelgauge LC709203: %d\n", ret);
+ 		return ret;
+ 	}
+-	
++
+ 	ret = dm_i2c_read(dev, 0xd, buf, 2);
+ 	if(!ret)
+ 		*soc = *(u16*)buf;
+@@ -157,70 +168,92 @@ int get_battery_state_of_charge(int *soc)
+ 	return ret;
+ }
+ 
+-
+ void set_boot_logo(void)
+ {
+-
+ 	switch(state.boot_state)
+ 	{
+ 	case NO_BATTERY:
+ 	case LOW_BATTERY:
+ 		env_set("splashfile","/boot/no_battery.bmp.gz");
+ 		break;
+-
+ 	case USB_CHARGE:
+ 		env_set("splashfile","/boot/battery_logo.bmp.gz");
+ 		break;
+ 	case NORMAL_BOOT:
+ 		break;
+-
+ 	}
+-
+ }
+ 
+ int boot_state_init(void)
+ {
++	struct udevice *dev;
++	int ret;
++	u8 chg_int_ok, pwrctrl3;
+ 
+-	get_battery_voltage(&state.battery_mV);
+-	printf("Battery voltage mV=%d\n",state.battery_mV);
+-	get_wake_event();
+-
++	ret = i2c_get_chip_for_busnum(5, 0x8, 1, &dev);
++	if (ret) {
++		printf("Cannot find pmic: %d\n", ret);
++		return ret;
++	}
+ 
+-	if(state.force_boot_state )
+-	{
+-		printf("Force Boot State to %d \n",state.force_boot_state);
+-		state.boot_state = state.force_boot_state;
++	state.force_boot_state = get_force_boot_state(dev);
++	if(state.force_boot_state != INVALID_STATE)
+ 		return 0;
+-	}
+-	
+-	switch(state.wake_event)
+-	{
+-	case USB_CABLE:
+-		state.boot_state = USB_CHARGE;
+-		break;
+-	case RESET:
+-	case ONKEY:
+-		if(state.battery_mV  < LOW_BATTERY_mV)
+-			state.boot_state = LOW_BATTERY;
+-		else
+-			state.boot_state = NORMAL_BOOT;
+-		break;
+-	case INVALID_EVENT:
+-		printf("Invalid boot event: INVALID_EVENT \n");
+-		fuelgauge_sleep();
+-		power_off();
+-		break;
+ 
+-	}
+-	return 0;
+-}
++	state.wake_event = get_wake_event(dev);
++
++	dm_i2c_read(dev, PF1550_PMIC_REG_PWRCTRL3, &pwrctrl3, 1);
++	printf("pwrctrl3=0x%x\n", pwrctrl3);
+ 
++	/* Check if the usb cable is inserted at all. This checks if
++	the cable was already inserted at the time of boot. In this
++	case cable inserted interrupt would NOT have been
++	received. */
++	dm_i2c_read(dev, PF1550_CHARG_REG_CHG_INT_OK, &chg_int_ok, 1);
+ 
++	printf("USB cable connected (CHG_INT_OK 0x%x)... ", chg_int_ok);
++	if(chg_int_ok & PF1550_CHG_INT_OK_VBUS_OK ){
++		printf("YES\n");
++		state.usb_cable = true;
++	}else{
++		printf("NO\n");
++	}
+ 
++	return 0;
++}
+ 
+ static int do_boot_state(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+ {
++	if(state.force_boot_state != INVALID_STATE){
++		state.boot_state = state.force_boot_state;
++	}else{
++		switch(state.wake_event)
++		{
++		case USB_CABLE:
++			state.boot_state = USB_CHARGE;
++			break;
++		case RESET:
++		case ONKEY:
++			get_battery_voltage(&state.battery_mV);
++			printf("Battery voltage mV=%d... ",state.battery_mV);
++			if(state.battery_mV < LOW_BATTERY_mV){
++				printf("LOW\n");
++				state.boot_state = LOW_BATTERY;
++			}else{
++				printf("OK\n");
++				state.boot_state = NORMAL_BOOT;
++			}
++			break;
++		default:
++			printf("Invalid boot event: INVALID_EVENT \n");
++			fuelgauge_sleep();
++			power_off();
++			break;
++		}
++	}
+ 
++	/* State specified from u-boot prompt has priority over
++	   previously set boot_state. */
+ 	if(argc == 2)
+ 	{
+ 		state.boot_state = simple_strtoul(argv[1], NULL, 16);
+@@ -229,43 +262,39 @@ static int do_boot_state(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
+ 
+ 	switch(state.boot_state)
+ 	{
+-
+ 	case NORMAL_BOOT:
+ 		break;
+-
+ 	case NO_BATTERY:
+ 		printf("Battery missing\n");
+-		fuelgauge_sleep();
+-		power_off();
+-		break;
+-
+ 	case LOW_BATTERY:
+-		printf("Battery low power\n");
++		set_boot_logo();
++		splash_screen_update();
++
++		/* Give user a chance to see splash. */
++		udelay(2000000);
++
+ 		fuelgauge_sleep();
+ 		power_off();
+ 		break;
+-
+ 	case USB_CHARGE:
+ 		printf("Camera: charge state \n");
++		set_boot_logo();
++		splash_screen_update();
+ 		run_command("chargeapp",0);
+-
+ 		break;
+-
+ 	default:
+-		printf("Invalid boot state \n");
++		printf("Invalid boot state\n");
+ 		break;
+ 	}
+-
+ 	return 0;
+-
+ }
+ 
+ U_BOOT_CMD(
+-    bootstate,	2,	0,	do_boot_state,
+-    "Process boot state, might power off camera",
++	bootstate,	2,	0,	do_boot_state,
++	"Process boot state, might power off camera",
+ 	" {state} \n"
+ 	"1 - Normal state		-> boot camera into run state\n"
+-    "2 - Low battery state		-> power off camera\n"
++	"2 - Low battery state		-> power off camera\n"
+ 	"3 - No battery			-> power off camera\n"
+ 	"4 - Charge battery		-> boot camera into charge state\n"
+ );
+diff --git a/board/flir/ec201/ec201.c b/board/flir/ec201/ec201.c
+index bfc9f8beec..55a28b7a76 100644
+--- a/board/flir/ec201/ec201.c
++++ b/board/flir/ec201/ec201.c
+@@ -19,7 +19,7 @@
+ #include <mipi_dsi_northwest.h>
+ #include <imx_mipi_dsi_bridge.h>
+ #include <mipi_dsi_panel.h>
+-#include <splash.h>
++#include <ec201_splash.h>
+ #include <mxsfb.h>
+ #include <i2c.h>
+ #include <bootstate.h>
+@@ -105,7 +105,7 @@ int usb_charge_detect(void)
+ 	if(!get_usb_cable_state())
+ 		return 0;
+ 
+-	//reset 
++	//reset
+ 	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_SR), USB_DCD_CONTROL);
+ 	//use bc1.2 standard
+ 	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_BC12), USB_DCD_CONTROL);
+@@ -166,7 +166,6 @@ int board_early_init_f(void)
+ 	return 0;
+ }
+ 
+-
+ int board_init(void)
+ {
+ 	/* address of boot parameters */
+@@ -287,43 +286,8 @@ struct display_info_t const displays[] = {{
+ 		.vmode          = FB_VMODE_NONINTERLACED
+ } } };
+ size_t display_count = ARRAY_SIZE(displays);
+-
+-static struct splash_location splash_locations[] = {
+-	{
+-		.name = "mmc_fs",
+-		.storage = SPLASH_STORAGE_MMC,
+-		.flags = SPLASH_STORAGE_FS,
+-		.devpart = "0:2",
+-	}
+-};
+-
+-int splash_screen_prepare(void)
+-{
+-	//choose which partition to load bootlogo from
+-	char * system_active = env_get("system_active");
+-	if(system_active)
+-	{
+-		switch(system_active[6]) //system_active=system1 or system2
+-		{
+-			case '1':
+-				splash_locations[0].devpart[2]='2'; //use mmc partition 2
+-				break;
+-			case '2':
+-				splash_locations[0].devpart[2]='3'; //use mmc partition 3
+-				break;
+-			default: 
+-				printf("splash_screen_prepare: invalid system_active environment: %s \n",system_active); 
+-				break;
+-		}
+-	}
+-	set_boot_logo();
+-	
+-	return splash_source_load(splash_locations,
+-				  ARRAY_SIZE(splash_locations));
+-}
+ #endif
+ 
+-
+ #if defined(CONFIG_OF_BOARD_SETUP)
+ int ft_board_setup(void *blob, bd_t *bd)
+ {
+diff --git a/board/flir/ec201/ec201_splash.c b/board/flir/ec201/ec201_splash.c
+new file mode 100644
+index 0000000000..9c548aec68
+--- /dev/null
++++ b/board/flir/ec201/ec201_splash.c
+@@ -0,0 +1,56 @@
++#include <ec201_splash.h>
++
++static struct splash_location splash_locations[] = {
++	{
++		.name = "mmc_fs",
++		.storage = SPLASH_STORAGE_MMC,
++		.flags = SPLASH_STORAGE_FS,
++		.devpart = "0:2",
++	}
++};
++
++#ifdef CONFIG_VIDEO_MXS
++int splash_screen_prepare(void)
++{
++	//choose which partition to load bootlogo from
++	char * system_active = env_get("system_active");
++	if(system_active)
++	{
++		switch(system_active[6]) //system_active=system1 or system2
++		{
++		case '1':
++			splash_locations[0].devpart[2]='2'; //use mmc partition 2
++			break;
++		case '2':
++			splash_locations[0].devpart[2]='3'; //use mmc partition 3
++			break;
++		default:
++			printf("splash_screen_prepare: invalid system_active environment: %s \n",system_active);
++			break;
++		}
++	}
++	return splash_source_load(splash_locations,
++				ARRAY_SIZE(splash_locations));
++}
++
++void splash_screen_update(void)
++{
++	char *s;
++	ulong addr;
++
++	s = env_get("splashimage");
++	if(s == NULL){
++		printf("Failed to update splash: environment variable splashimage is null\n");
++		return;
++	}
++
++	if(splash_source_load(splash_locations, ARRAY_SIZE(splash_locations))){
++		printf("Failed to load splash\n");
++		return;
++	}
++
++	addr = simple_strtoul(s, NULL, 16);
++	if(video_display_bitmap(addr, 0, 0))
++		printf("Failed to update splash: failed to display bitmap\n");
++}
++#endif
+diff --git a/board/flir/ec201/ec201_splash.h b/board/flir/ec201/ec201_splash.h
+new file mode 100644
+index 0000000000..c2ef301696
+--- /dev/null
++++ b/board/flir/ec201/ec201_splash.h
+@@ -0,0 +1,9 @@
++#include <common.h>
++#include <asm/io.h>
++#include <splash.h>
++#include <video.h>
++
++#ifdef CONFIG_VIDEO_MXS
++int splash_screen_prepare(void);
++void splash_screen_update(void);
++#endif
+-- 
+2.26.0
+
