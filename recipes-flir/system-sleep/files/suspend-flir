@@ -8,6 +8,8 @@ case $1 in
 	sleep 0.5
     ;;
     post)
+	# Turn on backlight power to quickly light up display after suspend
+	echo 0 > /sys/class/backlight/backlight_lcd/bl_power
 	# Added sleep for no communication with lepton until it has time to wake up
 	sleep 1.0
 	/FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareResume true
