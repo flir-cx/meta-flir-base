@@ -29,9 +29,9 @@ field_name_from_type() {
 	local -r type="$1"
 
 	case "${type}" in
-		int* | double) printf 'value';;
-		bool) printf 'bool';;
-		*) printf 'text';;
+		int* | double) printf 'event-value';;
+		bool) printf 'event-bool';;
+		*) printf 'event-text';;
 	esac
 }
 
