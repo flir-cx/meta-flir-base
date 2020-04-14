@@ -34,7 +34,7 @@ SRC_URI_append = " \
     file://0037-In-mxc_rpmg.c-release-spinlock-before-calling-functi.patch \
     file://0038-DT-updated-for-FN-link-radio-module-on-EC201-rev-B.patch \
     file://0039-New-version-of-m4-v4l-buffer-handling.patch \
-    file://0040-adapt-device-tree-for-ec201-rev-b.patch \        
+    file://0040-adapt-device-tree-for-ec201-rev-b.patch \
     file://0041-Kernel-builds-without-warnings.patch \
     file://0042-Trigg-and-SW_ON-button-gpio_keys-change.patch \
     file://0043-Change-temp-sensor-to-LM73.patch \
@@ -77,7 +77,8 @@ SRC_URI_append = " \
     file://0080-pf1550-Toggle-charging-based-on-THM_SNS-change.patch \
     file://0081-mxc_viu-Pre-allocate-5MP-YUYV-discard-buffer.patch \
     file://0082-mxc_rpmsg-Reset-buffers-in-m4-if-dma-addr-mismatch.patch \
-    file://defconfig" 
+    file://0083-mxc_viu-enabled-ERROR-IRQ-after-DMA-IRQ.patch \
+    file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
 

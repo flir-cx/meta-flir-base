@@ -1,0 +1,59 @@
+From 81686c7a6c195addf9427d27af36b943e3a3f458 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david@tinygiant.se>
+Date: Tue, 14 Apr 2020 11:32:38 +0200
+Subject: [PATCH] mxc_viu: enabled ERROR IRQ after DMA IRQ
+
+---
+ drivers/media/platform/mxc/capture/mxc_viu.c   | 10 ++++++----
+ drivers/media/platform/mxc/capture/ov5640_v2.c |  2 ++
+ 2 files changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_viu.c b/drivers/media/platform/mxc/capture/mxc_viu.c
+index d7845b6ff21f..1ea193853b36 100644
+--- a/drivers/media/platform/mxc/capture/mxc_viu.c
++++ b/drivers/media/platform/mxc/capture/mxc_viu.c
+@@ -1086,10 +1086,12 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 	if (ret)
+ 		goto clean_up_discard;
+ 
+-	/* enable ERROR interrupt here */
+-	imx_viu_irq_enable(viu_dev, ERROR_IRQ);
+ 	/* enable dma transfer */
+ 	imx_viu_irq_enable(viu_dev, DMA_END_IRQ);
++
++	/* enable ERROR interrupt */
++	imx_viu_irq_enable(viu_dev, ERROR_IRQ);
++
+ 	ret = imx_viu_config_dma(viu_dev, dma_addr, 0);
+ 	if (ret)
+ 		goto clean_up_irq;
+@@ -1097,11 +1099,11 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 	return 0;
+ 
+ clean_up_irq:
+-	/* disable ERROR interrupt here */
++
+ 	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
+-	/* enable dma transfer */
+ 	imx_viu_irq_disable(viu_dev, DMA_END_IRQ);
+ 
++
+ clean_up_discard:
+ 	INIT_LIST_HEAD(&viu_dev->discard);
+ 
+diff --git a/drivers/media/platform/mxc/capture/ov5640_v2.c b/drivers/media/platform/mxc/capture/ov5640_v2.c
+index c46e3ffe0bf1..7dfe6c4e7ee0 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_v2.c
++++ b/drivers/media/platform/mxc/capture/ov5640_v2.c
+@@ -1208,6 +1208,8 @@ static int ov5640_regulator_enable(struct device *dev)
+ 		dev_warn(dev, "cannot get core voltage\n");
+ 	}
+ 
++	msleep(1); /* make sure DOVDD has stabilized before turning on AVDD */
++
+ 	analog_regulator = devm_regulator_get(dev, "AVDD");
+ 	if (!IS_ERR(analog_regulator)) {
+ 		regulator_set_voltage(analog_regulator,
+-- 
+2.26.0
+
