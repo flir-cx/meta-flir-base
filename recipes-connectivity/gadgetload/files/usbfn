@@ -47,9 +47,9 @@ then
 fi
 logger "USB function driver changed to ${USBMODE}"
 
-if [ -d "/sys/kernel/config/usb_gadget/g1" ]; then
+if gadget.sh isloaded ; then
     CURRUSBMODE="$(cat /etc/usbmode  2>/dev/null)"
-    if [ "$CURRUSBMODE" == "$USBMODE" ]; then
+    if [ "$CURRUSBMODE" == "$USBMODE" ] ; then
         echo "USBMODE ${USBMODE} already set"
         exit
     fi
