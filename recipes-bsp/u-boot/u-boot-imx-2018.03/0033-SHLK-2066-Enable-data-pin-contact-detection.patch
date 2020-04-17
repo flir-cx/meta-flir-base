@@ -1,0 +1,447 @@
+From 28ee107cc18b8ef6886510de89be264ad8f03acf Mon Sep 17 00:00:00 2001
+From: Adrien Martinez <adrien.martinez@flir.com>
+Date: Mon, 20 Apr 2020 14:53:58 +0200
+Subject: [PATCH] SHLK-2066 Enable data pin contact detection
+
+---
+ board/flir/ec201/Makefile |   1 +
+ board/flir/ec201/ec201.c  |  96 ++---------------
+ board/flir/ec201/usbdcd.c | 215 ++++++++++++++++++++++++++++++++++++++
+ board/flir/ec201/usbdcd.h |  64 ++++++++++++
+ 4 files changed, 286 insertions(+), 90 deletions(-)
+ create mode 100644 board/flir/ec201/usbdcd.c
+ create mode 100644 board/flir/ec201/usbdcd.h
+
+diff --git a/board/flir/ec201/Makefile b/board/flir/ec201/Makefile
+index e3b12fa532..8cf692e11d 100644
+--- a/board/flir/ec201/Makefile
++++ b/board/flir/ec201/Makefile
+@@ -14,3 +14,4 @@ obj-y  += lc709203.o
+ obj-y  += cmd_recoverytrigger.o
+ obj-y  += cmd_setmac.o
+ obj-y  += ec201_splash.o
++obj-y  += usbdcd.o
+diff --git a/board/flir/ec201/ec201.c b/board/flir/ec201/ec201.c
+index 55a28b7a76..7e4c35e7a9 100644
+--- a/board/flir/ec201/ec201.c
++++ b/board/flir/ec201/ec201.c
+@@ -26,42 +26,13 @@
+ #include <pf1550.h>
+ #include <lc709203.h>
+ #include <version.h>
++#include <usbdcd.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+-#define UART_PAD_CTRL	(PAD_CTL_PUS_UP)
++#define UART_PAD_CTRL	                        (PAD_CTL_PUS_UP)
+ #define SNVS_LPCR_BTN_PRESS_TIME_DISABLE	(0x3<<16)
+-#define SNVS_LP_LPCR	(0x41070038)
+-
+-#define USB_DCD					(USB_PHY0_BASE_ADDR + 0x800)
+-#define USB_DCD_CONTROL			(USB_DCD + 0x0)
+-#define USB_DCD_CONTROL_SR		(1<<25)
+-#define USB_DCD_CONTROL_START	(1<<24)
+-#define USB_DCD_CONTROL_BC12	(1<<17)
+-#define USB_DCD_CONTROL_IE		(1<<16)
+-#define USB_DCD_STATUS			(USB_DCD + 0x8)
+-#define USB_DCD_STATUS_ACTIVE	(1<<22)
+-#define USB_DCD_STATUS_TO		(1<<21)
+-#define USB_DCD_STATUS_ERR		(1<<20)
+-#define USB_DCD_STATUS_SEQ_STAT_SHIFT	(18)
+-#define USB_DCD_STATUS_SEQ_RES_SHIFT	(16)
+-#define USB_DCD_SIGNAL_OVERRIDE			(USB_DCD + 0xC)
+-#define USB_DCD_SIGNAL_OVERRIDE_PS_VDP_SRC 0x2
+-
+-enum {
+-	STAT_DISABLED=0,
+-	STAT_DATA_PIN=1,
+-	STAT_CHARGING=2,
+-	STAT_CHARGER_TYPE=3,
+-};
+-enum {
+-	SEQ_NO_RESULT=0,
+-	SEQ_SDP=1,
+-	SEQ_CDP_DCP=2,
+-	SEQ_DCP=3,
+-};
+-#define USB_DCD_STATUS_SEQ_RES_SHIFT	(16)
+-
++#define SNVS_LP_LPCR	                        (0x41070038)
+ 
+ void hx8394_init(void);
+ 
+@@ -83,7 +54,6 @@ static void setup_iomux_uart(void)
+ 					 ARRAY_SIZE(lpuart4_pads));
+ }
+ 
+-
+ #ifdef CONFIG_DM_USB
+ static void setup_usb(void)
+ {
+@@ -97,68 +67,14 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
+ 
+ int usb_charge_detect(void)
+ {
+-	u32	dcd_status;
+ 	int charge_current_mA;
+-	int timeout = 1000;
+-
+-	//check for usb cable
+-	if(!get_usb_cable_state())
+-		return 0;
+-
+-	//reset
+-	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_SR), USB_DCD_CONTROL);
+-	//use bc1.2 standard
+-	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_BC12), USB_DCD_CONTROL);
+-	//disable interrupts
+-	writel((readl(USB_DCD_CONTROL) & ~USB_DCD_CONTROL_IE), USB_DCD_CONTROL);
+-	//Enables VDP_SRC voltage source for the USB_DP pin and IDM_SINK current source for the USB_DM pin
+-	writel((readl(USB_DCD_SIGNAL_OVERRIDE) | USB_DCD_SIGNAL_OVERRIDE_PS_VDP_SRC), USB_DCD_SIGNAL_OVERRIDE);
+-	//start charger detection
+-	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_START), USB_DCD_CONTROL);
+-
+-	while(timeout--)
+-	{
+-		dcd_status = readl(USB_DCD_STATUS);
+-
+-		if(dcd_status & USB_DCD_STATUS_ERR)
+-		{
+-			printf("usb dcd error, dcd_status %x\n",dcd_status);
+-			return -1;
+-		}
+-		if(dcd_status & USB_DCD_STATUS_TO)
+-		{
+-			printf("usb dcd timeout, dcd_status %x\n",dcd_status);
+-			return -1;
+-		}
+-
+-		if(!(dcd_status & USB_DCD_STATUS_ACTIVE))
+-			break;
+-		mdelay(1);
+-	}
+-
+-	u8 seq_res = (dcd_status >> USB_DCD_STATUS_SEQ_RES_SHIFT) & 0x3;
+-	switch(seq_res)
+-	{
+-	case SEQ_SDP:
+-		charge_current_mA = 500;
+-		break;
+-	case SEQ_CDP_DCP:
+-	case SEQ_DCP:
+-		charge_current_mA = 1500;
+-		break;
+-
+-	default:
+-	case SEQ_NO_RESULT:
+-		charge_current_mA = 100;
+-		break;
+-	}
+-	set_charging_current(charge_current_mA);
+ 
+-	printf("USB DCD: Setting charge current to %d, seq_res %d \n",charge_current_mA, seq_res);
++	usbdcd_get_charge_current_mA(&charge_current_mA);
++	printf("USB DCD: Setting charge current to %d\n", charge_current_mA);
++	set_charging_current(charge_current_mA);
+ 	return 0;
+ }
+ 
+-
+ int board_early_init_f(void)
+ {
+ 	setup_iomux_uart();
+diff --git a/board/flir/ec201/usbdcd.c b/board/flir/ec201/usbdcd.c
+new file mode 100644
+index 0000000000..2069fd7754
+--- /dev/null
++++ b/board/flir/ec201/usbdcd.c
+@@ -0,0 +1,215 @@
++#include <usbdcd.h>
++
++#define usbdcd_clear_interrupt_field() writel(readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_IACK, USB_DCD_CONTROL)
++#define usbdcd_control_if(reg) ((reg) & USB_DCD_CONTROL_IF)
++#define usbdcd_get_sequence_result(reg) (((reg) & USB_DCD_STATUS_SEQ_RES) >> USB_DCD_STATUS_SEQ_RES_SHIFT)
++#define usbdcd_get_sequence_status(reg) (((reg) & USB_DCD_STATUS_SEQ_STAT) >> USB_DCD_STATUS_SEQ_STAT_SHIFT)
++#define usbdcd_get_tunitcon() readl(USB_DCD_TIMER0) & USB_DCD_TUNITCON
++#define usbdcd_set_signal_override_vdp() writel((readl(USB_DCD_SIGNAL_OVERRIDE) | USB_DCD_SIGNAL_OVERRIDE_PS_VDP_SRC), USB_DCD_SIGNAL_OVERRIDE)
++#define usbdcd_software_reset() writel(readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_SR, USB_DCD_CONTROL)
++#define usbdcd_status_active(reg) ((reg) & USB_DCD_STATUS_ACTIVE)
++#define usbdcd_status_err(reg) ((reg) & USB_DCD_STATUS_ERR)
++#define usbdcd_status_to(reg) ((reg) & USB_DCD_STATUS_TO)
++#define usbdcd_tdcd_dbnc() (readl(USB_DCD_TIMER1) & USB_DCD_TDCD_DBNC) >> USB_DCD_TDCD_DBNC_SHIFT
++
++#define usbdcd_print(str, ...) do {			\
++		printf("USB DCD [%d]: "str, usbdcd_get_tunitcon(), ##__VA_ARGS__); \
++	} while(0)
++
++int usbdcd_get_charge_current_mA(int *charge_current_mA)
++{
++	u32 status_reg;
++
++	if(!get_usb_cable_state())
++		return 0;
++
++	usbdcd_start_charger_detection_sequence();
++
++	status_reg = usbdcd_data_pin_contact_detect();
++	if(usbdcd_status_to(status_reg))
++		return usbdcd_handle_timeout(charge_current_mA);
++
++	status_reg = usbdcd_charger_port();
++	if(usbdcd_status_to(status_reg))
++		return usbdcd_handle_timeout(charge_current_mA);
++	else if(usbdcd_status_err(status_reg))
++		return usbdcd_handle_error(charge_current_mA);
++
++	status_reg = usbdcd_charger_type();
++	if(usbdcd_status_to(status_reg))
++		return usbdcd_handle_timeout(charge_current_mA);
++
++	switch(usbdcd_get_sequence_result(status_reg)){
++	case SEQ_DCP:
++		usbdcd_print("Dedicated Charger Port detected\n");
++
++                /* V_DP_SRC needs to be enabled if DCP according to BC
++		 * 1.2 */
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 1500;
++		break;
++	case SEQ_CDP_DCP:
++		usbdcd_print("Charging Downstream Port detected\n");
++
++		/* Unknown why we need to set D+ high in this case. If
++		 * not, the upstream port will after a moment stop
++		 * supplying current. */
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 1500;
++		break;
++	case SEQ_SDP:
++		usbdcd_print("Standard Downstream Port detected\n");
++
++		/* Set D+ to HIGH. According to BC 1.2 we are not allowed to
++		 * draw more than 2.5mA if we have not reached configured (or
++		 * enumerated) and the upstream port is an SDP. We will never
++		 * reach configured if camera is off but charging. To be able
++		 * to draw more current we need to fulfill the requirements
++		 * for Dead Battery Provision and one of these requirements is
++		 * to set D+ to high.*/
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 500;
++		break;
++	default:
++		usbdcd_print("Unknown charging port detected, sequence result: x%x\n",
++			usbdcd_get_sequence_result(status_reg));
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 500;
++		break;
++	}
++
++	usbdcd_software_reset();
++	return 0;
++}
++
++int usbdcd_start_charger_detection_sequence(void)
++{
++
++	/* Set data pin contact debounce timer. */
++	usbdcd_set_tdcd_dbnc(50);
++
++	/* Disable pulldown resistors on USB_DP and USB_DM. IF the
++	 * pulldown resistors are enabled the data pins are held low
++	 * which interferes with the Data Pin Contact Detection. */
++	writel(readl(USBPHY_ANACTRL) & ~USBPHY_ANACTRL_DEV_PULLDOWN, USBPHY_ANACTRL);
++
++	usbdcd_software_reset();
++
++	/* Disable interrupts. */
++	writel((readl(USB_DCD_CONTROL) & ~USB_DCD_CONTROL_IE),
++		USB_DCD_CONTROL);
++
++	usbdcd_clear_interrupt_field();
++
++	/* Set Usb Battery Charging revision. */
++	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_BC12),
++		USB_DCD_CONTROL);
++
++	/* Start charger detection sequence */
++	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_START),
++		USB_DCD_CONTROL);
++
++	return 0;
++}
++
++void usbdcd_set_tdcd_dbnc(u32 val)
++{
++	u32 curr;
++	curr = readl(USB_DCD_TIMER1) & ~USB_DCD_TDCD_DBNC;
++	val = (val << USB_DCD_TDCD_DBNC_SHIFT) & USB_DCD_TDCD_DBNC;
++	writel(curr | val, USB_DCD_TIMER1);
++}
++
++int usbdcd_handle_timeout(int *charge_current_mA)
++{
++	usbdcd_print("Failed to detect data pin connection: Timeout reached\n");
++	usbdcd_software_reset();
++	usbdcd_set_signal_override_vdp();
++	*charge_current_mA = 500;
++
++	return USB_DCD_TIMEOUT;
++}
++
++int usbdcd_handle_error(int *charge_current_mA)
++{
++	printf("Failed to complete charger detection sequence: Error occured\n");
++	usbdcd_software_reset();
++	usbdcd_set_signal_override_vdp();
++	*charge_current_mA = 500;
++
++	return USB_DCD_ERROR;
++}
++
++/*
++ * DETECT CHARGER TYPE
++ *
++ * Possible reasons for exiting while loop:
++ * - Charger reaches sequence completion (not active)
++ * - USBDCD module determines the type of the charger (interrupt).
++ * - Timeout
++ *
++ * Notice that no errors are generated by the module at this
++ * stage.
++ */
++u32 usbdcd_charger_type(void)
++{
++	u32 status_reg, control_reg;
++
++	status_reg = readl(USB_DCD_STATUS);
++	control_reg = readl(USB_DCD_CONTROL);
++
++	while(!usbdcd_control_if(control_reg) &&
++		!usbdcd_status_to(status_reg) &&
++		usbdcd_status_active(status_reg)){
++
++		status_reg = readl(USB_DCD_STATUS);
++		control_reg = readl(USB_DCD_CONTROL);
++		mdelay(1);
++	}
++	usbdcd_clear_interrupt_field();
++
++	return status_reg;
++}
++
++/*
++ * CHARGING PORT DETECTION
++ *
++ * Possible reasons for exiting loop:
++ * - Charger reaches sequence completion (not active)
++ * - USBDCD module determines that port is charger or not (interrupt).
++ * - Timeout
++ * - Error
++ */
++u32 usbdcd_charger_port(void)
++{
++	u32 status_reg, control_reg;
++
++	status_reg = readl(USB_DCD_STATUS);
++	control_reg = readl(USB_DCD_CONTROL);
++
++	while(!usbdcd_control_if(control_reg) &&
++		!usbdcd_status_to(status_reg) &&
++		!usbdcd_status_err(status_reg) &&
++		usbdcd_status_active(status_reg)){
++
++		status_reg = readl(USB_DCD_STATUS);
++		control_reg = readl(USB_DCD_CONTROL);
++		mdelay(1);
++	}
++	usbdcd_clear_interrupt_field();
++
++	return status_reg;
++}
++
++u32 usbdcd_data_pin_contact_detect(void)
++{
++	u32 status_reg;
++
++	status_reg = readl(USB_DCD_STATUS);
++	while(!usbdcd_status_to(status_reg) && usbdcd_get_sequence_status(status_reg) == STAT_DISABLED){
++		status_reg = readl(USB_DCD_STATUS);
++		mdelay(1);
++	}
++
++	return status_reg;
++}
+diff --git a/board/flir/ec201/usbdcd.h b/board/flir/ec201/usbdcd.h
+new file mode 100644
+index 0000000000..1c8265e6c1
+--- /dev/null
++++ b/board/flir/ec201/usbdcd.h
+@@ -0,0 +1,64 @@
++#include <asm/io.h>
++#include <usb.h>
++#include "pf1550.h"
++
++#define USBPHY_ANACTRL                               (USB_PHY0_BASE_ADDR + 0x100)
++#define USBPHY_ANACTRL_DEV_PULLDOWN                  (1 << 10)
++
++#define USBPHY_USB1_CHRG_DET_STAT                    (USB_PHY0_BASE_ADDR + 0xF0)
++#define USBPHY_USB1_CHRG_DET_STAT_PLUG_CONTACT_MASK  (1 << 0)
++#define USBPHY_USB1_CHRG_DET_STAT_CHRG_DETECTED_MASK (1 << 1)
++#define USBPHY_USB1_CHRG_DET_STAT_DM_STATE_MASK      (1 << 2)
++#define USBPHY_USB1_CHRG_DET_STAT_DP_STATE_MASK      (1 << 3)
++#define USBPHY_USB1_CHRG_DET_STAT_SECDET_DCP_MASK    (1 << 4)
++
++#define USB_DCD                                      (USB_PHY0_BASE_ADDR + 0x800)
++#define USB_DCD_CONTROL                              (USB_DCD + 0x0)
++#define USB_DCD_CONTROL_SR                           (1<<25)
++#define USB_DCD_CONTROL_START                        (1<<24)
++#define USB_DCD_CONTROL_BC12                         (1<<17)
++#define USB_DCD_CONTROL_IE                           (1<<16)
++#define USB_DCD_CONTROL_IACK                         (1)
++#define USB_DCD_CONTROL_IF                           (1<<8)
++#define USB_DCD_STATUS                               (USB_DCD + 0x8)
++#define USB_DCD_STATUS_ACTIVE                        (1<<22)
++#define USB_DCD_STATUS_TO                            (1<<21)
++#define USB_DCD_STATUS_ERR                           (1<<20)
++#define USB_DCD_STATUS_SEQ_STAT                      (0x000C0000)
++#define USB_DCD_STATUS_SEQ_RES                       (0x00030000)
++#define USB_DCD_STATUS_SEQ_STAT_SHIFT                (18)
++#define USB_DCD_STATUS_SEQ_RES_SHIFT                 (16)
++#define USB_DCD_SIGNAL_OVERRIDE                      (USB_DCD + 0xC)
++#define USB_DCD_SIGNAL_OVERRIDE_PS_VDP_SRC           (0x2)
++#define USB_DCD_TIMER0                               (USB_DCD + 0x10)
++#define USB_DCD_TIMER1                               (USB_DCD + 0x14)
++#define USB_DCD_TDCD_DBNC                            (0x3FF0000)
++#define USB_DCD_TDCD_DBNC_SHIFT                      (16)
++#define USB_DCD_TUNITCON                             (0xFFF)
++
++enum {
++	SEQ_NO_RESULT=0,
++	SEQ_SDP=1,		/* Standard Downstream Port */
++	SEQ_CDP_DCP=2,		/* Charging Downstream Port or Dedicated Charging Port */
++	SEQ_DCP=3,		/* Dedicated Charging Port */
++};
++
++enum {
++	STAT_DISABLED=0,
++	STAT_DATA_PIN=1,
++	STAT_CHARGING=2,
++	STAT_CHARGER_TYPE=3,
++};
++
++enum {
++	USB_DCD_ERROR=-2,
++	USB_DCD_TIMEOUT=-1,
++};
++
++int usbdcd_get_charge_current_mA(int *charge_current_mA);
++void usbdcd_set_tdcd_dbnc(u32 val);
++u32 usbdcd_charger_port(void);
++u32 usbdcd_data_pin_contact_detect(void);
++u32 usbdcd_charger_type(void);
++int usbdcd_handle_error(int *charge_current_mA);
++int usbdcd_handle_timeout(int *charge_current_mA);
+-- 
+2.26.2
+
