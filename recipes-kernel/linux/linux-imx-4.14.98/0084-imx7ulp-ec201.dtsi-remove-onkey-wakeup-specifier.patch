@@ -1,0 +1,25 @@
+From 31ddf57447cc74b26a77a0981163517d12b3e400 Mon Sep 17 00:00:00 2001
+From: David Sernelius <david@tinygiant.se>
+Date: Fri, 24 Apr 2020 20:37:37 +0200
+Subject: [PATCH] imx7ulp-ec201.dtsi: remove onkey wakeup specifier
+
+Setting the wakeup parameter for onkey registers the pf1550 interrupt as a wakeup interrupt and this for some reason results in the pf1550 interrupt handlers not being triggered after a suspend/resume cycle. Might be because of IRQF_NO_SUSPEND and wakeup setting being non compatible. We wake up the system from the M4 triggered on an SNVS interrupt and don't wake up on the pf1550 interrupt.
+---
+ arch/arm/boot/dts/imx7ulp-ec201.dtsi | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-ec201.dtsi b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+index d90c7e47a0ca..4f1003e54c19 100644
+--- a/arch/arm/boot/dts/imx7ulp-ec201.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-ec201.dtsi
+@@ -407,7 +407,6 @@
+ 		onkey {
+ 			compatible = "fsl,pf1550-onkey";
+ 			linux,keycode = <KEY_F8>;
+-			wakeup;
+ 		};
+ 
+ 		charger {
+-- 
+2.26.1
+
