@@ -30,9 +30,9 @@ IMAGE_CMD_recovery.vfat() {
     BOOTIMG_FILES_SYMLINK="${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGETYPE}-${MACHINE}.bin"
     if [ -n "${KERNEL_DEVICETREE}" ]; then
         for DTB in ${KERNEL_DEVICETREE}; do
-            if [ -e "${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGETYPE}-${DTB}" ]; then
-                BOOTIMG_FILES="${BOOTIMG_FILES} $(readlink -e ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGETYPE}-${DTB})"
-                BOOTIMG_FILES_SYMLINK="${BOOTIMG_FILES_SYMLINK} ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGETYPE}-${DTB}"
+            if [ -e "${DEPLOY_DIR_IMAGE}/${DTB}" ]; then
+                BOOTIMG_FILES="${BOOTIMG_FILES} $(readlink -e ${DEPLOY_DIR_IMAGE}/${DTB})"
+                BOOTIMG_FILES_SYMLINK="${BOOTIMG_FILES_SYMLINK} ${DEPLOY_DIR_IMAGE}/${DTB}"
             fi
         done
     fi
@@ -71,15 +71,6 @@ IMAGE_CMD_recovery.vfat() {
     mkfs.vfat -n "${VFAT_LABEL}" -S 512 -C ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat ${BOOTIMG_BLOCKS}
     mcopy -i ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat ${BOOTIMG_FILES_SYMLINK} ::/
 
-    # Rename files to match u-boot simpler naming
-    for FILE in ${BOOTIMG_FILES_SYMLINK}; do
-        FNAME=$(basename $FILE)
-        ISDTB=$(echo ${FNAME} | grep ".dtb" || true)
-        if [ ! -z "${ISDTB}" ]; then
-           mren -i ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat ${FNAME} ${FNAME##${KERNEL_IMAGETYPE}-}
-        fi
-    done
-
     mren -i ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat ${IMAGE_LINK_NAME}.uimg uRamdisk.img
     mren -i ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat ${KERNEL_IMAGETYPE}-${MACHINE}.bin ${KERNEL_IMAGETYPE}
     # Truncate the image to speed up the downloading/writing to the EMMC
@@ -88,7 +79,7 @@ IMAGE_CMD_recovery.vfat() {
         truncate -s $(expr \( \( ${BOOTIMG_FILES_SIZE} + 511 \) / 512 \) \* 512) ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat
     fi
 
-        # Create the symlink
+    # Create the symlink
     if [ -n "${IMAGE_LINK_NAME}" ] && [ -e ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat ]; then
         ln -s ${IMAGE_NAME}.recovery.vfat ${IMGDEPLOYDIR}/${IMAGE_LINK_NAME}.recovery.vfat
     fi
