@@ -9,11 +9,7 @@ SRC_URI = " \
     file://suspend-qca9377 \
 "
 
-S = "${WORKDIR}/"
-
 do_install() {
-    install -d ${D}${systemd_unitdir}/system-sleep
-    install -m 0777 ${S}/suspend-qca9377 ${D}${systemd_unitdir}/system-sleep/
+    install -d ${D}/sbin
+    install -m 0777 ${WORKDIR}/suspend-qca9377 ${D}/sbin/
 }
-
-FILES_${PN} = "${systemd_unitdir}/system-sleep/suspend-qca9377"

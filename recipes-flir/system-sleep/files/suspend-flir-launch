@@ -1,0 +1,11 @@
+#!/bin/sh
+case $1 in
+    pre)
+	/sbin/suspend-flir pre
+	/sbin/suspend-qca9377 pre
+    ;;
+    post)
+	/sbin/suspend-flir post
+	/sbin/suspend-qca9377 post
+	;;
+esac
