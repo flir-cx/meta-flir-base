@@ -1,0 +1,265 @@
+From cdb1220e99bd811c784b41d226904dacabccbf7c Mon Sep 17 00:00:00 2001
+From: Adrien Martinez <adrien.martinez@flir.com>
+Date: Tue, 5 May 2020 11:16:05 +0200
+Subject: [PATCH] SHLK-2066 USB Charging Data pin Contact procedure
+
+Disable VDP_SRC voltage source for the USB_DP pin and IDM_SINK current
+source for the USB_DM pin prior to starting the charger detection
+sequence.
+---
+ drivers/usb/phy/phy-mxs-usb.c | 150 +++++++++++++++++++---------------
+ 1 file changed, 86 insertions(+), 64 deletions(-)
+
+diff --git a/drivers/usb/phy/phy-mxs-usb.c b/drivers/usb/phy/phy-mxs-usb.c
+index 41953173e703..0022832c68c8 100644
+--- a/drivers/usb/phy/phy-mxs-usb.c
++++ b/drivers/usb/phy/phy-mxs-usb.c
+@@ -35,6 +35,12 @@
+ #define HW_USBPHY_CTRL_SET			0x34
+ #define HW_USBPHY_CTRL_CLR			0x38
+ 
++#define HW_USBPHY_DEBUG 			0x50
++#define HW_USBPHY_DEBUG_ENHSTPULLDOWN   	(BIT(4) | BIT(5))
++#define HW_USBPHY_DEBUG_ENHSTPULLDOWN_SHIFT   	(4)
++#define HW_USBPHY_DEBUG_HSTPULLDOWN      	(BIT(2) | BIT(3))
++#define HW_USBPHY_DEBUG_HSTPULLDOWN_SHIFT      (2)
++
+ #define HW_USBPHY_DEBUG_SET			0x54
+ #define HW_USBPHY_DEBUG_CLR			0x58
+ 
+@@ -51,6 +57,11 @@
+ #define HW_USBPHY_PLL_SIC_SET			0xa4
+ #define HW_USBPHY_PLL_SIC_CLR			0xa8
+ 
++#define HW_USBPHY_CTRL_ENDEVPLUGINDET		BIT(4)
++
++#define HW_USBPHY_ANACTRL			0x100
++#define HW_USBPHY_ANACTRL_DEV_PULLDOWN		BIT(10)
++
+ #define BM_USBPHY_CTRL_SFTRST			BIT(31)
+ #define BM_USBPHY_CTRL_CLKGATE			BIT(30)
+ #define BM_USBPHY_CTRL_OTG_ID_VALUE		BIT(27)
+@@ -66,7 +77,13 @@
+ #define BM_USBPHY_CTRL_ENUTMILEVEL2		BIT(14)
+ #define BM_USBPHY_CTRL_ENHOSTDISCONDETECT	BIT(1)
+ 
+-#define BM_USBPHY_IP_FIX                       (BIT(17) | BIT(18))
++#define HW_USBPHY_USB1_CHRG_DET_STAT		        0xF0
++#define HW_USBPHY_USB1_CHRG_DET_STAT_DM_STATE	        BIT(2)
++#define HW_USBPHY_USB1_CHRG_DET_STAT_DP_STATE    	BIT(3)
++#define HW_USBPHY_USB1_CHRG_DET_STAT_CHRG_DETECTED	BIT(1)
++#define HW_USBPHY_USB1_CHRG_DET_STAT_PLUG_CONTACT	BIT(0)
++
++#define BM_USBPHY_IP_FIX                        (BIT(17) | BIT(18))
+ 
+ #define BM_USBPHY_DEBUG_CLKGATE			BIT(30)
+ /* imx7ulp */
+@@ -137,12 +154,14 @@
+ /* DCD module, the offset is 0x800 */
+ #define DCD_CONTROL				0x800
+ #define DCD_CLOCK				(DCD_CONTROL + 0x4)
++#define DCD_SIGNAL_OVERRIDE			(DCD_CONTROL + 0xC)
+ #define DCD_STATUS				(DCD_CONTROL + 0x8)
+ #define DCD_TIMER1				(DCD_CONTROL + 0x14)
+ 
+-#define DCD_TIMER1_TDCD_DBNC_SHIFT	16
+-#define DCD_TIMER1_TDCD_DBNC_MASK	0x3ff
++#define DCD_TIMER1_TDCD_DBNC_SHIFT	        16
++#define DCD_TIMER1_TDCD_DBNC_MASK               0x3ff
+ 
++#define DCD_SIGNAL_OVERRIDE_VDP_SRC		BIT(1)
+ #define DCD_CONTROL_SR				BIT(25)
+ #define DCD_CONTROL_START			BIT(24)
+ #define DCD_CONTROL_BC12			BIT(17)
+@@ -156,6 +175,8 @@
+ #define DCD_STATUS_TO				BIT(21)
+ #define DCD_STATUS_ERR				BIT(20)
+ #define DCD_STATUS_SEQ_STAT			(BIT(18) | BIT(19))
++#define USB_DCD_STATUS_SEQ_STAT_SHIFT           (18)
++
+ #define DCD_CHG_PORT				BIT(19)
+ #define DCD_CHG_DET				(BIT(18) | BIT(19))
+ #define DCD_CHG_DPIN				BIT(18)
+@@ -871,117 +892,118 @@ static enum usb_charger_type mxs_phy_charger_detect(struct usb_phy *phy)
+ 	return chgr_type;
+ }
+ 
++/* Debounce time in ms */
++#define DCD_DBNC_TIME 50
+ static int mxs_phy_dcd_start(struct mxs_phy *mxs_phy)
+ {
+ 	void __iomem *base = mxs_phy->phy.io_priv;
+ 	u32 value;
+ 
+-	value = readl(base + DCD_CONTROL);
+-	writel(value | DCD_CONTROL_SR, base + DCD_CONTROL);
++	/* Disable pulldown resistors on USB_DP and USB_DM. IF the
++	 * pulldown resistors are enabled the data pins are held low
++	 * which interferes with the Data Pin Contact Detection. */
++	writel(readl(base + HW_USBPHY_ANACTRL) & ~HW_USBPHY_ANACTRL_DEV_PULLDOWN, base + HW_USBPHY_ANACTRL);
++
++	/* Signal override interferes with the Data Contact Detection
++	 * sequence and needs to be turned off. */
++	writel(readl(base + DCD_SIGNAL_OVERRIDE) & ~DCD_SIGNAL_OVERRIDE_VDP_SRC, base + DCD_SIGNAL_OVERRIDE);
+ 
+-	value = readl(base + DCD_TIMER1);
+-	value &= ~((DCD_TIMER1_TDCD_DBNC_MASK) << DCD_TIMER1_TDCD_DBNC_SHIFT);
+-	writel(value | ((0x80 & DCD_TIMER1_TDCD_DBNC_MASK) << DCD_TIMER1_TDCD_DBNC_SHIFT) , base + DCD_TIMER1);
++	/* Software reset */
++	writel(readl(base + DCD_CONTROL) | DCD_CONTROL_SR, base + DCD_CONTROL);
+ 
+-	if (!mxs_phy->clk_rate)
++	/* Data contact debounce time */
++	value = readl(base + DCD_TIMER1) & ~(DCD_TIMER1_TDCD_DBNC_MASK << DCD_TIMER1_TDCD_DBNC_SHIFT);
++	writel(value | ((DCD_DBNC_TIME & DCD_TIMER1_TDCD_DBNC_MASK) << DCD_TIMER1_TDCD_DBNC_SHIFT) , base + DCD_TIMER1);
++
++	if (!mxs_phy->clk_rate){
++		dev_err(mxs_phy->phy.dev, "Could not start Charger Detection Sequence, no clock rate\n");
+ 		return -EINVAL;
++	}
+ 
+-	value = readl(base + DCD_CONTROL);
+ 	writel(((mxs_phy->clk_rate / 1000000) << 2) | DCD_CLOCK_MHZ,
+ 		base + DCD_CLOCK);
+ 
+-	value = readl(base + DCD_CONTROL);
+-	value &= ~DCD_CONTROL_IE;
+-	writel(value | DCD_CONTROL_BC12, base + DCD_CONTROL);
++	/* Disable interrupts */
++	writel(readl(base + DCD_CONTROL) & ~DCD_CONTROL_IE, base + DCD_CONTROL);
+ 
+-	value = readl(base + DCD_CONTROL);
+-	writel(value | DCD_CONTROL_START, base + DCD_CONTROL);
++	/* Set configuration to Battery charging Rev 1.2 */
++	writel(readl(base + DCD_CONTROL) | DCD_CONTROL_BC12, base + DCD_CONTROL);
++
++	/* Start Detection sequence */
++	writel(readl(base + DCD_CONTROL) | DCD_CONTROL_START, base + DCD_CONTROL);
+ 
+ 	return 0;
+ }
+ 
+-
+-#define DCD_CHARGING_DURTION 1000 /* One second according to BC 1.2 */
+ static enum usb_charger_type mxs_phy_dcd_flow(struct usb_phy *phy)
+ {
+ 	struct mxs_phy *mxs_phy = to_mxs_phy(phy);
+ 	void __iomem *base = mxs_phy->phy.io_priv;
+-	u32 value;
+-	int i = 0;
++	u32 control, status;
+ 	enum usb_charger_type chgr_type;
+ 
+ 	if (mxs_phy_dcd_start(mxs_phy))
+ 		return UNKNOWN_TYPE;
+ 
+-	while (i++ <= (DCD_CHARGING_DURTION / 50)) {
+-		value = readl(base + DCD_CONTROL);
+-		if (value & DCD_CONTROL_IF) {
+-			value = readl(base + DCD_STATUS);
+-			/*
+-			if (value & DCD_STATUS_ACTIVE) {
+-				dev_err(phy->dev, "still detecting\n");
+-				chgr_type = UNKNOWN_TYPE;
+-				break;
+-			}
+-*/
+-			if (value & DCD_STATUS_TO) {
+-				dev_err(phy->dev, "detect timeout\n");
+-				chgr_type = UNKNOWN_TYPE;
+-				break;
+-			}
+-
+-			if (value & DCD_STATUS_ERR) {
++	status = readl(base + DCD_STATUS);
++	control = readl(base + DCD_CONTROL);
++	while (!(status & DCD_STATUS_TO)) {
++		if (control & DCD_CONTROL_IF) {
++			/* An error will generate an interrupt. */
++			if (status & DCD_STATUS_ERR) {
+ 				dev_err(phy->dev, "detect error\n");
+ 				chgr_type = UNKNOWN_TYPE;
+ 				break;
+ 			}
+ 
+-			if ((value & DCD_STATUS_SEQ_STAT) <= DCD_CHG_DPIN) {
+-				dev_err(phy->dev, "error occurs\n");
+-				chgr_type = UNKNOWN_TYPE;
+-				break;
+-			}
+-
+-			/* SDP */
+-			if (((value & DCD_STATUS_SEQ_STAT) == DCD_CHG_PORT) &&
+-				((value & DCD_STATUS_SEQ_RES)
+-					== DCD_SDP_PORT)) {
+-				dev_dbg(phy->dev, "SDP\n");
++			if (((status & DCD_STATUS_SEQ_STAT) == DCD_CHG_PORT) &&
++				((status & DCD_STATUS_SEQ_RES) == DCD_SDP_PORT)) {
++				dev_info(phy->dev, "SDP\n");
+ 				chgr_type = SDP_TYPE;
+ 				break;
+ 			}
+ 
+-			if ((value & DCD_STATUS_SEQ_STAT) == DCD_CHG_DET) {
+-				if ((value & DCD_STATUS_SEQ_RES) ==
+-						DCD_CDP_PORT) {
+-					dev_dbg(phy->dev, "CDP\n");
++			if ((status & DCD_STATUS_SEQ_STAT) == DCD_CHG_DET) {
++				if ((status & DCD_STATUS_SEQ_RES) == DCD_CDP_PORT) {
++					dev_info(phy->dev, "CDP\n");
++					writel(readl(base + DCD_SIGNAL_OVERRIDE) | DCD_SIGNAL_OVERRIDE_VDP_SRC, base + DCD_SIGNAL_OVERRIDE);
+ 					chgr_type = CDP_TYPE;
+ 					break;
+ 				}
+ 
+-				if ((value & DCD_STATUS_SEQ_RES) ==
+-						DCD_DCP_PORT) {
+-					dev_dbg(phy->dev, "DCP\n");
++				if ((status & DCD_STATUS_SEQ_RES) == DCD_DCP_PORT) {
++					dev_info(phy->dev, "DCP\n");
+ 					chgr_type = DCP_TYPE;
+ 					break;
+ 				}
+ 			}
+-			dev_err(phy->dev, "unknown error occurs\n");
++		}
++
++		/* Make sure that we are still active. Break out of
++		 * the loop if we are inactive but still have not
++		 * determined charger type. */
++		if (!(status & DCD_STATUS_ACTIVE)){
+ 			chgr_type = UNKNOWN_TYPE;
+ 			break;
+ 		}
+-		msleep(50);
++
++		msleep(1);
++		control = readl(base + DCD_CONTROL);
++		status = readl(base + DCD_STATUS);
+ 	}
+ 
+-	if (i > 20) {
+-		dev_err(phy->dev, "charger detecting timeout\n");
+-		chgr_type = UNKNOWN_TYPE;
++	if (status & DCD_STATUS_TO) {
++		dev_err(phy->dev, "Charger detecting timeout\n");
++		dev_info(phy->dev, "SDP\n");
++		chgr_type = SDP_TYPE;
+ 	}
+ 
+-	/* disable dcd module */
+-	readl(base + DCD_STATUS);
+-	writel(DCD_CONTROL_IACK, base + DCD_CONTROL);
+-	writel(DCD_CONTROL_SR, base + DCD_CONTROL);
++	/* Clear interrupt flag */
++	writel(readl(base + DCD_CONTROL) | DCD_CONTROL_IACK, base + DCD_CONTROL);
++
++	/* Software reset */
++	writel(readl(base + DCD_CONTROL) | DCD_CONTROL_SR, base + DCD_CONTROL);
++
+ 	return chgr_type;
+ }
+ 
+-- 
+2.26.2
+
