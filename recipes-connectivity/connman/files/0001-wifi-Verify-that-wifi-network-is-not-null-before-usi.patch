@@ -1,0 +1,32 @@
+From de5220cf5ec842f4cf8f40f2da3bbb25b51c414a Mon Sep 17 00:00:00 2001
+From: Henrik Persson <Henrik.Persson@verisure.com>
+Date: Tue, 2 Apr 2019 14:50:33 +0000
+Subject: [PATCH] wifi: Verify that wifi->network is not null before using
+
+In disconnect_callback() wifi->network is used, but it seems that
+callback can arrive without wifi->network being set. The call to
+connman_network_set_connected(wifi->network, false) will then be
+called and deref that null pointer, making connman crash.
+
+So, don't call connman_network_set_connected() if wifi->network is
+null.
+---
+ plugins/wifi.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/plugins/wifi.c b/plugins/wifi.c
+index f8c22be..a29c341 100644
+--- a/plugins/wifi.c
++++ b/plugins/wifi.c
+@@ -2228,7 +2228,7 @@ static void disconnect_callback(int result, GSupplicantInterface *interface,
+ 		return;
+ 	}
+ 
+-	if (wifi->network != wifi->pending_network)
++	if (wifi->network && wifi->network != wifi->pending_network)
+ 		connman_network_set_connected(wifi->network, false);
+ 	wifi->network = NULL;
+ 
+-- 
+2.7.4
+
