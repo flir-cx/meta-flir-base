@@ -79,8 +79,10 @@ SRC_URI_append = " \
     file://0082-mxc_rpmsg-Reset-buffers-in-m4-if-dma-addr-mismatch.patch \
     file://0083-mxc_viu-enabled-ERROR-IRQ-after-DMA-IRQ.patch \
     file://0084-imx7ulp-ec201.dtsi-remove-onkey-wakeup-specifier.patch \
-    file://defconfig \
-    file://0085-SHLK-2066-USB-Charging-Data-pin-Contact-procedure.patch"
+    file://0085-SHLK-2066-USB-Charging-Data-pin-Contact-procedure.patch \
+    file://0086-mxc_viu.c-removes-unrelated-pixformat-check.patch \
+    file://0087-mxc_viu.c-reset-VIU-when-stopping-stream.patch \
+    file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
 
