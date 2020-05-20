@@ -82,6 +82,7 @@ SRC_URI_append = " \
     file://0085-SHLK-2066-USB-Charging-Data-pin-Contact-procedure.patch \
     file://0086-mxc_viu.c-removes-unrelated-pixformat-check.patch \
     file://0087-mxc_viu.c-reset-VIU-when-stopping-stream.patch \
+    file://0088-imx7ulp-ec201.dts-increase-CMA-size-to-300MB.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
