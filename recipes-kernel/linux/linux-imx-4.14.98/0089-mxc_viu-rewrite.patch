@@ -1,0 +1,575 @@
+From 04f07fad8ef89a8b26449e137bc39359b7f02ebc Mon Sep 17 00:00:00 2001
+From: Mikael Jansson <mikael.jansson@flir.com>
+Date: Wed, 27 May 2020 16:09:03 +0200
+Subject: [PATCH] shlk-2116
+
+---
+ drivers/media/platform/mxc/capture/mxc_viu.c | 399 ++++++++-----------
+ 1 file changed, 170 insertions(+), 229 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_viu.c b/drivers/media/platform/mxc/capture/mxc_viu.c
+index 0f35af7318c5..3d2f1694b44e 100644
+--- a/drivers/media/platform/mxc/capture/mxc_viu.c
++++ b/drivers/media/platform/mxc/capture/mxc_viu.c
+@@ -70,6 +70,10 @@
+ #define REG_GET(x, e, s) (((x) & REG_MASK(e, s)) >> (s))
+ 
+ /* register bit fields */
++#define SCR_ERROR_CODE_BIT_1		BIT(4)
++#define SCR_ERROR_CODE_BIT_2		BIT(5)
++#define SCR_ERROR_CODE_BIT_3		BIT(6)
++#define SCR_ERROR_CODE_BIT_4		BIT(7)
+ #define SCR_MODE32BIT				BIT(31)
+ #define SCR_ROUND_ON				BIT(30)
+ #define SCR_DITHER_ON				BIT(29)
+@@ -349,6 +353,7 @@ static void imx_viu_irq_enable(struct imx_viu_device *viu_dev,
+ 		break;
+ 	case ERROR_IRQ:
+ 		scr |= SCR_ERROR_EN;
++		scr |= SCR_ERROR_IRQ;
+ 		break;
+ 	case DMA_END_IRQ:
+ 		scr |= SCR_DMA_END_EN;
+@@ -422,82 +427,6 @@ static void imx_viu_irq_init(struct imx_viu_device *viu_dev)
+ 	writel(scr, viu_dev->base + VIU_SCR);
+ }
+ 
+-static int imx_viu_wait_for_vsync(struct imx_viu_device *viu_dev)
+-{
+-	unsigned long ret;
+-
+-	imx_viu_irq_enable(viu_dev, VSYNC_IRQ);
+-
+-	ret = wait_for_completion_timeout(&viu_dev->vsync, HZ * 10);
+-	if (!ret) {
+-		dev_err(viu_dev->dev, "wait for vsync timeout, scr = %#x\n",
+-			readl(viu_dev->base + VIU_SCR));
+-		imx_viu_irq_disable(viu_dev, VSYNC_IRQ);
+-
+-		return -EBUSY;
+-	}
+-
+-	imx_viu_irq_disable(viu_dev, VSYNC_IRQ);
+-
+-	return 0;
+-}
+-
+-static int imx_viu_wait_for_field(struct imx_viu_device *viu_dev,
+-				  unsigned int field)
+-{
+-	int ret;
+-	unsigned int scr;
+-	struct v4l2_pix_format *fmt = &viu_dev->v4l2_pix_fmt;
+-
+-	switch (fmt->field) {
+-	case V4L2_FIELD_INTERLACED:
+-		if (field > 1)
+-			return -EINVAL;
+-
+-		imx_viu_irq_enable(viu_dev, FIELD_IRQ);
+-next_field:
+-		ret = wait_for_completion_timeout(&viu_dev->field, HZ / 5);
+-		if (!ret) {
+-			dev_err(viu_dev->dev, "wait for field timeout\n");
+-			imx_viu_irq_disable(viu_dev, FIELD_IRQ);
+-			return -EBUSY;
+-		}
+-		scr = readl(viu_dev->base + VIU_SCR);
+-		if (SCR_GET_FIELD_NO(scr) != field)
+-			goto next_field;
+-
+-		imx_viu_irq_disable(viu_dev, FIELD_IRQ);
+-		break;
+-	case V4L2_FIELD_NONE:
+-		if (field != 0)
+-			return -EINVAL;
+-
+-		return imx_viu_wait_for_vsync(viu_dev);
+-	default:
+-		return -EINVAL;
+-	}
+-
+-	return 0;
+-}
+-
+-/* reset don't change register values */
+-static void imx_viu_soft_reset(struct imx_viu_device *viu_dev)
+-{
+-	unsigned int scr;
+-
+-	scr = readl(viu_dev->base + VIU_SCR);
+-
+-	/* set reset */
+-	scr |= SCR_SOFT_RESET;
+-	writel(scr, viu_dev->base + VIU_SCR);
+-
+-	mdelay(1);
+-
+-	/* out of reset */
+-	scr &= ~SCR_SOFT_RESET;
+-	writel(scr, viu_dev->base + VIU_SCR);
+-}
+-
+ static int imx_viu_set_fmt(struct imx_viu_device *viu_dev)
+ {
+ 	uint32_t scr, invsz, vid_size, ext_config;
+@@ -563,6 +492,10 @@ static int imx_viu_set_fmt(struct imx_viu_device *viu_dev)
+ 		return -EINVAL;
+ 	}
+ 
++	/* Set polarity for VSYNC/HSYNC */
++	ext_config |= 1 << 2;
++	ext_config |= 1 << 3;
++
+ 	writel(ext_config, viu_dev->base + VIU_EXT_CONFIG);
+ 	writel(invsz, viu_dev->base + VIU_INVSZ);
+ 	writel(vid_size, viu_dev->base + VIU_VID_SIZE);
+@@ -571,49 +504,6 @@ static int imx_viu_set_fmt(struct imx_viu_device *viu_dev)
+ 	return 0;
+ }
+ 
+-static int imx_viu_config_dma(struct imx_viu_device *viu_dev,
+-			      dma_addr_t dma_addr,
+-			      unsigned int field)
+-{
+-	unsigned int scr, dma_inc = 0, field_addr;
+-	struct v4l2_pix_format *fmt = &viu_dev->v4l2_pix_fmt;
+-
+-	if (field > 1)
+-		return -EINVAL;
+-
+-	/* 'dma_inc' shall only be configured when DMA
+-	 * is inactive, during vertical blanking
+-	 */
+-	scr = readl(viu_dev->base + VIU_SCR);
+-	if (WARN_ON(scr & SCR_DMA_ACT))
+-		return -EBUSY;
+-
+-	switch (fmt->field) {
+-	case V4L2_FIELD_INTERLACED:
+-		dma_inc    = fmt->bytesperline;
+-		field_addr = dma_addr + field * fmt->bytesperline;
+-		break;
+-	case V4L2_FIELD_NONE:
+-		dma_inc = 0;
+-		field_addr = dma_addr;
+-		break;
+-	default:
+-		dev_err(viu_dev->dev,
+-			"%s: unsupported field type: %d\n",
+-			__func__, fmt->field);
+-		return -EINVAL;
+-	}
+-
+-	writel(dma_inc,    viu_dev->base + VIU_DMA_INC);
+-	writel(field_addr, viu_dev->base + VIU_DMA_ADDR);
+-
+-	/* activate DMA only durning vertial blank*/
+-	scr |= SCR_DMA_ACT;
+-	writel(scr, viu_dev->base + VIU_SCR);
+-
+-	return 0;
+-}
+-
+ static int imx_viu_vidioc_querycap(struct file *file, void *fh,
+ 				   struct v4l2_capability *cap)
+ {
+@@ -997,6 +887,86 @@ static int imx_viu_buf_prepare(struct vb2_buffer *vb)
+ 	return 0;
+ }
+ 
++static int imx_viu_dma_done_handle(struct imx_viu_device *viu_dev)
++{
++	int ret;
++	uint32_t field = 0;
++	unsigned long flags;
++	struct imx_viu_buffer *buf;
++	struct viu_buf_internal *ibuf;
++	struct vb2_buffer *vb;
++	dma_addr_t dma_addr;
++	volatile uint32_t scr;
++
++	spin_lock_irqsave(&viu_dev->slock, flags);
++
++	/* Deactivate DMA */
++	scr = readl(viu_dev->base + VIU_SCR);
++	writel(scr & ~SCR_DMA_ACT, viu_dev->base + VIU_SCR);
++
++	if (unlikely(list_empty(&viu_dev->active_queue))) {
++		WARN_ON(1);
++		spin_unlock_irqrestore(&viu_dev->slock, flags);
++		return -ENOBUFS;
++	}
++
++	ibuf = list_first_entry(&viu_dev->active_queue, struct viu_buf_internal,
++				queue);
++
++	if (ibuf->discard) {
++
++		/* discard buffer just return to discard queue */
++		/* not dqbuf to user */
++		list_move_tail(viu_dev->active_queue.next, &viu_dev->discard);
++	} else {
++		/* make vb2 know about the buffer done, can return to user */
++		buf = viu_ibuf_to_buf(ibuf);
++		vb = &buf->vb.vb2_buf;
++
++		/* delete current buffer from queue */
++		list_del_init(&buf->internal.queue);
++		to_vb2_v4l2_buffer(vb)->sequence = viu_dev->frame_count;
++		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
++	}
++
++	viu_dev->frame_count++;
++
++	if (list_empty(&viu_dev->active_queue)) {
++
++		if (list_empty(&viu_dev->discard)) {
++			spin_unlock_irqrestore(&viu_dev->slock, flags);
++			dev_err(viu_dev->dev,
++				"trying to access empty discard list\n");
++			return 0;
++		}
++
++		list_move_tail(viu_dev->discard.next, &viu_dev->active_queue);
++
++		field = viu_dev->discard_buffer_dma;
++		writel(field, viu_dev->base + VIU_DMA_ADDR);
++		scr |= SCR_DMA_ACT;
++		writel(scr, viu_dev->base + VIU_SCR);
++		spin_unlock_irqrestore(&viu_dev->slock, flags);
++
++		return 0;
++	}
++
++	buf = list_first_entry(&viu_dev->active_queue, struct imx_viu_buffer,
++				internal.queue);
++
++	vb = &buf->vb.vb2_buf;
++	vb->state = VB2_BUF_STATE_ACTIVE;
++
++	dma_addr = vb2_dma_contig_plane_dma_addr(vb, 0);
++	field = dma_addr;
++ 	writel(field, viu_dev->base + VIU_DMA_ADDR);
++	scr |= SCR_DMA_ACT;
++	writel(scr, viu_dev->base + VIU_SCR);
++	spin_unlock_irqrestore(&viu_dev->slock, flags);
++
++	return ret;
++}
++
+ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 				   unsigned int count)
+ {
+@@ -1007,12 +977,15 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 	struct imx_viu_buffer *pos, *tmp;
+ 	struct vb2_buffer *vb;
+ 	dma_addr_t dma_addr;
++	volatile unsigned int scr;
+ 
+ 	if (WARN_ON(count < IMX_VIU_MIN_BUFS)) {
+ 		ret = -ENOBUFS;
+ 		goto clean_up;
+ 	}
+ 
++	spin_lock_irqsave(&viu_dev->slock, flags);
++
+ 	/* Check if current discard_buffer is big enough, otherwise allocate a larger buffer*/
+ 	if (viu_dev->discard_size < viu_dev->v4l2_pix_fmt.sizeimage ||
+ 			!viu_dev->discard_buffer) {
+@@ -1031,11 +1004,10 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 
+ 	if (!viu_dev->discard_buffer) {
+ 		ret = -ENOMEM;
++		spin_unlock_irqrestore(&viu_dev->slock, flags);
+ 		goto clean_up;
+ 	}
+ 
+-	spin_lock_irqsave(&viu_dev->slock, flags);
+-
+ 	/* queue the discard buffer first */
+ 	viu_dev->buf_discard.discard = true;
+ 	list_add_tail(&viu_dev->buf_discard.queue,
+@@ -1057,35 +1029,48 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 
+ 	viu_buf->field = 0;
+ 
+-	spin_unlock_irqrestore(&viu_dev->slock, flags);
++	scr = readl(viu_dev->base + VIU_SCR);
++	if (WARN_ON(scr & SCR_DMA_ACT)) {
++		dev_err(viu_dev->dev, "WARNING DMA_ACT is asserted\n");
++	}
+ 
+ 	ret = imx_viu_set_fmt(viu_dev);
+ 	if (ret)
+ 		goto clean_up_discard;
+ 
+-	/* wait for the first field of a frame */
+-	ret = imx_viu_wait_for_field(viu_dev, 0);
+-	if (ret)
+-		goto clean_up_discard;
+-
+-	/* enable dma transfer */
+-	imx_viu_irq_enable(viu_dev, DMA_END_IRQ);
++	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
++	imx_viu_irq_enable(viu_dev, VSYNC_IRQ);
++	spin_unlock_irqrestore(&viu_dev->slock, flags);
+ 
+-	/* enable ERROR interrupt */
+-	imx_viu_irq_enable(viu_dev, ERROR_IRQ);
++	/* Wait for VSYNC interrupt, to configure while blanking */
++	ret = wait_for_completion_timeout(&viu_dev->vsync, HZ * 10);
++	if (!ret) {
++		imx_viu_irq_disable(viu_dev, VSYNC_IRQ);
++		return -EBUSY;
++	}
+ 
+-	ret = imx_viu_config_dma(viu_dev, dma_addr, 0);
+-	if (ret)
+-		goto clean_up_irq;
++	spin_lock_irqsave(&viu_dev->slock, flags);
++	writel(dma_addr, viu_dev->base + VIU_DMA_ADDR);
+ 
+-	return 0;
++	imx_viu_irq_disable(viu_dev, VSYNC_IRQ);
++	imx_viu_irq_enable(viu_dev, ERROR_IRQ);
+ 
+-clean_up_irq:
++	/* Clear error irq and flags */
++	scr = readl(viu_dev->base + VIU_SCR);
++	scr &= ~SCR_ERROR_CODE_BIT_1;
++	scr &= ~SCR_ERROR_CODE_BIT_2;
++	scr &= ~SCR_ERROR_CODE_BIT_3;
++	scr &= ~SCR_ERROR_CODE_BIT_4;
++	scr |= SCR_ERROR_IRQ;
++	writel(scr, viu_dev->base + VIU_SCR);
+ 
+-	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
+-	imx_viu_irq_disable(viu_dev, DMA_END_IRQ);
++	scr = readl(viu_dev->base + VIU_SCR);
++	scr |= SCR_DMA_ACT;
++	scr |= SCR_DMA_END_EN;
++	writel(scr, viu_dev->base + VIU_SCR);
++	spin_unlock_irqrestore(&viu_dev->slock, flags);
+ 
+-	imx_viu_soft_reset(viu_dev);
++	return 0;
+ 
+ clean_up_discard:
+ 	INIT_LIST_HEAD(&viu_dev->discard);
+@@ -1110,27 +1095,25 @@ static int imx_viu_start_streaming(struct vb2_queue *q,
+ 
+ static void imx_viu_stop_streaming(struct vb2_queue *q)
+ {
+-	int ret;
+ 	unsigned long flags;
++	int ret = 0;
+ 	struct imx_viu_device *viu_dev = vb2_get_drv_priv(q);
+ 	struct imx_viu_buffer *pos, *tmp;
+ 	struct vb2_buffer *vb;
++	volatile unsigned int scr;
+ 
+-	/* It shall only be configured when DMA is
+-	 * inactive, during vertical blanking.
+-	 */
++	/* Wait for DMA to finish */
+ 	ret = wait_for_completion_timeout(&viu_dev->dma_done, HZ / 5);
+ 	if (!ret) {
+ 		dev_err(viu_dev->dev, "wait for dma done timeout\n");
+ 	}
+-	/* disable ERROR irq to make release smooth */
+-	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
+-	imx_viu_irq_disable(viu_dev, DMA_END_IRQ);
+-
+-	imx_viu_soft_reset(viu_dev);
+ 
+ 	spin_lock_irqsave(&viu_dev->slock, flags);
+ 
++	/* Issue soft reset and then clear all reqisters */
++	writel(scr | SCR_SOFT_RESET, viu_dev->base + VIU_SCR);
++	writel(0, viu_dev->base + VIU_SCR);
++
+ 	if (list_empty(&viu_dev->active_queue))
+ 		WARN_ON(1);
+ 
+@@ -1179,77 +1162,9 @@ static struct vb2_ops imx_viu_vb2_ops = {
+ 	.buf_queue		= imx_viu_buf_queue,
+ };
+ 
+-static int imx_viu_dma_done_handle(struct imx_viu_device *viu_dev)
+-{
+-	int ret;
+-	uint32_t field = 0;
+-	unsigned long flags;
+-	struct imx_viu_buffer *buf;
+-	struct viu_buf_internal *ibuf;
+-	struct vb2_buffer *vb;
+-	dma_addr_t dma_addr;
+-
+-	spin_lock_irqsave(&viu_dev->slock, flags);
+-
+-	if (unlikely(list_empty(&viu_dev->active_queue))) {
+-		WARN_ON(1);
+-		spin_unlock_irqrestore(&viu_dev->slock, flags);
+-		return -ENOBUFS;
+-	}
+-
+-	ibuf = list_first_entry(&viu_dev->active_queue, struct viu_buf_internal,
+-				queue);
+-
+-	if (ibuf->discard) {
+-
+-		/* discard buffer just return to discard queue */
+-		/* not dqbuf to user */
+-		list_move_tail(viu_dev->active_queue.next, &viu_dev->discard);
+-	} else {
+-		/* make vb2 know about the buffer done, can return to user */
+-		buf = viu_ibuf_to_buf(ibuf);
+-		vb = &buf->vb.vb2_buf;
+-
+-		/* delete current buffer from queue */
+-		list_del_init(&buf->internal.queue);
+-		to_vb2_v4l2_buffer(vb)->sequence = viu_dev->frame_count;
+-		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+-	}
+-
+-	viu_dev->frame_count++;
+-
+-	if (list_empty(&viu_dev->active_queue)) {
+-
+-		if (list_empty(&viu_dev->discard)) {
+-			spin_unlock_irqrestore(&viu_dev->slock, flags);
+-			dev_err(viu_dev->dev,
+-				"trying to access empty discard list\n");
+-			return 0;
+-		}
+-
+-		list_move_tail(viu_dev->discard.next, &viu_dev->active_queue);
+-
+-		imx_viu_config_dma(viu_dev, viu_dev->discard_buffer_dma, 0);
+-		spin_unlock_irqrestore(&viu_dev->slock, flags);
+-
+-		return 0;
+-	}
+-
+-	buf = list_first_entry(&viu_dev->active_queue, struct imx_viu_buffer,
+-				internal.queue);
+-
+-	vb = &buf->vb.vb2_buf;
+-	vb->state = VB2_BUF_STATE_ACTIVE;
+-
+-	dma_addr = vb2_dma_contig_plane_dma_addr(vb, 0);
+-	ret = imx_viu_config_dma(viu_dev, dma_addr, field);
+-	spin_unlock_irqrestore(&viu_dev->slock, flags);
+-	return ret;
+-}
+-
+ static irqreturn_t imx_viu_irq_handler(int irq, void *dev_id)
+ {
+-	unsigned int scr;
++	volatile unsigned int scr;
+ 	static bool recover = false;
+ 	struct imx_viu_device *viu_dev = dev_id;
+ 	int errcode;
+@@ -1309,6 +1224,7 @@ static irqreturn_t imx_viu_irq_handler(int irq, void *dev_id)
+ 			writel(scr, viu_dev->base + VIU_SCR);
+ 			recover = false;
+ 		}
++
+ 		complete(&viu_dev->vsync);
+ 		return IRQ_HANDLED;
+ 	}
+@@ -1558,28 +1474,29 @@ static int imx_viu_remove(struct platform_device *pdev)
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_PM_SLEEP 
++#ifdef CONFIG_PM_SLEEP
+ static int imx_viu_suspend(struct device *dev)
+ {
++
+ 	struct v4l2_device *v4l2_dev = dev_get_drvdata(dev);
+ 	struct imx_viu_device *viu_dev = v4l2_dev_to_viu_dev(v4l2_dev);
+-	int ret;
++	volatile unsigned int scr;
++	unsigned long flags;
+ 
+ 	pr_info("imx_viu_suspend\n");
+ 
+ 	if (!vb2_is_streaming(&viu_dev->queue))
+ 		goto pin_sleep;
+ 
+-	ret = wait_for_completion_timeout(&viu_dev->dma_done, HZ / 5);
+-	if (!ret) {
+-		dev_err(dev, "wait for dma done timeout\n");
+-	}
+-	/* disable ERROR irq to make release smooth */
+-	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
+-	imx_viu_irq_disable(viu_dev, DMA_END_IRQ);
+ 
+-	/* save registers for resume */
++	spin_lock_irqsave(&viu_dev->slock, flags);
++
++	/* Soft reset VIU, and clear all regs except fmt ctrl values */
++	scr = readl(viu_dev->base + VIU_SCR);
++	writel(scr | SCR_SOFT_RESET, viu_dev->base + VIU_SCR);
++	writel(scr & 0xe, viu_dev->base + VIU_SCR);
+ 	imx_viu_save_reg_stack(viu_dev, &viu_dev->reset);
++	spin_unlock_irqrestore(&viu_dev->slock, flags);
+ 
+ 	clk_disable_unprepare(viu_dev->ipg_clk);
+ 	release_bus_freq(BUS_FREQ_HIGH);
+@@ -1592,8 +1509,11 @@ static int imx_viu_suspend(struct device *dev)
+ 
+ static int imx_viu_resume(struct device *dev)
+ {
++
+ 	struct v4l2_device *v4l2_dev = dev_get_drvdata(dev);
+ 	struct imx_viu_device *viu_dev = v4l2_dev_to_viu_dev(v4l2_dev);
++	volatile unsigned int scr;
++	unsigned long flags;
+ 
+ 	pr_info("imx_viu_resume\n");
+ 
+@@ -1605,9 +1525,30 @@ static int imx_viu_resume(struct device *dev)
+ 
+ 	/* resume registers' value */
+ 	imx_viu_restore_reg_stack(viu_dev, &viu_dev->reset);
+-	imx_viu_irq_enable(viu_dev, DMA_END_IRQ);
++
++	spin_lock_irqsave(&viu_dev->slock, flags);
++	imx_viu_irq_disable(viu_dev, ERROR_IRQ);
++	imx_viu_irq_disable(viu_dev, VSYNC_IRQ);
+ 	imx_viu_irq_enable(viu_dev, ERROR_IRQ);
+ 
++	/* Clear error irq and flags */
++	scr = readl(viu_dev->base + VIU_SCR);
++	if (WARN_ON(scr & SCR_DMA_ACT)) {
++		dev_err(viu_dev->dev, "WARNING DMA_ACT is asserted\n");
++	}
++	scr &= ~SCR_ERROR_CODE_BIT_1;
++	scr &= ~SCR_ERROR_CODE_BIT_2;
++	scr &= ~SCR_ERROR_CODE_BIT_3;
++	scr &= ~SCR_ERROR_CODE_BIT_4;
++	scr |= SCR_ERROR_IRQ;
++	writel(scr, viu_dev->base + VIU_SCR);
++
++	scr = readl(viu_dev->base + VIU_SCR);
++	scr |= SCR_DMA_ACT;
++	scr |= SCR_DMA_END_EN;
++	writel(scr, viu_dev->base + VIU_SCR);
++	spin_unlock_irqrestore(&viu_dev->slock, flags);
++
+ pin_restore:
+ 	pinctrl_pm_select_default_state(dev);
+ 
+@@ -1676,4 +1617,4 @@ module_platform_driver(imx_viu_driver);
+ 
+ MODULE_DESCRIPTION("NXP i.MX VIU driver");
+ MODULE_AUTHOR("Fancy Fang <chen.fang@nxp.com>");
+-MODULE_LICENSE("GPL");
++MODULE_LICENSE("GPL");
+\ No newline at end of file
+-- 
+2.17.1
+

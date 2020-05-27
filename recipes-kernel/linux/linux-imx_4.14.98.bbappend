@@ -83,6 +83,7 @@ SRC_URI_append = " \
     file://0086-mxc_viu.c-removes-unrelated-pixformat-check.patch \
     file://0087-mxc_viu.c-reset-VIU-when-stopping-stream.patch \
     file://0088-imx7ulp-ec201.dts-increase-CMA-size-to-300MB.patch \
+    file://0089-mxc_viu-rewrite.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
