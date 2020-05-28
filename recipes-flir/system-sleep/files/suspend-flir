@@ -3,18 +3,7 @@ export LD_LIBRARY_PATH=/FLIR/usr/lib/
 timeout=10000
 case $1 in
     pre)
-        # Workaround for not working suspend/resume
-        # Check if power_task has decided we need to restart flirapp:
-        if [ -f /tmp/flirapp_restart_at_suspend ]; then
-            # Stop flirapp and leave a file so we know we should start it at resume
-            /bin/rm -f /tmp/flirapp_restart_at_suspend
-            /bin/touch /tmp/flirapp_restart_at_resume
-            echo "Stopping flirapp"
-            echo 1 > /sys/class/backlight/backlight_lcd/bl_power
-            /bin/systemctl stop flirapp
-        else
-            /FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareStandby true
-        fi
+        /FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareStandby true
 	# Sleep added to let facets delayed standby have time to run
 	sleep 0.5
     ;;
@@ -24,13 +13,6 @@ case $1 in
 	# Added sleep for no communication with lepton until it has time to wake up
 	sleep 1.0
 
-        # Workaround for not working suspend/resume
-        # Check if we need to restart flirapp:
-        if [ -f /tmp/flirapp_restart_at_resume ]; then
-            /bin/rm -f /tmp/flirapp_restart_at_resume
-            /bin/systemctl restart flirapp
-        else
-	    /FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareResume true
-        fi
+	/FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareResume true
     ;;
 esac
