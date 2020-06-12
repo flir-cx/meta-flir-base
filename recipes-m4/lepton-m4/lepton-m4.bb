@@ -16,3 +16,5 @@ do_install() {
 }
 
 FILES_${PN} += "/boot/imx7ulpm4.bin "
+
+COMPATIBLE_MACHINE = "(mx7)"
