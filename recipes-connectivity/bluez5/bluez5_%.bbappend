@@ -8,11 +8,11 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 inherit systemd
 
-SRC_URI += "file://bluetooth.service \
+SRC_URI_append_mx7 += "file://bluetooth.service \
 "
             
 
-do_install_append() {
+do_install_append_mx7() {
     install -d ${D}${systemd_unitdir}/system
     install -m 0644 ${WORKDIR}/bluetooth.service ${D}${systemd_unitdir}/system
 }
