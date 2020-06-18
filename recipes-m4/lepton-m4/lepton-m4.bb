@@ -3,10 +3,11 @@ SECTION = "flir/library"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
 
-SRCREV = "${AUTOREV}"
-PVBASE := "${PV}"
-PV = "${PVBASE}+${SRCPV}"
-SRC_URI  = "git://bitbucketcommercial.flir.com:7999/im7/m4-lepton-application-binary.git;protocol=ssh"
+SRCREV = "8a4c41eed353261a4afcd88e4915b8aaa68a959c"
+PV = "0.${SRCPV}"
+PR = "r1"
+
+SRC_URI  = "git://bitbucketcommercial.flir.com:7999/im7/m4-lepton-application-binary.git;protocol=ssh;nobranch=1"
 
 S="${WORKDIR}/git"
 
