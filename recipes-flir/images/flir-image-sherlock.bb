@@ -110,7 +110,6 @@ IMAGE_INSTALL = " \
     systemd \
     systemd-analyze \
     systemd-compat-units \
-    systemd-failure-notifier \
     system-sleep-qca9377 \
     system-sleep-flir \
     telnetd-service \
@@ -120,7 +119,6 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     umtp-responder \
-    url-service \
     ${WEB_PACKAGES} \
     videorender-service \
     progressapp-service \
