@@ -1,0 +1,216 @@
+From 9aac375426150ccff6468edbfb34df4216bbd69b Mon Sep 17 00:00:00 2001
+From: Erik Axelsson <erik.axelsson@flir.com>
+Date: Tue, 30 Jun 2020 15:03:25 +0200
+Subject: [PATCH] SHLK-2221: C3x - Added possibility to change resolution via
+ rpmsg
+
+---
+ drivers/media/platform/mxc/capture/m4_rpmsg.c | 47 ++++++++++++++-----
+ drivers/media/platform/mxc/capture/m4_rpmsg.h | 26 ++++++++++
+ .../media/platform/mxc/capture/mxc_rpmsg.c    | 14 +++++-
+ 3 files changed, 74 insertions(+), 13 deletions(-)
+ create mode 100644 drivers/media/platform/mxc/capture/m4_rpmsg.h
+
+diff --git a/drivers/media/platform/mxc/capture/m4_rpmsg.c b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+index 0c14c8dd525a..4797ff064295 100644
+--- a/drivers/media/platform/mxc/capture/m4_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+@@ -32,15 +32,12 @@
+ #include <linux/rpmsg.h>
+ #include <linux/dma-mapping.h>
+ 
++#include "m4_rpmsg.h"
++
+ #define MIN_FPS 9
+ #define MAX_FPS 9
+ #define DEFAULT_FPS 9
+ 
+-enum ovRpmsg_mode {
+-	ovRpmsg_mode_MIN = 0,
+-	ovRpmsg_mode_QQVGA_160_120 = 0,
+-	ovRpmsg_mode_MAX = 0
+-};
+ 
+ enum ovRpmsg_frame_rate {
+ 	ovRpmsg_9_fps,
+@@ -67,6 +64,7 @@ enum rxtypes {
+ 	RX_BUF_1,
+ 	RX_BUF_2,
+ 	RX_BUF_3,
++	SET_RESOLUTION = 10,
+ 	DROP_BUFFERS = 100,
+ };
+ 
+@@ -119,7 +117,7 @@ static int rpmsg_change_mode_direct(enum ovRpmsg_frame_rate frame_rate,
+ 	pr_info("%s: mode = %d, frame_rate = %d bp2\n", __func__, mode, frame_rate);
+ 
+ 
+-	if (mode != ovRpmsg_mode_QQVGA_160_120 || frame_rate != ovRpmsg_9_fps) {
++	if ((mode != ovRpmsg_mode_QQVGA_128_96 && mode != ovRpmsg_mode_QQVGA_160_120 ) || frame_rate != ovRpmsg_9_fps) {
+ 		return -EINVAL;
+ 	}
+ 
+@@ -326,12 +324,14 @@ static int rpmsg_enum_framesizes(struct v4l2_subdev *sd,
+ 			       struct v4l2_subdev_pad_config *cfg,
+ 			       struct v4l2_subdev_frame_size_enum *fse)
+ {
++	pr_info("%s: width:%d  height:%d", __func__, fse->max_width, fse->max_height);
+ 	if (fse->index > ovRpmsg_mode_MAX)
+ 		return -EINVAL;
+ 
+-	fse->max_width = 160;
++
++	fse->max_width = IR_RESOLUTION_DEFAULT_WIDTH;
+ 	fse->min_width = fse->max_width;
+-	fse->max_height = 120;
++	fse->max_height = IR_RESOLUTION_DEFAULT_HEIGHT;
+ 	fse->min_height = fse->max_height;
+ 	return 0;
+ }
+@@ -348,6 +348,7 @@ static int rpmsg_enum_frameintervals(struct v4l2_subdev *sd,
+ 		struct v4l2_subdev_pad_config *cfg,
+ 		struct v4l2_subdev_frame_interval_enum *fie)
+ {
++	pr_info("%s: width:%d  height:%d", __func__, fie->width, fie->height);
+ 	if (fie->index != 0)
+ 		return -EINVAL;
+ 
+@@ -359,7 +360,7 @@ static int rpmsg_enum_frameintervals(struct v4l2_subdev *sd,
+ 
+ 	fie->interval.numerator = 1;
+ 
+-	if (fie->width == 160 && fie->height == 120) {
++	if ((fie->width == IR_RESOLUTION_REDUCED_WIDTH && fie->height == IR_RESOLUTION_REDUCED_HEIGHT) || (fie->width == IR_RESOLUTION_FULL_WIDTH && fie->height == IR_RESOLUTION_FULL_HEIGHT)) {
+ 		fie->interval.denominator = 9;
+ 		return 0;
+ 	}
+@@ -427,6 +428,30 @@ int rpmsg_drop_buffers(void)
+ EXPORT_SYMBOL(rpmsg_drop_buffers);
+ 
+ 
++/*
++ * rpmsg_change_resolution
++ *
++ * Tell M4 to change resolution
++ */
++
++int rpmsg_set_resolution(uint32_t res_mode)
++{
++	int err = 0;
++	csi_msg_t msg;
++	msg.type = SET_RESOLUTION;
++
++	if(res_mode > ovRpmsg_mode_MAX)
++		return -1;
++
++	msg.addr = res_mode;
++
++	err = rpmsg_send(ovRpmsg_data.rpmsg_dev->ept, &msg, sizeof(msg));
++
++	return err;
++}
++EXPORT_SYMBOL(rpmsg_set_resolution);
++
++
+ /*
+  * rpmsg_lepton_callback
+  *
+@@ -467,8 +492,8 @@ static int rpmsg_lepton_probe(struct rpmsg_device *dev)
+ 	memset(&ovRpmsg_data, 0, sizeof(ovRpmsg_data));
+ 
+ 	ovRpmsg_data.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+-	ovRpmsg_data.pix.width = 160;
+-	ovRpmsg_data.pix.height = 120;
++	ovRpmsg_data.pix.width = IR_RESOLUTION_DEFAULT_WIDTH;
++	ovRpmsg_data.pix.height = IR_RESOLUTION_DEFAULT_HEIGHT;
+ 	ovRpmsg_data.streamcap.capturemode = 0;
+ 	ovRpmsg_data.streamcap.timeperframe.denominator = DEFAULT_FPS;
+ 	ovRpmsg_data.streamcap.timeperframe.numerator = 1;
+diff --git a/drivers/media/platform/mxc/capture/m4_rpmsg.h b/drivers/media/platform/mxc/capture/m4_rpmsg.h
+new file mode 100644
+index 000000000000..2de88d3a9332
+--- /dev/null
++++ b/drivers/media/platform/mxc/capture/m4_rpmsg.h
+@@ -0,0 +1,26 @@
++/*
++ * m4_rpmsg.h
++ *
++ *  Created on: Jun 30, 2020
++ *      Author: eaxelsso
++ */
++
++#ifndef SRC_M4_RPMSG_H_
++#define SRC_M4_RPMSG_H_
++
++enum ovRpmsg_mode {
++	ovRpmsg_mode_MIN = 0,
++	ovRpmsg_mode_QQVGA_160_120 = 0,
++	ovRpmsg_mode_QQVGA_128_96 = 1,
++	ovRpmsg_mode_MAX = 1
++};
++
++#define IR_RESOLUTION_FULL_WIDTH  160
++#define IR_RESOLUTION_FULL_HEIGHT 120
++#define IR_RESOLUTION_REDUCED_WIDTH  128
++#define IR_RESOLUTION_REDUCED_HEIGHT 96
++#define IR_RESOLUTION_DEFAULT_WIDTH  IR_RESOLUTION_FULL_WIDTH
++#define IR_RESOLUTION_DEFAULT_HEIGHT IR_RESOLUTION_FULL_HEIGHT
++
++
++#endif /* SRC_M4_RPMSG_H_ */
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index f0cac2343f2e..011b009f2d86 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -38,6 +38,8 @@
+ #include <media/videobuf2-dma-contig.h>
+ #include <media/videobuf2-v4l2.h>
+ 
++#include "m4_rpmsg.h"
++
+ #define IMX_RPMSG_DRV_NAME	"imx-rpmsg-v4l2"
+ #define IMX_RPMSG_MAX_SUBDEV_NUM	4
+ 
+@@ -51,6 +53,7 @@
+ 
+ extern int rpmsg_send_buffer(dma_addr_t eba);
+ extern int rpmsg_drop_buffers(void);
++extern int rpmsg_set_resolution(uint32_t res_mode);
+ extern int rpmsg_setup_callback(void (*func)(uint32_t addr, uint32_t buf_num, void *ptr), void *ptr);
+ 
+ struct imx_rpmsg_input {
+@@ -342,6 +345,8 @@ static int imx_rpmsg_vidioc_s_fmt_vid_cap(struct file *filp, void *fh,
+ 	struct v4l2_pix_format *v4l2_pix_fmt = &f->fmt.pix;
+ 	const struct imx_rpmsg_fmt *rpmsg_fmt;
+ 
++	dev_info(rpmsg_dev->dev, "%s width %d  height %d\n", __func__, f->fmt.pix.width, f->fmt.pix.height);
++
+ 	ret = imx_rpmsg_vidioc_try_fmt_vid_cap(filp, rpmsg_dev, f);
+ 	if (ret < 0)
+ 		return ret;
+@@ -357,6 +362,11 @@ static int imx_rpmsg_vidioc_s_fmt_vid_cap(struct file *filp, void *fh,
+ 	rpmsg_dev->v4l2_pix_fmt.field	= v4l2_pix_fmt->field;
+ 	rpmsg_dev->buf_type		= f->type;
+ 
++	if(v4l2_pix_fmt->width == IR_RESOLUTION_FULL_WIDTH)
++		rpmsg_set_resolution(ovRpmsg_mode_QQVGA_160_120);
++	else if(v4l2_pix_fmt->width == IR_RESOLUTION_REDUCED_WIDTH)
++		rpmsg_set_resolution(ovRpmsg_mode_QQVGA_128_96);
++
+ 	return 0;
+ }
+ 
+@@ -910,8 +920,8 @@ static int imx_rpmsg_probe(struct platform_device *pdev)
+ 
+ 	/* Seems necessary to set up some default parameters */
+ 	rpmsg_dev->v4l2_pix_fmt.pixelformat = V4L2_PIX_FMT_YUYV;
+-	rpmsg_dev->v4l2_pix_fmt.width	= 160;
+-	rpmsg_dev->v4l2_pix_fmt.height	= 120;
++	rpmsg_dev->v4l2_pix_fmt.width	= IR_RESOLUTION_DEFAULT_WIDTH;
++	rpmsg_dev->v4l2_pix_fmt.height	= IR_RESOLUTION_DEFAULT_HEIGHT;
+ 	rpmsg_dev->v4l2_pix_fmt.sizeimage = (16 >> 3) *
+ 			rpmsg_dev->v4l2_pix_fmt.height *
+ 			rpmsg_dev->v4l2_pix_fmt.width;
+-- 
+2.17.1
+
