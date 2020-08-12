@@ -15,6 +15,7 @@ IMAGE_INSTALL += " \
     gupnp \
     kernel-dev \
     kernel-devsrc \
+    libasan-dev \
     libconfig-dev \
     rpmsg-bifrost-dev \
     zlib-dev \
