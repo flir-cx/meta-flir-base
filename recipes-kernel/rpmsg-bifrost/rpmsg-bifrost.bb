@@ -8,12 +8,20 @@ LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0;md5=801f80980d171dd6425610833a22dbe6"
 PR = "r1"
 PV = "0.${SRCPV}"
+
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 inherit module
 
+FLIR_IMX7_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_IMX7_GIT = "git://bitbucketcommercial.flir.com:7999/im7"
+
+FLIR_RPMSG_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_IMX7_GIT}/flirdrv-rpmsg-bifrost.git", "${FLIR_IMX7_GITHUB_GIT}/flirdrv-rpmsg-bifrost.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
 SRCREV = "d3b9be64a2a93c3a56fed12b6c039fc4f24cf5ef"
-SRC_URI = "git://bitbucketcommercial.flir.com/scm/im7/flirdrv-rpmsg-bifrost.git;protocol=https"
+SRC_URI = "${FLIR_RPMSG_URI};protocol=${PROTO};nobranch=1"
 
 EXTRA_OEMAKE += "KERNELDIR=${STAGING_KERNEL_DIR} -Werror"
 

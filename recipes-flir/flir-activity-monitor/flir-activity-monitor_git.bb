@@ -13,8 +13,15 @@ RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "${PN}.service"
 
+FLIR_IMX7_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_IMX7_GIT = "git://bitbucketcommercial.flir.com:7999/im7"
+
+FLIR_ACTIVITY_MONIOR_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_IMX7_GIT}/flir-activity-monitor.git", "${FLIR_IMX7_GITHUB_GIT}/flir-activity-monitor.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
 SRCREV = "044404ff0fab858d4405f2736d398472dee7074c"
-SRC_URI  = "git://bitbucketcommercial.flir.com:7999/im7/flir-activity-monitor.git;protocol=ssh;nobranch=1"
+SRC_URI  = "${FLIR_ACTIVITY_MONIOR_URI};protocol=${PROTO};nobranch=1"
 SRC_URI += " \
     file://${PN}.service \
     file://com.flir.activitymonitor.conf \
