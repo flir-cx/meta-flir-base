@@ -2,7 +2,6 @@ inherit core-image
 inherit distro_features_check
 inherit testimage
 require flir-functions.inc
-require flir-dbg-tar.inc
 
 FLIR_ROOT_PASSWORD ?= ""
 
