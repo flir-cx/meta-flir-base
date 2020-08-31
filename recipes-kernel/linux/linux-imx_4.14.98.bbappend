@@ -85,6 +85,7 @@ SRC_URI_append = " \
     file://0088-imx7ulp-ec201.dts-increase-CMA-size-to-300MB.patch \
     file://0089-mxc_viu-rewrite.patch \
     file://0090-C3x-added-possibility-to-change-resolution.patch \
+    file://0091-lm3642-Turn-off-torch-at-shutdown.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
