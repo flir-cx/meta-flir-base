@@ -1,17 +1,27 @@
-From 3c91f40cab925ded97e812f8ed3b46a363ffc6d6 Mon Sep 17 00:00:00 2001
+From 46b3e81f17e214d6eac750414ff46686c3d636fa Mon Sep 17 00:00:00 2001
 From: Erik Bengtsson <erik.bengtsson@flir.se>
 Date: Mon, 31 Aug 2020 10:41:39 +0200
 Subject: [PATCH] lm3642: Turn off torch at shutdown.
 
 ---
- drivers/leds/leds-lm3642.c | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
+ drivers/leds/leds-lm3642.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/leds/leds-lm3642.c b/drivers/leds/leds-lm3642.c
-index 6235fb1d27a7..76706bd0e8e8 100644
+index 6235fb1d27a7..69dbb4665fe9 100644
 --- a/drivers/leds/leds-lm3642.c
 +++ b/drivers/leds/leds-lm3642.c
-@@ -488,14 +488,21 @@ static int lm3642_probe(struct i2c_client *client,
+@@ -477,6 +477,9 @@ static int lm3642_probe(struct i2c_client *client,
+ 		goto err_create_indicator_file;
+ 	}
+ 
++	//Always start with torch off
++	lm3642_control(chip, 0, MODES_TORCH);
++
+ 	dev_info(&client->dev, "LM3642 is initialized\n");
+ 	return 0;
+ 
+@@ -488,14 +491,21 @@ static int lm3642_probe(struct i2c_client *client,
  	return err;
  }
  
@@ -34,7 +44,7 @@ index 6235fb1d27a7..76706bd0e8e8 100644
  	return 0;
  }
  
-@@ -513,6 +520,7 @@ static struct i2c_driver lm3642_i2c_driver = {
+@@ -513,6 +523,7 @@ static struct i2c_driver lm3642_i2c_driver = {
  		   },
  	.probe = lm3642_probe,
  	.remove = lm3642_remove,
