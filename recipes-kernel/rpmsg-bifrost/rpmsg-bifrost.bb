@@ -20,7 +20,7 @@ FLIR_RPMSG_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_IMX
 
 PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
 
-SRCREV = "d3b9be64a2a93c3a56fed12b6c039fc4f24cf5ef"
+SRCREV = "653be2ed658d5e7b0d7ef98eb920a44229bff640"
 SRC_URI = "${FLIR_RPMSG_URI};protocol=${PROTO};nobranch=1"
 
 EXTRA_OEMAKE += "KERNELDIR=${STAGING_KERNEL_DIR} -Werror"
