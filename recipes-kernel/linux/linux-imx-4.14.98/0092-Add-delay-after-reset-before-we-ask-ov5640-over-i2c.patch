@@ -1,0 +1,92 @@
+From 197012f5efc734d8322852e123f4b67468298e53 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Wed, 16 Sep 2020 12:39:57 +0200
+Subject: [PATCH] Add delay after reset before we ask ov5640 over i2c.
+
+ov5640 Remove unnecessary register reads
+---
+ drivers/media/platform/mxc/capture/ov5640_v2.c | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/ov5640_v2.c b/drivers/media/platform/mxc/capture/ov5640_v2.c
+index 7dfe6c4e7ee0..16ce7e8d5d8e 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_v2.c
++++ b/drivers/media/platform/mxc/capture/ov5640_v2.c
+@@ -1438,6 +1438,7 @@ static int ov5640_set_VTS(int VTS)
+ #endif
+ 
+ /* read shutter, in number of line period */
++#if 0
+ static int ov5640_get_shutter(void)
+ {
+ 	int shutter;
+@@ -1451,7 +1452,6 @@ static int ov5640_get_shutter(void)
+ 	return shutter;
+ }
+ 
+-#if 0
+ /* write shutter, in number of line period */
+ static int ov5640_set_shutter(int shutter)
+ {
+@@ -1472,7 +1472,7 @@ static int ov5640_set_shutter(int shutter)
+ 	return 0;
+ }
+ #endif
+-
++#if 0
+ /* read gain, 16 = 1x */
+ static int ov5640_get_gain16(void)
+ {
+@@ -1485,7 +1485,7 @@ static int ov5640_get_gain16(void)
+ 	return gain16;
+ }
+ 
+-#if 0
++
+ /* write gain, 16 = 1x */
+ static int ov5640_set_gain16(int gain16)
+ {
+@@ -1781,12 +1781,12 @@ static int ov5640_change_mode_direct(enum ov5640_frame_rate frame_rate,
+ static int ov5640_change_mode_exposure_calc(enum ov5640_frame_rate frame_rate,
+ 			    enum ov5640_mode mode)
+ {
+-	int prev_shutter, prev_gain16, average;
++//	int prev_shutter, prev_gain16, average;
+ //	int cap_shutter, cap_gain16;
+ //	int cap_sysclk, cap_HTS, cap_VTS;
+ //	int light_freq, cap_bandfilt, cap_maxband;
+ 	//long cap_gain16_shutter;
+-	u8 temp;
++//	u8 temp;
+ 	struct reg_value *pModeSetting = NULL;
+ 	s32 ArySize = 0;
+ 	int retval = 0;
+@@ -1807,13 +1807,13 @@ static int ov5640_change_mode_exposure_calc(enum ov5640_frame_rate frame_rate,
+ 		return -EINVAL;
+ 
+ 	/* read preview shutter */
+-	prev_shutter = ov5640_get_shutter();
++//	prev_shutter = ov5640_get_shutter();
+ 
+ 	/* read preview gain */
+-	prev_gain16 = ov5640_get_gain16();
++//	prev_gain16 = ov5640_get_gain16();
+ 
+ 	/* get average */
+-	average = ov5640_read_reg(0x56a1, &temp);
++//	average = ov5640_read_reg(0x56a1, &temp);
+ 
+ 	/* turn off night mode for capture */
+ //	ov5640_set_night_mode(0);
+@@ -2378,6 +2378,8 @@ static int ov5640_probe(struct i2c_client *client,
+ 
+ 	ov5640_power_down(0);
+ 
++	msleep(20);
++
+ 	retval = ov5640_read_reg(OV5640_CHIP_ID_HIGH_BYTE, &chip_id_high);
+ 	if (retval < 0 || chip_id_high != 0x56) {
+ 		clk_disable_unprepare(ov5640_data.sensor_clk);
+-- 
+2.17.1
+

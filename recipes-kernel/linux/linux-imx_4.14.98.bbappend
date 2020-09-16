@@ -86,6 +86,7 @@ SRC_URI_append = " \
     file://0089-mxc_viu-rewrite.patch \
     file://0090-C3x-added-possibility-to-change-resolution.patch \
     file://0091-lm3642-Turn-off-torch-at-shutdown.patch \
+    file://0092-Add-delay-after-reset-before-we-ask-ov5640-over-i2c.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
