@@ -1,0 +1,28 @@
+# Sudo rules for WebAccess on EC501 target machine
+
+Defaults:www-data	!lecture
+
+www-data	ALL = NOPASSWD:\
+		/bin/cp /FLIR/usr/Service/application/config/systemd/servicesocket.service\
+                /lib/systemd/system/servicesocket.service,\
+		/usr/bin/fliriptables.sh tempport service,\
+		/bin/systemctl start servicesocket,\
+		/bin/systemctl start prodaddon,\
+		/bin/systemctl stop prodaddon,\
+		/bin/systemctl restart flirapp,\
+		/bin/systemctl stop flirapp,\
+		/bin/systemctl start flirapp,\
+		/bin/systemctl restart haproxy,\
+                /bin/systemctl start fliriptables,\
+                /bin/systemctl stop fliriptables,\
+                /bin/systemctl enable fliriptables,\
+                /bin/systemctl disable fliriptables,\
+		/bin/systemctl stop sysmon,\
+                /FLIR/usr/bin/flirsvcctl,\
+		/usr/bin/flir-limited-update.sh,\
+                /usr/sbin/factorydefault.sh,\
+                /sbin/reboot,\
+                /usr/bin/flirversions,\
+                /usr/sbin/webprotoctl,\
+                /usr/sbin/fliriptables_doconfig,\
+                /usr/sbin/onvif_doconfig

@@ -1,0 +1,9 @@
+[Unit]
+Description=Additional FLIR production/service applications
+Requires=flirapp.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'prodapp & prodagent & bitapp '
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
+Environment=PATH=/FLIR/usr/bin

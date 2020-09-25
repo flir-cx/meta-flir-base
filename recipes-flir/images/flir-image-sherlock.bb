@@ -92,6 +92,7 @@ IMAGE_INSTALL = " \
     ncurses-libpanelw \
     opkg \
     os-release \
+    prodaddon-service \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     parted \
@@ -104,6 +105,7 @@ IMAGE_INSTALL = " \
     screen \
     screen-service \
     startup-event \
+    sudo \
     sysctl-conf \
     sysfsutils \
     sysmon-service \
