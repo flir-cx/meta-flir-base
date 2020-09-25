@@ -1,20 +1,34 @@
 #!/bin/sh
 
+NO_RADIO_FILE=/tmp/noradio
+
 case $1 in
     pre)
+        NO_RADIO=$(lsmod | grep "qca9377")
+
         systemctl stop gadget
-        systemctl stop bluetooth
-        systemctl stop btload
-        systemctl stop connman
-        systemctl stop wpa_supplicant
-        modprobe -r qca9377
+        if [[ $NO_RADIO ]]; then
+            systemctl stop bluetooth
+            systemctl stop btload
+            systemctl stop connman
+            systemctl stop wpa_supplicant
+            modprobe -r qca9377
+        else
+            echo "no_radio option detected"
+            touch $NO_RADIO_FILE
+        fi
     ;;
     post)
-        modprobe qca9377
-        systemctl start wpa_supplicant
-        systemctl start connman
-        systemctl start btload
-        systemctl start bluetooth
+        if [ ! -f $NO_RADIO_FILE ]; then
+            modprobe qca9377
+            systemctl start wpa_supplicant
+            systemctl start connman
+            systemctl start btload
+            systemctl start bluetooth
+        else
+            echo "no_radio option detected, radio not loaded"
+            rm $NO_RADIO_FILE
+        fi
         systemctl start gadget
     ;;
 esac
