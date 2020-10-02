@@ -20,8 +20,7 @@ do_install_append() {
     install -d ${D}/usr/bin
     install -m 0755 ${WORKDIR}/suid.sh ${D}/usr/bin/suid
     install -m 0755 ${WORKDIR}/camserial.sh ${D}/usr/bin/camserial
-    install -d ${D}/sbin
-    install -m 0755 ${WORKDIR}/flir-create-diagnostics.sh ${D}/sbin/flir-create-diagnostics
+    install -m 0755 ${WORKDIR}/flir-create-diagnostics.sh ${D}/usr/bin/flir-create-diagnostics
 
 }
 
