@@ -17,7 +17,7 @@ if [ -z "${FOLDER_PATH}" ]; then
     exit 1
 fi
 
-if [ ${SERIAL} = "*" ]; then
+if [ "${SERIAL}" = "*" ]; then
     SERIAL="star"
 fi
 
