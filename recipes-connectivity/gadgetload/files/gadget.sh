@@ -143,7 +143,7 @@ config_load() {
 	if [ -d "${gadget_path}" ]
 	then
 		echo "Gadget already loaded."
-		exit 0
+		return 0
 	fi
 
 	mkdir -p "$gadget_path"
@@ -263,14 +263,14 @@ EOF
 			if [ $? != 0 ]
 			then
 				printf "config_load: Failed to mount /dev/ffs-umtp\n"
-				exit 1
+				return 1
 			fi
 
-			umtprd &
+			nohup umtprd & > /tmp/umtprd.out #output to temp file if needed for debug, should add tail on this file if journal is needed
 			if [ $? != 0 ]
 			then
 				printf "config_load: Failed to start umtprd\n"
-				exit 1
+				return 1
 			fi
 		else
 			echo "config_load: Unable to mount MTP"
@@ -311,7 +311,7 @@ remove_if_exists() {
 config_unload() {
 	if [ ! -d ${gadget_path} ]; then
 		echo "Gadget not loaded."
-		exit 0 #This is not a failure.
+		return 0 #This is not a failure.
 	fi
 
 	# Signal to videoserver to disable stream
@@ -359,7 +359,7 @@ config_unload() {
 		if [ $? != 0 ]
 		then
 			printf "config_unload: Failed to umount /dev/ffs-umtp\n"
-			exit 1
+			return 1
 		fi
 		remove_if_exists /dev/ffs-umtp
 	fi
@@ -371,21 +371,26 @@ check_loaded_status () {
 	if [ -d "/sys/kernel/config/usb_gadget/g1" ] ; then
 		if [ "$usbmode_rndis" = true ] && ! [ "$(ifconfig | grep usb0)" ]; then
 			echo "RNIDS not loaded, return fail."
-			exit 1
+			return 1
 		fi
 		if [ "$usbmode_mtp" = true ] && ! [ "$(pidof umtprd)" ]; then
 			echo "MTP not loaded, return fail."
-			exit 1
+			return 1
 		fi
+	else
+		echo "gadget is not loaded"
+		return 1
 	fi
 	echo "gadget seems loaded ok."
-	exit 0
+	return 0
 }
 
 case $1 in
 load) config_load ;;
 unload) config_unload ;;
-reload) config_unload && config_load ;;
+reload) config_unload && config_load ;; # we disregard return from config_unload here
 isloaded) check_loaded_status ;;
 *) usage ;;
 esac
+
+exit $?
