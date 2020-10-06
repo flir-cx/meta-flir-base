@@ -106,7 +106,6 @@ IMAGE_INSTALL = " \
     screen-service \
     startup-event \
     sudo \
-    sysctl-conf \
     sysfsutils \
     sysmon-service \
     systemd \
