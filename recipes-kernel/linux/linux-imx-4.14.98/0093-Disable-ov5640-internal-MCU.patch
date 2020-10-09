@@ -1,0 +1,28 @@
+From 7177c05abc67ff413cf262dda49af7fc17e02236 Mon Sep 17 00:00:00 2001
+From: Erik Axelsson <erik.axelsson@flir.com>
+Date: Fri, 9 Oct 2020 07:51:26 +0200
+Subject: [PATCH] Disable ov5604 internal MCU
+
+---
+ drivers/media/platform/mxc/capture/ov5640_v2.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/ov5640_v2.c b/drivers/media/platform/mxc/capture/ov5640_v2.c
+index ffd3155f28ab..a006f66c66a7 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_v2.c
++++ b/drivers/media/platform/mxc/capture/ov5640_v2.c
+@@ -189,9 +189,9 @@ static struct reg_value ov5640_bt656_720_480[] = {
+ static struct reg_value ov5640_init_setting_30fps_BT656[] = {
+ 	{0x3008, 0x42, 0x0, 0x0},
+ 	{0x3103, 0x03, 0x0, 0x0},
+-	{0x3000, 0x00, 0x0, 0x0},
++	{0x3000, 0x30, 0x0, 0x0},
+ 	{0x3002, 0x1c, 0x0, 0x0},
+-	{0x3004, 0xff, 0x0, 0x0},
++	{0x3004, 0xcf, 0x0, 0x0},
+ 	{0x3006, 0xc3, 0x0, 0x0},
+ 	{0x300e, 0x58, 0x0, 0x0},
+ #if 0
+-- 
+2.17.1
+
