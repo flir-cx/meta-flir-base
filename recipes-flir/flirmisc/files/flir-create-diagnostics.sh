@@ -26,27 +26,19 @@ mkdir -p ${TMP_PATH}
 
 echo "Script version ${SCRIPT_VER}" > ${TMP_PATH}/diag_script.txt
 
-echo "saving journal..."
 journalctl -n 10000 > ${TMP_PATH}/journal.log
-
-echo "saving top..."
 top -n 1 > ${TMP_PATH}/top.log
-
-echo "saving version..."
-version > ${TMP_PATH}/version.log
-
-echo "saving dmesg..."
+/FLIR/usr/bin/version > ${TMP_PATH}/version.log
 dmesg > ${TMP_PATH}/dmesg.log
-
-echo "saving flirversions..."
 flirversions -a > ${TMP_PATH}/flirversions.log
 
-echo "adding dump files..."
-cp /tmp/*.dmp ${TMP_PATH}
+cp -p /tmp/*.dmp ${TMP_PATH} 2>/dev/null
 
-echo "compressing"
 cd ${TMP_PATH}
-tar -zcvf ${FOLDER_PATH}/FLIRdump_${SERIAL}_${DATE}.tar.gz ./*
+FILEPATH=${FOLDER_PATH}/FLIRdump_${SERIAL}_${DATE}.tar.gz
+tar -zcvf ${FILEPATH} ./* 1>/dev/null
+
+echo "${FILEPATH}"
 
 rm -rf ${TMP_PATH}
 
