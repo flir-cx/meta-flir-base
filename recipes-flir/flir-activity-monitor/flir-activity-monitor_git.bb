@@ -20,7 +20,7 @@ FLIR_ACTIVITY_MONIOR_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "
 
 PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
 
-SRCREV = "044404ff0fab858d4405f2736d398472dee7074c"
+SRCREV = "4b795563966ac0d7e583a2f9061ebdc4fe4ec9c0"
 SRC_URI  = "${FLIR_ACTIVITY_MONIOR_URI};protocol=${PROTO};nobranch=1"
 SRC_URI += " \
     file://${PN}.service \
