@@ -104,7 +104,6 @@ IMAGE_INSTALL = " \
     rpmsg-bifrost \
     screen \
     screen-service \
-    startup-event \
     sudo \
     sysfsutils \
     sysmon-service \
