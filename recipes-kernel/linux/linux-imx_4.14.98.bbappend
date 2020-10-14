@@ -88,6 +88,7 @@ SRC_URI_append = " \
     file://0091-lm3642-Turn-off-torch-at-shutdown.patch \
     file://0092-Add-delay-after-reset-before-we-ask-ov5640-over-i2c.patch \
     file://0093-Disable-ov5640-internal-MCU.patch \
+    file://0094-Fix-overlay-ifdef-and-reduce-CMA-reserved-memory-in-.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
