@@ -1,0 +1,25 @@
+From 6585bf0128dd465e8b390b85d6d6e511206c3649 Mon Sep 17 00:00:00 2001
+From: Erik Axelsson <erik.axelsson@flir.com>
+Date: Thu, 15 Oct 2020 15:29:20 +0200
+Subject: [PATCH] SHLK-2505: Change hard reset time in PMIC to 4s
+
+---
+ board/flir/ec201/pf1550.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/board/flir/ec201/pf1550.c b/board/flir/ec201/pf1550.c
+index f402135799..0a3f43ee7e 100644
+--- a/board/flir/ec201/pf1550.c
++++ b/board/flir/ec201/pf1550.c
+@@ -126,7 +126,7 @@ void init_pf1550_pmic(void)
+ 
+ 	//set time to press off button before triggering a PMIC reset
+ 	pf1550_read_reg(PF1550_PMIC_REG_PWRCTRL0, &curr_pwr_ctrl0);
+-	new_pwr_ctrl0 = (curr_pwr_ctrl0 & ~PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK) | PF1550_PMIC_REG_PWRCTRL0_TGRESET_12S;
++	new_pwr_ctrl0 = (curr_pwr_ctrl0 & ~PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK) | PF1550_PMIC_REG_PWRCTRL0_TGRESET_4S;
+ 	pf1550_write_reg(PF1550_PMIC_REG_PWRCTRL0, new_pwr_ctrl0);
+ 
+ 	mx7ulp_iomux_setup_multiple_pads(pmic_wdog_pad, ARRAY_SIZE(pmic_wdog_pad));
+-- 
+2.17.1
+
