@@ -1,0 +1,38 @@
+From 3dc12136ccb0112b1386c1ccfe85ff5b2b670684 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.se>
+Date: Mon, 2 Nov 2020 11:48:31 +0100
+Subject: [PATCH] Fix crash when loading gadget including UVC if cable is out.
+
+---
+ drivers/usb/gadget/udc/core.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/usb/gadget/udc/core.c b/drivers/usb/gadget/udc/core.c
+index ad315c4c6f35..ef1f0dd9047e 100644
+--- a/drivers/usb/gadget/udc/core.c
++++ b/drivers/usb/gadget/udc/core.c
+@@ -649,6 +649,10 @@ int usb_gadget_connect(struct usb_gadget *gadget)
+ 		goto out;
+ 	}
+ 
++	/* When we connect UVC without cable, v4l device will be opened again in this state, which results in a kernel bug*/
++	if (gadget->state == USB_STATE_NOTATTACHED && gadget->connected)
++		goto out;
++
+ 	if (gadget->deactivated) {
+ 		/*
+ 		 * If gadget is deactivated we only save new state.
+@@ -688,6 +692,10 @@ int usb_gadget_disconnect(struct usb_gadget *gadget)
+ 		goto out;
+ 	}
+ 
++	/* When we connect UVC without cable, v4l device will be opened by udev again in this state, which results in a kernel bug*/
++	if (gadget->state == USB_STATE_NOTATTACHED && gadget->connected)
++		goto out;
++
+ 	if (gadget->deactivated) {
+ 		/*
+ 		 * If gadget is deactivated we only save new state.
+-- 
+2.17.1
+
