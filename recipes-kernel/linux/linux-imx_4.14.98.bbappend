@@ -91,6 +91,7 @@ SRC_URI_append = " \
     file://0094-Fix-overlay-ifdef-and-reduce-CMA-reserved-memory-in-.patch \
     file://0095-SHLK-2505-Change-PMIC-hard-reset-time-to-4s-in-Linux.patch \
     file://0096-Fix-crash-when-loading-gadget-including-UVC-if-cable.patch \
+    file://0097-patch-from-kernel-mainline-to-possibly-fix-issue-wit.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
