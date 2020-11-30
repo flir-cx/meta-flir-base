@@ -6,6 +6,9 @@ FLIR_ROOT_PASSWORD ?= ""
 
 IMAGE_FSTYPES = "recovery.vfat tar.bz2"
 
+# Support jenkings job using old image name
+PROVIDES += "flir-image-bblc-recovery"
+
 IMAGE_INSTALL = "bash \
                  base-files \
                  base-files-recovery \

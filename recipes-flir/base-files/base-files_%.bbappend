@@ -11,8 +11,7 @@ do_install_append() {
         ln -sf system/images ${D}/FLIR/images
     fi
     if [ "${MACHINE}" = "ec501" ] ||
-       [ "${MACHINE}" = "ec201" ] ||
-       [ "${MACHINE}" = "bblc" ]
+       [ "${MACHINE}" = "ec201" ]
     then
         install -m 0755 -d ${D}/FLIR/images
     fi

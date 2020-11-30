@@ -12,8 +12,7 @@ evco=1
 leco=2
 beco=3
 roco=4
-bblc=5
-ec201=6
+ec201=5
 
 compat_path=/proc/device-tree/compatible
 lnk_base_dir=/etc/sysfs-links
@@ -37,9 +36,7 @@ find_out_model () {
 	grep -q -- '-evco' $compat_path && return $evco
 	grep -q -- '-leco' $compat_path && return $leco
 	grep -q -- '-beco' $compat_path && return $beco
-	grep -q -- '-bblc' $compat_path && return $bblc
 	grep -q -- 'digi' $compat_path && return $roco
-	grep -q -- '-bblc' $compat_path && return $bblc
 	grep -q -- '-ec201' $compat_path && return $ec201
         return $unknown
 }
@@ -59,7 +56,7 @@ set_paths () {
 	"$roco")
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		;;
-	"$bblc"|"$ec201")
+	"$ec201")
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		battery_path=/sys/class/power_supply/battery
 		pmic_path=/sys/class/power_supply/pf1550-charger
