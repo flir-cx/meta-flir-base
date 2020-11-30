@@ -23,9 +23,12 @@ do_install_append() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
     sed -i -e 's/#use-g2d=.*/use-g2d=1/g' ${WESTON_INI}
 
-    echo "" >> ${WESTON_INI}
-    echo "[shell]" >> ${WESTON_INI}
-    echo "panel-position=\"\"" >> ${WESTON_INI}
+	echo "	
+[shell]
+panel-position=\"\"
+background-color=0xFF000000
 
-	echo "background-color=0xFF000000" >> ${WESTON_INI}
+[input-method]
+path=
+" >> ${WESTON_INI}
 }
