@@ -1,0 +1,46 @@
+From 5add5958f97407782465938010acaf0e02da227b Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.com>
+Date: Thu, 7 Jan 2021 13:28:50 +0100
+Subject: [PATCH] Update size if file is modified.
+
+---
+ src/inotify.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/inotify.c b/src/inotify.c
+index 75d6fe8..f86d8d4 100644
+--- a/src/inotify.c
++++ b/src/inotify.c
+@@ -51,7 +51,7 @@ static int get_file_info(mtp_ctx * ctx, const struct inotify_event *event, fs_en
+ 
+ 	if( entry && fileinfo )
+ 	{
+-		PRINT_DEBUG( "Entry %x - %s", entry->handle, entry->name );
++		PRINT_DEBUG( "Entry %x - %s - %s", entry->handle, entry->name, fileinfo->filename);
+ 
+ 		path = build_full_path( ctx->fs_db, mtp_get_storage_root( ctx, entry->storage_id), entry);
+ 		if( path )
+@@ -186,16 +186,18 @@ void* inotify_thread(void* arg)
+ 							pthread_mutex_lock( &ctx->inotify_mutex );
+ 
+ 							entry = get_entry_by_wd( ctx->fs_db, event->wd, entry );
+-							if ( get_file_info( ctx, event, entry, &fileinfo, 1 ) )
++							if ( get_file_info( ctx, event, entry, &fileinfo, 0 ) )
+ 							{
+ 								modified_entry = search_entry(ctx->fs_db, &fileinfo, entry->handle, entry->storage_id);
+ 								if( modified_entry )
+ 								{
++									modified_entry->size = fileinfo.size;
++
+ 									// Send an "ObjectInfoChanged" (0x4007) MTP event message with the entry handle.
+ 									handle[0] = modified_entry->handle;
+ 									mtp_push_event( ctx, MTP_EVENT_OBJECT_INFO_CHANGED, 1, (uint32_t *)&handle );
+ 
+-									PRINT_DEBUG( "inotify_thread (IN_MODIFY): Entry %s modified (Handle 0x%.8X)", event->name, modified_entry->handle);
++									PRINT_DEBUG( "inotify_thread (IN_MODIFY): Entry %s modified (Handle 0x%.8X Size %lld)", event->name, modified_entry->handle, modified_entry->size);
+ 								}
+ 							}
+ 							else
+-- 
+2.17.1
+

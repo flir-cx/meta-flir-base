@@ -7,16 +7,17 @@ LICENSE = "GPLv3"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=d32239bcb673463ab874e80d47fae504"
 HOMEPAGE = "https://github.com/viveris/uMTP-Responder"
 
-PR = "r1"
+PR = "r3"
 
 SRC_URI = "git://github.com/viveris/uMTP-Responder.git;protocol=https"
-SRCREV = "e140e559edc914976e10bcab13d37a56c4c505b2"
+SRCREV = "b38b8fb43fed1db9ce74238b3d59bed46f30b8b5"
 SRC_URI[md5sum] = "6316eea31615c6261fd4053aeb405961"
 SRC_URI[sha256sum] = "6d5bb2fb217bb41268e3c20063b7307acacac66a3d31a9b2c4e777e3b99c77d8"
 
 SRC_URI += "file://umtprd.conf"
 SRC_URI += "file://umtprd-sd.conf"
 SRC_URI += "file://0001-Fix-usb-driver-close-if-SUSPEND-RESUME-events-comes-.patch"
+SRC_URI += "file://0002-Update-size-if-file-is-modified.patch"
 
 S = "${WORKDIR}/git"
 

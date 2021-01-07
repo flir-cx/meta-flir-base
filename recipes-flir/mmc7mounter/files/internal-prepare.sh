@@ -9,7 +9,7 @@ else
     echo "`basename $0`: mke2fs -t ext4 /dev/mmcblk0p7 -E nodiscard"
     mke2fs -t ext4 /dev/mmcblk0p7 -E nodiscard -F
     echo "mke2fs done"
-    echo "`basename $0`:renames partition mmcblk0p7 to internal" 
+    echo "`basename $0`:renames partition mmcblk0p7 to storage" 
     parted /dev/mmcblk0 name 7 storage
 fi
 
