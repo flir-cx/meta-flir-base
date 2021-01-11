@@ -94,6 +94,7 @@ SRC_URI_append = " \
     file://0097-patch-from-kernel-mainline-to-possibly-fix-issue-wit.patch \
     file://0098-m4_rpmsg-Add-message-to-set-pixelformat.patch \
     file://0099-m4_rpmsg-Enable-telemetry-rows-in-frame.patch \
+    file://0100-Adds-device-tree-for-REBB-rev-B.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
