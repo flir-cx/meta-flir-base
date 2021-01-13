@@ -2,7 +2,7 @@
 Description=Do necessary bind mounts for public sftp access
 DefaultDependencies=no
 Conflicts=shutdown.target
-After=systemd-remount-fs.service
+After=systemd-remount-fs.service FLIR-images.mount
 Before=sshd.socket shutdown.target
 
 [Service]
