@@ -32,7 +32,6 @@ RDEPENDS_${PN}-packages = "\
     crda \
     dosfstools \
     e2fsprogs \
-    flashld \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
