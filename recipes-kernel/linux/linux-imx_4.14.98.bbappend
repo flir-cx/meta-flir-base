@@ -92,6 +92,7 @@ SRC_URI_append = " \
     file://0095-SHLK-2505-Change-PMIC-hard-reset-time-to-4s-in-Linux.patch \
     file://0096-Fix-crash-when-loading-gadget-including-UVC-if-cable.patch \
     file://0097-patch-from-kernel-mainline-to-possibly-fix-issue-wit.patch \
+    file://0098-m4_rpmsg-Add-message-to-set-pixelformat.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
