@@ -206,7 +206,7 @@ then
         SKIP_NOTIFY=$?
         echo returned: $SKIP_NOTIFY >${DEBUGOUT}
         
-    elif [ "$ENADIS"="enable" ]
+    elif [ "$ENADIS" = "enable" ]
     then 
         echo "calling activate" >${DEBUGOUT}
         activate $SVC
