@@ -15,7 +15,7 @@ IMAGE_INSTALL_append += " \
     openssh \
     packagegroup-tools-bluetooth \
     parted \
-    rndisload \
+    gadgetload \
     wpa-supplicant \
 "
 
