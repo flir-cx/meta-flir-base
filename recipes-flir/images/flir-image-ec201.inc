@@ -1,20 +1,10 @@
-inherit core-image
-inherit distro_features_check
-inherit testimage
-require flir-functions.inc
+require flir-image-base.inc
 
-FLIR_ROOT_PASSWORD ?= ""
+### ec201 specifics for flir-image (Sherlock)
+inherit populate_sdk_qt5
 
-TOOLCHAIN_HOST_TASK_append = "\
-    nativesdk-cmake \
-    nativesdk-python-modules \
-"
-
-LICENSE = "CLOSED"
-
-# ensure that license files accompany each binary in final image
-COPY_LIC_MANIFEST = "1"
-COPY_LIC_DIRS = "1"
+# Provide old image name for backwards compatibility
+PROVIDES_ec201 += "flir-image-sherlock"
 
 TEST_SUITES = "ping ssh flir_test_valid_platform df connman builddate scp python gst1-0-fsl-plugin dmesg2 \
                flirsystemd wi-fi bluetooth sysfs standby mmdc"
@@ -127,18 +117,3 @@ IMAGE_INSTALL = " \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
 "
-
-IMAGE_PREPROCESS_COMMAND += "rootfs_update_timestamp ;\
-			 flir_rev_update ;\
-			 "
-
-# We're using journal and do not want the busybox-syslog
-BAD_RECOMMENDATIONS += "busybox-syslog udev-hwdb"
-
-ROOTFS_PREPROCESS_COMMAND += "cleanup_rootfs ; "
-IMAGE_PREPROCESS_COMMAND += "cleanup_rootfs ; create_licenses_info; "
-ROOTFS_POSTPROCESS_COMMAND += "set_root_passwd;"
-# Separate the "link to latest" step from creating that specific .tgz file
-# done in "IMAGE_PREPROCESS_COMMAND"
-# poky/meta/lib/oe/image.py will remove all links in image creation
-IMAGE_POSTPROCESS_COMMAND += "link_licenses_info ; "
