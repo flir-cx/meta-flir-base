@@ -4,7 +4,7 @@
 
 require linux-pingu.inc
 
-SRC_URI = "git:///home/oredell/work/cirrus/linux-pingu.git;protocol=file;branch=FLIR_EC101_5.4.70"
+SRC_URI = "${FLIRSE_DRV_MIRROR}/camos/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_EC101_5.4.70"
 SRCREV = "${AUTOREV}"
 PV="5.4.70-git${SRCPV}"
 FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-5.4.70:"
