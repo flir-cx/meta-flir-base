@@ -17,8 +17,6 @@ SRC_URI_append = "\
              file://smp.cfg \
              file://mfd.cfg \
              file://no-mipi.cfg \
-             file://no-drbg.cfg \
-             file://sdma-fw.cfg \
              file://nfs-et-al.cfg \
 "
 
