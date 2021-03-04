@@ -12,7 +12,6 @@ inherit packagegroup
 PROVIDES = "${PACKAGES}"
 PACKAGES += " \
     ${PN}-gstreamer \
-    ${PN}-gstreamer-streamer \
     ${PN}-tools-testapps \
     ${PN}-tools-benchmark \
 "
@@ -25,14 +24,6 @@ RDEPENDS_${PN}-gstreamer = " \
     gstreamer1.0-meta-debug \
     gstreamer1.0-plugins-good-meta \
     ${MACHINE_GSTREAMER_PLUGIN} \
-"
-
-RDEPENDS_${PN}-gstreamer-streamer = " \
-    ${PN}-gstreamer \
-    gstreamer1.0-plugins-good-udp \
-    gstreamer1.0-plugins-good-rtp \
-    gstreamer1.0-plugins-good-rtpmanager \
-    gstreamer1.0-plugins-good-rtsp \
 "
 
 SOC_TOOLS_TESTAPPS = ""
