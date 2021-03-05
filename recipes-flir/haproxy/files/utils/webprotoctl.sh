@@ -151,7 +151,7 @@ do
             ;;
         *)
             echo "Unknown option"
-            exit -1
+            exit 1
             ;;
     esac
 done
