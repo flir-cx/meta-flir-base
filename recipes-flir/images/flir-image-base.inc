@@ -81,7 +81,6 @@ FLIR_COMMON_PACKAGES = " \
     fulverify \
     glibmm \
     gstreamer1.0-plugins-bad \
-    gstreamer1.0-plugins-bad-fragmented \
     gstreamer1.0-plugins-base-app \
     gstreamer1.0-plugins-base-tcp \
     gstreamer1.0-plugins-base-videorate \
@@ -106,7 +105,6 @@ FLIR_COMMON_PACKAGES = " \
     lighttpd-module-alias \
     lighttpd-module-cgi \
     lighttpd-module-compress \
-    lighttpd-module-dynamicfile \
     lighttpd-module-fastcgi \
     lighttpd-module-proxy \
     lighttpd-module-redirect \
@@ -151,8 +149,10 @@ UNAVAILABLE_PACKAGES = "\
     flirfvdk \
     flirvcam \
     getherload \
+    gstreamer1.0-plugins-bad-fragmented \
     iio-utils \
     libiio \
+    lighttpd-module-dynamicfile \
     prodfacet-service \
     wlanload \
 "

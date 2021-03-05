@@ -20,12 +20,9 @@ EVCO_PACKAGES = "\
     kernel-module-bh1750 \
     kernel-module-btwilink \
     kernel-module-g-mass-storage \
-    kernel-module-g-uvc-msd \
     kernel-module-g-webcam \
     kernel-module-hci-uart \
-    kernel-module-leds-lm3644 \
     kernel-module-leds-as3649 \
-    kernel-module-si114x \
     kernel-module-usb-f-ecm \
     kernel-module-usb-f-ecm-subset \
     libevdev \
@@ -44,6 +41,9 @@ UNAVAILABLE_PACKAGES_append = " \
     blankscreen-service \
     chargeapp-service \
     fliryildun \
+    kernel-module-g-uvc-msd \
+    kernel-module-leds-lm3644 \
+    kernel-module-si114x \
     mmdc \
     mtd1mounter \
     packagegroup-flir-pulseaudio-packages \
