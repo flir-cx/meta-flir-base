@@ -4,9 +4,7 @@ AUTHOR = "Erik Bengtsson <erik.bengtsson@flir.com>"
 SECTION = "flir/applications"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
-PR = "r1"
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+PR = "r2"
 
 inherit systemd
 
