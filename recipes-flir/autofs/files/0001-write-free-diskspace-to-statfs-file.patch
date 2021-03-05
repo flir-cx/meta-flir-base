@@ -31,15 +31,18 @@ diff -pruN a/daemon/Makefile b/daemon/Makefile
 diff -pruN a/daemon/automount.c b/daemon/automount.c
 --- a/daemon/automount.c	2015-04-21 11:37:45.000000000 +0200
 +++ b/daemon/automount.c	2017-07-07 11:05:37.856921954 +0200
-@@ -36,8 +36,11 @@
+@@ -36,6 +36,9 @@
  #include <dirent.h>
  #include <sys/vfs.h>
  #include <sys/utsname.h>
 +#include <sys/statvfs.h>
 +#include <sys/statfs.h>
- 
- #include "automount.h"
 +#include "df.h"
+ #ifdef WITH_SYSTEMD
+ #include <systemd/sd-daemon.h>
+ #endif
+
+ #include "automount.h"
  #if defined(LIBXML2_WORKAROUND) || defined(TIRPC_WORKAROUND)
  #include <dlfcn.h>
  #ifdef WITH_LDAP

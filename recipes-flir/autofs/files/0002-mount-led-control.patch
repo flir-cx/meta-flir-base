@@ -30,14 +30,13 @@ diff -pruN a/daemon/Makefile b/daemon/Makefile
 diff -pruN a/daemon/automount.c b/daemon/automount.c
 --- a/daemon/automount.c	2017-07-07 11:05:37.856921954 +0200
 +++ b/daemon/automount.c	2017-07-07 16:29:45.296520854 +0200
-@@ -41,6 +41,7 @@
- 
- #include "automount.h"
+@@ -41,5 +41,6 @@
+ #include <sys/statfs.h>
  #include "df.h"
 +int ledctrl(int on);
- #if defined(LIBXML2_WORKAROUND) || defined(TIRPC_WORKAROUND)
- #include <dlfcn.h>
- #ifdef WITH_LDAP
+ #ifdef WITH_SYSTEMD
+ #include <systemd/sd-daemon.h>
+ #endif
 @@ -1048,9 +1049,11 @@ int do_expire(struct autofs_point *ap, c
  	pthread_cleanup_push(master_source_lock_cleanup, ap->entry);
  	master_source_readlock(ap->entry);
