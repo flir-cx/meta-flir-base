@@ -4,9 +4,8 @@ AUTHOR = "Felix Hammarstrand <felix.hammarstrand@flir.se>"
 SECTION = "base"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
-PR = "r1"
+PR = "r2"
 PV = "1"
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
 
 SRC_URI += "\
 	file://bootlogo.bmp.gz;unpack=0 \
