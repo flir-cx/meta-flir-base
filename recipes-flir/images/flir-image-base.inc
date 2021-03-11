@@ -74,6 +74,8 @@ FLIR_COMMON_PACKAGES = " \
     flir-updater \
     flirapp-service \
     flirbase-files \
+    flirbifrost \
+    flirfvdk \
     flirmisc \
     fliruseradd \
     flirversions \
@@ -144,9 +146,7 @@ UNAVAILABLE_PACKAGES = "\
     factoryreset-service \
     flashld \
     flir-sysfs-links-service \
-    flirbifrost \
     flirfad \
-    flirfvdk \
     flirvcam \
     getherload \
     gstreamer1.0-plugins-bad-fragmented \
