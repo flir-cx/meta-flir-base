@@ -1,5 +1,7 @@
+PINGU_INHERIT = ""
+PINGU_INHERIT_mx6  = "kernel fsl-kernel-localversion fsl-vivante-kernel-driver-handler"
+inherit ${PINGU_INHERIT}
 
-inherit kernel fsl-kernel-localversion fsl-vivante-kernel-driver-handler
 SECTION = "kernel"
 DESCRIPTION = "Linux Kernel for FLIR pingu based devices"
 LICENSE = "GPLv2"

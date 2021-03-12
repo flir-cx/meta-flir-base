@@ -1,7 +1,8 @@
 #
 # Recipe for building flir-image with devel packages
 #
-require flir-image-${MACHINE}.inc
+include flir-image-${MACHINE}.inc
+LICENSE = "CLOSED"
 
 COMPATIBLE_MACHINE = "(evco)"
 
