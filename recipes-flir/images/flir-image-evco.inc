@@ -1,5 +1,8 @@
 require flir-image-base.inc
 
+### evco specifics for flir-image (cirrus)
+inherit populate_sdk_qt5
+
 ### evco specifics for flir-image (Evander, Lennox)
 
 TEST_SUITES = "ping ssh flir_test_valid_platform df connman \
@@ -28,11 +31,16 @@ EVCO_PACKAGES = "\
     libevdev \
     mmc-utils \
     mtd-utils-jffs2 \
+    qtbase \
+    qtgraphicaleffects \
     php \
     php-cgi \
     php-cli \
     progressapp-service \
     wifi-test-suite \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
+		     'weston weston-init \
+		      qtwayland qtwayland-plugins', '', d)} \
 "
 
 UNAVAILABLE_PACKAGES_append = " \
