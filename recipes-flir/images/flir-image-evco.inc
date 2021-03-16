@@ -18,6 +18,8 @@ EVCO_PACKAGES = "\
     chargelogo \
     firmware-imx-vpu-imx6d \
     fliriptables \
+    flir-sysfs-links-service \
+    gadgetload \
     haproxy \
     iputils-ping \
     kernel-module-bh1750 \
