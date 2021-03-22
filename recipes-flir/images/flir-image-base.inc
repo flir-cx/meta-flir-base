@@ -74,8 +74,6 @@ FLIR_COMMON_PACKAGES = " \
     flir-updater \
     flirapp-service \
     flirbase-files \
-    flirbifrost \
-    flirfvdk \
     flirmisc \
     fliruseradd \
     flirversions \
@@ -126,7 +124,6 @@ FLIR_COMMON_PACKAGES = " \
     runverify \
     screen \
     screen-service \
-    sleepd \
     sudo \
     sysfsutils \
     sysmon-service \
@@ -139,6 +136,12 @@ FLIR_COMMON_PACKAGES = " \
     udev-extraconf \
     updonmount \
     zlib \
+"
+
+UNAVAILABLE_PACKAGES32 = "\
+    flirbifrost \
+    flirfvdk \
+    sleepd \
 "
 
 UNAVAILABLE_PACKAGES = "\

@@ -23,7 +23,6 @@ EVCO_PACKAGES = "\
     haproxy \
     iputils-ping \
     kernel-module-bh1750 \
-    kernel-module-btwilink \
     kernel-module-g-mass-storage \
     kernel-module-g-webcam \
     kernel-module-hci-uart \
@@ -39,12 +38,15 @@ EVCO_PACKAGES = "\
     php-cgi \
     php-cli \
     progressapp-service \
-    wifi-test-suite \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
 "
 
+UNAVAILABLE_PACKAGES32 = " \
+    kernel-module-btwilink \
+    wifi-test-suite \
+"
 UNAVAILABLE_PACKAGES_append = " \
     backlight-service \
     backlight-worker \

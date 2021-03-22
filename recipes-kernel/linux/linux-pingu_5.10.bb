@@ -4,13 +4,15 @@
 
 require linux-pingu.inc
 
-#SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_EC101_5.4.70"
+#SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_EC101_5.10.y"
 SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 #SRCREV = "${AUTOREV}"
-#SRCREV = "FLIR_EC101_5.4.70-runnable1"
-SRCREV = "01d95d6970ea1750b0880f38056da7f96c36188d"
-PV="5.4.70-git${SRCPV}"
-FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-5.4.70:"
+SRCREV = "169b8cd2517c7a0bf97801fa0d977f8302cec74c"
+PV="5.10-git${SRCPV}"
+
+LINUX_VERSION = "5.10.9"
+
+FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-5.10:"
 
 SRC_URI_append = "\
              file://defconfig \

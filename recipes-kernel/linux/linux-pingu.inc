@@ -5,7 +5,9 @@ inherit ${PINGU_INHERIT}
 SECTION = "kernel"
 DESCRIPTION = "Linux Kernel for FLIR pingu based devices"
 LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
+LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
+
+DEPENDS += "lzop-native bc-native"
 
 PROVIDES+=" linux virtual/kernel"
 COMPATIBLE_MACHINE = "evco|ec501"
