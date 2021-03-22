@@ -17,7 +17,7 @@ SRC_URI += "file://gadget.sh"
 SRC_URI += "file://gadget.service"
 SRC_URI += "file://usbfn"
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install_append() {
     install -d ${D}${systemd_unitdir}/system

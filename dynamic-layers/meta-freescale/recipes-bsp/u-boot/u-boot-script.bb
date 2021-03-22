@@ -13,7 +13,7 @@ SRC_URI += "file://select-fdt.sh \
 
 DESTDIR = "/boot"
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 
 do_install() {

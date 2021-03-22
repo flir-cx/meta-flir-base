@@ -16,7 +16,7 @@ SRC_URI = " \
 	file://pmemdata_wlan_bt_classic \
 "
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install_append() {
     install -d ${D}/lib/firmware

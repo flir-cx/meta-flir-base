@@ -13,7 +13,7 @@ SRC_URI = " \
 	file://480-0082.tar.bz2 \
 "
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install_append() {
     install -d ${D}/lib/firmware/brcm/bcm4339

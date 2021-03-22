@@ -12,7 +12,7 @@ SRC_URI += "file://suid.sh \
             file://camserial.sh \
 "
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install_append() {
     install -d ${D}/usr

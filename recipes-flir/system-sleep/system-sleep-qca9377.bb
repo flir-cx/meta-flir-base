@@ -9,7 +9,7 @@ SRC_URI = " \
     file://suspend-qca9377 \
 "
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install() {
     install -d ${D}${systemd_unitdir}/system-sleep

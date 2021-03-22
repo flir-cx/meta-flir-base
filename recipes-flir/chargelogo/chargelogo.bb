@@ -10,7 +10,7 @@ PV = "1"
 SRC_URI += "file://battery_logo.bmp.gz;unpack=0"
 SRC_URI += "file://no_battery.bmp.gz;unpack=0"
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install_append() {
     install -d ${D}/boot

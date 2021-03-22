@@ -11,7 +11,7 @@ SRC_URI += "\
 	file://bootlogo.bmp.gz;unpack=0 \
 	file://bootlogo.png"
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install_append() {
     install -d ${D}/boot

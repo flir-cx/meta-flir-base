@@ -16,7 +16,7 @@ SYSTEMD_SERVICE_${PN} = "btload.service"
 SRC_URI += "file://btload.sh"
 SRC_URI += "file://btload.service"
 
-S = "${WORKDIR}/"
+S = "${WORKDIR}"
 
 do_install_append() {
     install -d ${D}${systemd_unitdir}/system
