@@ -33,10 +33,12 @@
 #include <linux/slab.h>
 #include <linux/syscalls.h>
 #include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,10,0)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 #include <../arch/arm/mach-imx/iomux-v3.h>
 #else
 #include <mach/iomux-v3.h>
+#endif
 #endif
 #include <linux/ioctl.h>
 #include <linux/device.h>
