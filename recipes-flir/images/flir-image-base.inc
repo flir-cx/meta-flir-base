@@ -1,5 +1,4 @@
 inherit core-image
-inherit distro_features_check
 inherit testimage
 #inherit image_types_flir
 require flir-functions.inc
@@ -74,6 +73,8 @@ FLIR_COMMON_PACKAGES = " \
     flir-updater \
     flirapp-service \
     flirbase-files \
+    flirbifrost \
+    flirfvdk \
     flirmisc \
     fliruseradd \
     flirversions \
@@ -139,8 +140,6 @@ FLIR_COMMON_PACKAGES = " \
 "
 
 UNAVAILABLE_PACKAGES32 = "\
-    flirbifrost \
-    flirfvdk \
     sleepd \
 "
 
