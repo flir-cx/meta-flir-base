@@ -1,0 +1,97 @@
+From b77a9b55aa88cda575b9d887073f708c0c238eb4 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.com>
+Date: Wed, 7 Apr 2021 10:53:20 +0200
+Subject: [PATCH] m4_rpmsg: Enable telemetry rows in frame
+
+Set resolution to 160x122 to enable telemetry rows in frame
+
+Turns of map, lcf and colorizer. Requires Y16 pix format.
+---
+ drivers/media/platform/mxc/capture/m4_rpmsg.c |  3 ++-
+ drivers/media/platform/mxc/capture/m4_rpmsg.h |  4 +++-
+ .../media/platform/mxc/capture/mxc_rpmsg.c    | 21 ++++++++++++++-----
+ 3 files changed, 21 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/m4_rpmsg.c b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+index 9416f80a6b69..bda52ca09c59 100644
+--- a/drivers/media/platform/mxc/capture/m4_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/m4_rpmsg.c
+@@ -363,7 +363,8 @@ static int rpmsg_enum_frameintervals(struct v4l2_subdev *sd,
+ 
+ 	fie->interval.numerator = 1;
+ 
+-	if ((fie->width == IR_RESOLUTION_REDUCED_WIDTH && fie->height == IR_RESOLUTION_REDUCED_HEIGHT) || (fie->width == IR_RESOLUTION_FULL_WIDTH && fie->height == IR_RESOLUTION_FULL_HEIGHT)) {
++	if ((fie->width == IR_RESOLUTION_REDUCED_WIDTH && fie->height == IR_RESOLUTION_REDUCED_HEIGHT) || 
++		(fie->width == IR_RESOLUTION_FULL_WIDTH && (fie->height == IR_RESOLUTION_FULL_HEIGHT || fie->height == IR_RESOLUTION_FULL_TELEMETRY_HEIGHT))) {
+ 		fie->interval.denominator = 9;
+ 		return 0;
+ 	}
+diff --git a/drivers/media/platform/mxc/capture/m4_rpmsg.h b/drivers/media/platform/mxc/capture/m4_rpmsg.h
+index 44a19fbe3171..dba63f3f2f68 100644
+--- a/drivers/media/platform/mxc/capture/m4_rpmsg.h
++++ b/drivers/media/platform/mxc/capture/m4_rpmsg.h
+@@ -12,7 +12,8 @@ enum ovRpmsg_mode {
+ 	ovRpmsg_mode_MIN = 0,
+ 	ovRpmsg_mode_QQVGA_160_120 = 0,
+ 	ovRpmsg_mode_QQVGA_128_96 = 1,
+-	ovRpmsg_mode_MAX = 1
++	ovRpmsg_mode_QQVGA_160_122 = 2, //inc telemetry rows
++	ovRpmsg_mode_MAX = 2
+ };
+ 
+ enum ovRpmsg_format {
+@@ -24,6 +25,7 @@ enum ovRpmsg_format {
+ 
+ #define IR_RESOLUTION_FULL_WIDTH  160
+ #define IR_RESOLUTION_FULL_HEIGHT 120
++#define IR_RESOLUTION_FULL_TELEMETRY_HEIGHT 122
+ #define IR_RESOLUTION_REDUCED_WIDTH  128
+ #define IR_RESOLUTION_REDUCED_HEIGHT 96
+ #define IR_RESOLUTION_DEFAULT_WIDTH  IR_RESOLUTION_FULL_WIDTH
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index 5a626c69621b..54eff0f7b6b5 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -355,6 +355,7 @@ static int imx_rpmsg_vidioc_s_fmt_vid_cap(struct file *filp, void *fh,
+ 	const struct imx_rpmsg_fmt *rpmsg_fmt;
+ 
+ 	dev_info(rpmsg_dev->dev, "%s width %d  height %d\n", __func__, f->fmt.pix.width, f->fmt.pix.height);
++	dev_info(rpmsg_dev->dev, "%s pixformat %s\n", __func__, v4l2_pix_fmt->pixelformat == V4L2_PIX_FMT_YUYV?"YUYV":"Y16");
+ 	dev_info(rpmsg_dev->dev, "%s field %d  bytesperline: %d sizeimage: %d\n", __func__, f->fmt.pix.field, f->fmt.pix.bytesperline, f->fmt.pix.sizeimage);
+ 	
+ 	ret = imx_rpmsg_vidioc_try_fmt_vid_cap(filp, rpmsg_dev, f);
+@@ -372,16 +373,26 @@ static int imx_rpmsg_vidioc_s_fmt_vid_cap(struct file *filp, void *fh,
+ 	rpmsg_dev->v4l2_pix_fmt.field	= V4L2_FIELD_NONE;
+ 	rpmsg_dev->buf_type		= f->type;
+ 
+-	if(v4l2_pix_fmt->width == IR_RESOLUTION_FULL_WIDTH)
+-		rpmsg_set_resolution(ovRpmsg_mode_QQVGA_160_120);
+-	else if(v4l2_pix_fmt->width == IR_RESOLUTION_REDUCED_WIDTH)
+-		rpmsg_set_resolution(ovRpmsg_mode_QQVGA_128_96);
+-
+ 	if(v4l2_pix_fmt->pixelformat == V4L2_PIX_FMT_YUYV)
+ 		rpmsg_set_pixelformat(ovRpmsg_format_YUYV);
+ 	else if(v4l2_pix_fmt->pixelformat == V4L2_PIX_FMT_Y16)
+ 		rpmsg_set_pixelformat(ovRpmsg_format_Y16);
+ 
++	if(v4l2_pix_fmt->width == IR_RESOLUTION_FULL_WIDTH)
++	{
++		if(v4l2_pix_fmt->height == IR_RESOLUTION_FULL_HEIGHT)
++			rpmsg_set_resolution(ovRpmsg_mode_QQVGA_160_120);
++		else if (v4l2_pix_fmt->height == IR_RESOLUTION_FULL_TELEMETRY_HEIGHT)
++		{
++			if(v4l2_pix_fmt->pixelformat == V4L2_PIX_FMT_Y16)
++				rpmsg_set_resolution(ovRpmsg_mode_QQVGA_160_122);
++			else
++				dev_err(rpmsg_dev->dev, "160x122 resolution only available in Y16 pixel format");
++		}
++	}
++	else if(v4l2_pix_fmt->width == IR_RESOLUTION_REDUCED_WIDTH)
++		rpmsg_set_resolution(ovRpmsg_mode_QQVGA_128_96);
++
+ 	return 0;
+ }
+ 
+-- 
+2.17.1
+
