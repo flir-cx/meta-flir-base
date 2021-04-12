@@ -5,9 +5,11 @@ GROUPADD_PARAM_${PN} = "avahi"
 
 SRC_URI += " \
            file://0001-Disable-rate-limiting.patch \
+           file://0002-Avoid-avahi-getting-stuck-registering.patch \
            file://avahi-daemon.conf \
            file://http.service \
            "
+
 do_install_append() {
         install -m 0755 -d ${D}/etc/avahi
         install -m 0755 -d ${D}/etc/avahi/services
