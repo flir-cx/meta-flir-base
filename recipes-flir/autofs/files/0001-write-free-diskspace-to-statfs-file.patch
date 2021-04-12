@@ -143,14 +143,14 @@ diff -pruN a/daemon/indirect.c b/daemon/indirect.c
  	pthread_cleanup_push(mnts_cleanup, mnts);
  	/* Are there any real mounts left */
  	for (next = mnts; next; next = next->next) {
--		if (strcmp(next->fs_type, "autofs"))
-+		if (strcmp(next->fs_type, "autofs")) {
+-		if (!(next->flags & MNTS_AUTOFS))
++		if (!(next->flags & MNTS_AUTOFS)) {
  			count++;
 -		else {
-+			info(ap->logopt, "mount points %s", next->path);
-+			write_diskfree(next->path);
++			info(ap->logopt, "mount points %s", next->mp);
++			write_diskfree(next->mp);
 +		} else {
- 			if (strstr(next->opts, "indirect"))
+ 			if (next->flags & MNTS_INDIRECT)
  				submnts++;
  			else
 @@ -775,6 +778,7 @@ static void *do_mount_indirect(void *arg
