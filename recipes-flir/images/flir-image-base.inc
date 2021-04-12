@@ -3,11 +3,6 @@ inherit testimage
 #inherit image_types_flir
 require flir-functions.inc
 
-TOOLCHAIN_HOST_TASK_append = "\
-    nativesdk-cmake \
-    nativesdk-python-modules \
-"
-
 LICENSE = "CLOSED"
 
 # ensure that license files accompany each binary in final image  
@@ -20,10 +15,8 @@ COPY_LIC_DIRS = "1"
 #    package-management \
 #"
 
-ROOTFS_PREPROCESS_COMMAND += "cleanup_rootfs ; "
 ROOTFS_POSTPROCESS_COMMAND += "set_root_passwd;"
-IMAGE_PREPROCESS_COMMAND += "cleanup_rootfs;\
-                             create_licenses_info;\
+IMAGE_PREPROCESS_COMMAND += "create_licenses_info;\
                              rootfs_update_timestamp ;\
 			     flir_rev_update ;\
 			     "
@@ -81,6 +74,7 @@ FLIR_COMMON_PACKAGES = " \
     ftpd-service \
     fulverify \
     glibmm \
+    googletest \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-plugins-base-app \
     gstreamer1.0-plugins-base-tcp \
@@ -100,7 +94,6 @@ FLIR_COMMON_PACKAGES = " \
     kmod \
     libpng \
     libstdc++ \
-    libstdc++-dev \
     libzip \
     lighttpd  \
     lighttpd-module-alias \
@@ -163,4 +156,30 @@ IMAGE_INSTALL = " \
     packagegroup-boot \
     packagegroup-flir-gstreamer \
     ${FLIR_COMMON_PACKAGES} \
+"
+
+## Additional SDK host side content (host binaries etc)
+TOOLCHAIN_HOST_TASK_append = "\
+    nativesdk-cmake \
+    nativesdk-python-modules \
+"
+
+## Additional SDK target side content (target libs, include files etc)
+TOOLCHAIN_TARGET_TASK_append = "\
+    alsa-dev \
+    boost-dev \
+    boost-staticdev \
+    breakpad \
+    breakpad-staticdev \
+    flirbifrost-dev \
+    googletest-staticdev \
+    gperftools \
+    gupnp \
+    kernel-dev \
+    kernel-devsrc \
+    libasan-dev \
+    libconfig-dev \
+    libstdc++-dev \
+    libstdc++-staticdev \
+    zlib-dev \
 "
