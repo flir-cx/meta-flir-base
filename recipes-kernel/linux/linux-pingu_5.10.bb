@@ -23,7 +23,8 @@ SRC_URI_append = "\
              file://mfd.cfg \
              file://no-mipi.cfg \
              file://nfs-et-al.cfg \
-	     file://evco-mipi-lcd.cfg \
+             file://evco-mipi-lcd.cfg \
+             file://gpio-mxc.cfg \
 "
 
 # Set an external linux source, prevents Yocto from deleting your local changes
