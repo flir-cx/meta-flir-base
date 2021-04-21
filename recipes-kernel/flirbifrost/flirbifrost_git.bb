@@ -19,8 +19,8 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/bifrost_module.git${FLIRSE_DRV_PROTOCOL};subpath
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
 # Bump PV when changing SRCREV
-PV = "1.1"
-SRCREV = "ae490fbaeb24e444e24ee8ccddae18609e4345ba"
+PV = "1.2"
+SRCREV = "e8011ae1358ea39e5a143ac991ffec597984ba5f"
 #SRCREV = "${AUTOREV}"
 
 EXTRA_OEMAKE += "KERNELDIR=${STAGING_KERNEL_DIR}"
