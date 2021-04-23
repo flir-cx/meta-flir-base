@@ -68,6 +68,8 @@ FLIR_COMMON_PACKAGES = " \
     flirbase-files \
     flirbifrost \
     flirfvdk \
+    flirvcam \
+    flirfad \
     flirmisc \
     fliruseradd \
     flirversions \
@@ -144,6 +146,8 @@ UNAVAILABLE_PACKAGES = "\
     flir-sysfs-links-service \
     flirfad \
     flirvcam \
+    flirfvdk \
+    fliryildun \
     getherload \
     gstreamer1.0-plugins-bad-fragmented \
     iio-utils \
