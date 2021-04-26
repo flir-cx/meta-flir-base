@@ -266,7 +266,8 @@ EOF
 				return 1
 			fi
 
-			nohup umtprd & > /tmp/umtprd.out #output to temp file if needed for debug, should add tail on this file if journal is needed
+			systemctl start umtprd
+
 			if [ $? != 0 ]
 			then
 				printf "config_load: Failed to start umtprd\n"
@@ -351,7 +352,7 @@ config_unload() {
 
 	# Signal to fis to update RNDIS status
 	killall -USR1 fis 2>/dev/null
-	killall umtprd 2>/dev/null
+	systemctl stop umtprd
 
 	if [ -d /dev/ffs-umtp ]
 	then
