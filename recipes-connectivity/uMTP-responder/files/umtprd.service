@@ -1,0 +1,11 @@
+[Unit]
+Description=Simple script to start uMTP Responder deamon
+
+[Service]
+Type=simple
+ExecStartPre=/bin/echo "NOTE: umtprd.service should not be started directly, only from gadgetload/usbfn"
+ExecStart=/sbin/umtprd
+ExecStop=/bin/kill -HUP $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"

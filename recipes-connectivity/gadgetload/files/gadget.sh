@@ -303,7 +303,8 @@ EOF
 				exit 1
 			fi
 
-			umtprd &
+			systemctl start umtprd
+
 			if [ $? != 0 ]
 			then
 				printf "config_load: Failed to start umtprd\n"
@@ -400,7 +401,7 @@ config_unload() {
 
 	# Signal to fis to update RNDIS status
 	killall -USR1 fis 2>/dev/null
-	killall umtprd 2>/dev/null
+	systemctl stop umtprd
 
 	if [ -d /dev/ffs-umtp ]
 	then
