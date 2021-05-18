@@ -18,7 +18,8 @@ LOCALVERSION = "-flir"
 SCMVERSION ?= "y"
 SRCBRANCH ?= ""
 
-#EXTRA_OEMAKE += "KCFLAGS=-Werror"
+EXTRA_OEMAKE += "KCFLAGS=-Werror"
+EXTRA_OEMAKE += "KCFLAGS=-Wno-unused-function"
 
 KERNEL_EXTRA_ARGS += "LOADADDR=${UBOOT_ENTRYPOINT}"
                 
