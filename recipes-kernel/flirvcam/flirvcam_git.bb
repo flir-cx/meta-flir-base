@@ -27,7 +27,7 @@ inherit module
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
-SRCREV = "c4f6d83424d33f9efb1c39dfc9e0b715b6ca62fd"
+SRCREV = "4aa133b8dc7784f43bf8eafbd60945dc9073a56f"
 SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-vcam.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 SRC_URI += "file://vcam.conf"
 
