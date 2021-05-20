@@ -28,7 +28,7 @@ IMAGE_POSTPROCESS_COMMAND += "link_licenses_info ; "
 
 # We're using journal and do not want the busybox-syslog
 BAD_RECOMMENDATIONS += "busybox-syslog"
-BAD_RECOMMENDATIONS += "udev-hwdb"
+BAD_RECOMMENDATIONS += "udev-hwdb kernel-module-nxp89xx"
 
 
 # Add/remove for IPv6 support
@@ -112,6 +112,7 @@ FLIR_COMMON_PACKAGES = " \
     opkg \
     os-release \
     oscombtab \
+    packagegroup-machine-base \
     parted \
     pciutils \
     python \
