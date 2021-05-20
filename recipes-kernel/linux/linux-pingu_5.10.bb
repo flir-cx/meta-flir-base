@@ -9,6 +9,7 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch
 #SRCREV = "${AUTOREV}"
 SRCREV = "7d21423b8a9b64bab673fec6226e278605f9b535"
 PV="5.10-git${SRCPV}"
+PR="2"
 
 LINUX_VERSION = "5.10.9"
 
@@ -28,21 +29,8 @@ SRC_URI_append_evco = "\
 
 SRC_URI_append_ec501 = "\
              file://defconfig \
-             file://remove_from_imx_v7_defconfig.cfg \
-             file://modules-to-builtin.cfg \
-             file://settings_in_pingu2_not_in_imx_v7_defconfig.cfg \
-             file://smp.cfg \
-             file://mfd.cfg \
-             file://no-mipi.cfg \
-             file://nfs-et-al.cfg \
-             file://evco-mipi-lcd.cfg \
-             file://gpio-mxc.cfg \
 "
 
 # Set an external linux source, prevents Yocto from deleting your local changes
 #inherit externalsrc
 #EXTERNALSRC = "/home/...."
-
-
-
-
