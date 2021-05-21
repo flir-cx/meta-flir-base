@@ -1,3 +1,3 @@
 include flir-image-${MACHINE}.inc
 LICENSE = "CLOSED"
-COMPATIBLE_MACHINE = "(evco)"
+COMPATIBLE_MACHINE = "(evco|ec501)"
