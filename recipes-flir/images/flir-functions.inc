@@ -13,7 +13,6 @@ cleanup_rootfs() {
 
 
 flir_rev_update() {
-   REPODIR=$(cd "${FILE_DIRNAME}/../../../../.repo"; pwd); \
    BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`;\
    if echo ${BLD_VERSION} | grep -vq "dirty"
    then
@@ -35,7 +34,7 @@ flir_rev_update() {
    sed -i s/IVERSION/${BLD_VERSION}/g ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i 's/BLDUSER/${USER}/g' ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i s/BLDHOST/${BLDHOST}/g ${IMAGE_ROOTFS}/etc/os-release ;\
-   cp -p ${REPODIR}/manifest.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
+   cp --preserve=timestamps ${REPODIR}/manifest.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
 }
 
 link_licenses_info() {
