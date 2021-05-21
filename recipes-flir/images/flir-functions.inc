@@ -11,17 +11,28 @@ cleanup_rootfs() {
    rm -rf ${IMAGE_ROOTFS}/opt
 }
 
-
 flir_rev_update() {
-   REPODIR=$(cd "${FILE_DIRNAME}/../../../../.repo"; pwd); \
-   BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`;\
+   echo "REPODIR:${REPODIR}"
+   if ! grep -q ${REPODIR}/manifests $HOME/.gitconfig ; then
+      git config --global --add safe.directory ${REPODIR}/manifests 
+   fi
+   BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`
+
    if echo ${BLD_VERSION} | grep -vq "dirty"
    then
-      FLIR1DIR="${REPODIR}/../sources/meta-flir-base"; \
-      FLIR2DIR="${REPODIR}/../sources/meta-flir-internal"; \
+      FLIR1DIR=$(realpath "${REPODIR}/../sources/meta-flir-base")
+      FLIR2DIR=$(realpath "${REPODIR}/../sources/meta-flir-internal")
+      echo FLIR1DIR:${FLIR1DIR}
+      echo FLIR2DIR:${FLIR2DIR}
+      
+      if ! grep -q "${FLIR1DIR}" $HOME/.gitconfig ; then
+         git config --global --add safe.directory ${FLIR1DIR}
+      	 git config --global --add safe.directory ${FLIR2DIR}	
+      fi
       if ! ( git -C "${FLIR1DIR}" diff --quiet ) || \
          ( [ -d "${FLIR2DIR}" ] && ! ( git -C "${FLIR2DIR}" diff --quiet) )
       then
+          echo "a flir source dir is dirty"
           BLD_VERSION=${BLD_VERSION}-dirty
       fi
    fi
@@ -35,7 +46,7 @@ flir_rev_update() {
    sed -i s/IVERSION/${BLD_VERSION}/g ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i 's/BLDUSER/${USER}/g' ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i s/BLDHOST/${BLDHOST}/g ${IMAGE_ROOTFS}/etc/os-release ;\
-   cp -p ${REPODIR}/manifest.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
+   cp --preserve=timestamps ${REPODIR}/manifests/default.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
 }
 
 link_licenses_info() {
