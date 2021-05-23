@@ -15,19 +15,7 @@ LINUX_VERSION = "5.10.9"
 
 FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-5.10:"
 
-SRC_URI_append_evco = "\
-             file://defconfig \
-             file://remove_from_imx_v7_defconfig.cfg \
-             file://modules-to-builtin.cfg \
-             file://settings_in_pingu2_not_in_imx_v7_defconfig.cfg \
-             file://smp.cfg \
-             file://mfd.cfg \
-             file://no-mipi.cfg \
-             file://nfs-et-al.cfg \
-             file://gpio-mxc.cfg \
-"
-
-SRC_URI_append_ec501 = "\
+SRC_URI_append = "\
              file://defconfig \
 "
 
