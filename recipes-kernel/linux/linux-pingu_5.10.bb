@@ -17,6 +17,7 @@ FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-5.10:"
 
 SRC_URI_append = "\
              file://defconfig \
+             file://linux-videoflow-ec101.cfg \
 "
 
 # Set an external linux source, prevents Yocto from deleting your local changes
