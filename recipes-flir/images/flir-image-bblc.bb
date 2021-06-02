@@ -1,5 +1,4 @@
 inherit core-image
-inherit distro_features_check
 inherit testimage
 require flir-functions.inc
 

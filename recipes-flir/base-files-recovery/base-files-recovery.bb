@@ -8,8 +8,6 @@ PR = "r2"
 PV = "1.0"
 PACKAGES = "${PN}"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
-
 SRC_URI += " \
            file://profile \
            file://fstab \

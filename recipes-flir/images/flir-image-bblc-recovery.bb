@@ -1,4 +1,3 @@
-inherit distro_features_check
 require flir-functions.inc
 inherit image_types_flirrecovery
 
