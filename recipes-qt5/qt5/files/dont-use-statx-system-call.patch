@@ -1,0 +1,17 @@
+Index: git/src/corelib/io/qfilesystemengine_unix.cpp
+===================================================================
+--- git.orig/src/corelib/io/qfilesystemengine_unix.cpp
++++ git/src/corelib/io/qfilesystemengine_unix.cpp
+@@ -107,6 +107,12 @@ extern "C" NSString *NSTemporaryDirector
+ #  undef STATX_BASIC_STATS
+ #endif
+ 
++// Undefine this in all cases since it breaks the build of qtwayland-native
++// when building on host without statx system call
++#ifdef STATX_BASIC_STATS
++#undef STATX_BASIC_STATS
++#endif
++
+ #ifndef STATX_ALL
+ struct statx { mode_t stx_mode; };      // dummy
+ #endif
