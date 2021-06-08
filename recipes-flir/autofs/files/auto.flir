@@ -1,1 +1,1 @@
-*   -fstype=ext4,rw,nosuid,nodev :/dev/flirfs/&
+*   -fstype=vfat,rw,nosuid,nodev,utf8=1 :/dev/flirfs/&
