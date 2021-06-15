@@ -6,6 +6,7 @@ PRIORITY = "optional"
 LICENSE = "CLOSED"
 PR = "r1"
 PV = "1"
+FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
 
 inherit systemd
@@ -17,6 +18,7 @@ SYSTEMD_SERVICE_${PN} = "flirapp.service"
 
 SRC_URI += "file://flirapp.service"
 SRC_URI += "file://flirapp.conf"
+SRC_URI += "file://flirapp_env_check.sh"
 
 S = "${WORKDIR}"
 
@@ -28,4 +30,6 @@ do_compile() {
 do_install_append() {
     install -d ${D}${systemd_unitdir}/system
     install -m 0644 ${WORKDIR}/flirapp_comb.service ${D}${systemd_unitdir}/system/flirapp.service
+    install -d ${D}${sbindir}
+    install -m 0755 ${WORKDIR}/flirapp_env_check.sh ${D}${sbindir}
 }

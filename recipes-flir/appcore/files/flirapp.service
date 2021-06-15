@@ -1,14 +1,10 @@
 [Unit]
 Description=FLIR flirapp (appcore et al) service 
+After=connman.service systemd-journald.service progressapp.service
 
 [Service]
 Type=simple
-ExecStartPre=/bin/bash -c 'echo 4 > /sys/devices/system/cpu/cpufreq/ondemand/sampling_down_factor'
-ExecStartPre=/bin/bash -c 'echo 512 > /proc/sys/fs/mqueue/msgsize_max'
-ExecStartPre=/bin/bash -c 'rm -rf `ls /tmp/FLIRevent/* | grep -v Progress`'
-ExecStartPre=/bin/bash -c 'rm -rf `ls /dev/mqueue/* | grep -v Progress`'
-ExecStartPre=/bin/sleep 3
-
+ExecStartPre=/bin/bash -c '/usr/sbin/flirapp_env_check.sh'
 ExecStart=/FLIR/usr/bin/appcore -d
 ExecStop=/usr/bin/killall -HUP appcore
 KillMode=control-group
@@ -18,4 +14,3 @@ Group=userdata
 
 [Install]
 WantedBy=multi-user.target
-
