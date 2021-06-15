@@ -6,8 +6,8 @@ PRIORITY = "optional"
 LICENSE = "CLOSED"
 PR = "r1"
 PV = "1"
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
+
+RDEPENDS_${PN} += "bash"
 
 inherit systemd
 
