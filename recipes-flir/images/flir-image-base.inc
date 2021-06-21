@@ -144,9 +144,6 @@ UNAVAILABLE_PACKAGES = "\
     factoryreset-scripts \
     factoryreset-service \
     flir-sysfs-links-service \
-    flirfad \
-    flirvcam \
-    flirfvdk \
     fliryildun \
     getherload \
     gstreamer1.0-plugins-bad-fragmented \
