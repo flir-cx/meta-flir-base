@@ -63,6 +63,7 @@ FLIR_COMMON_PACKAGES = " \
     e2fsprogs \
     fis-service \
     fis-worker \
+    flashld \
     flir-updater \
     flirapp-service \
     flirbase-files \
@@ -142,7 +143,6 @@ UNAVAILABLE_PACKAGES32 = "\
 UNAVAILABLE_PACKAGES = "\
     factoryreset-scripts \
     factoryreset-service \
-    flashld \
     flir-sysfs-links-service \
     flirfad \
     flirvcam \
