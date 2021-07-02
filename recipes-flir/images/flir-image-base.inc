@@ -100,7 +100,7 @@ FLIR_COMMON_PACKAGES = " \
     lighttpd  \
     lighttpd-module-alias \
     lighttpd-module-cgi \
-    lighttpd-module-compress \
+    lighttpd-module-deflate \
     lighttpd-module-fastcgi \
     lighttpd-module-proxy \
     lighttpd-module-redirect \
