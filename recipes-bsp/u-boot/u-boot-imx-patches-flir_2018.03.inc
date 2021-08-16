@@ -29,3 +29,5 @@ SRC_URI += "file://0031-SHLK-2007-Put-fuelgauge-to-sleep.patch"
 SRC_URI += "file://0032-SHLK-2063-Postpone-sampling-of-fuelgauge.patch"
 SRC_URI += "file://0033-SHLK-2066-Enable-data-pin-contact-detection.patch"
 SRC_URI += "file://0034-SHLK-2505-Change-hard-reset-time-in-PMIC-to-4s.patch"
+SRC_URI += "file://0035-Add-support-for-fuelguage-lc709204.patch"
+

@@ -1,0 +1,134 @@
+From 81c9ba2e5c1067e4ad769525265561e3b27a37ff Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.com>
+Date: Mon, 16 Aug 2021 11:32:18 +0200
+Subject: [PATCH] Add support for fuelguage lc709204
+
+Disable sleep mode for lc709204f
+---
+ board/flir/ec201/lc709203.c | 54 +++++++++++++++++++++++++++++++------
+ board/flir/ec201/lc709203.h | 10 +++++++
+ 2 files changed, 56 insertions(+), 8 deletions(-)
+
+diff --git a/board/flir/ec201/lc709203.c b/board/flir/ec201/lc709203.c
+index d1ec374b12..176ae59ceb 100644
+--- a/board/flir/ec201/lc709203.c
++++ b/board/flir/ec201/lc709203.c
+@@ -54,8 +54,32 @@ int fuelgauge_write_reg(uint reg, u8 lb, u8 hb)
+ 	return 0;
+ }
+ 
++int fuelguage_get_type()
++{
++	u8 buf[4];
++	int ret;
++	struct udevice *dev;
++
++	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC 709203: %d\n", ret);
++		return ret;
++	}
++	
++	ret = dm_i2c_read(dev, IC_VERSION, buf, 2);
++
++	if(ret)
++		return ret;
++
++	return *(u16 *)buf == 0x301;
++}
++
+ int fuelgauge_sleep(void)
+ {
++	// Only lc709203f should be put to sleep, lc709204f should stay in operational mode
++	if(fuelguage_get_type() == LC709204F)
++		return 0;
++
+ 	return fuelgauge_write_reg(IC_POWER_MODE_REG, FUELGAUGE_SLEEP_MODE, 0);
+ }
+ 
+@@ -77,9 +101,9 @@ int fuelgauge_thermistor_mode(void)
+ 	return fuelgauge_write_reg(STATUS_BIT_REG, THERMISTOR_MODE, 0);
+ }
+ 
+-int fuelgauge_battery_profile_one(void)
++int fuelgauge_battery_profile(int param)
+ {
+-	return fuelgauge_write_reg(CHANGE_OF_THE_PARAMETER_REG, BATTERY_PROFILE_ONE, 0);
++	return fuelgauge_write_reg(CHANGE_OF_THE_PARAMETER_REG, param?BATTERY_PROFILE_ONE:BATTERY_PROFILE_ZERO, 0);
+ }
+ 
+ int fuelgauge_init(void)
+@@ -87,6 +111,7 @@ int fuelgauge_init(void)
+ 	struct udevice *dev;
+ 	u8 buf[4];
+ 	int ret;
++	int type;
+ 
+ 	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
+ 	if (ret) {
+@@ -100,15 +125,28 @@ int fuelgauge_init(void)
+ 	/* Thermistor mode: fuelgauge measures the attached resistor */
+ 	fuelgauge_thermistor_mode();
+ 
++	// param should be 1 for lc709203f and 0 for lc709203f
++	type = fuelguage_get_type();
++	printf("found %s\n",type?"LC709203":"LC709204");
++
+ 	/* Check if battery profile already is selected
+-	 * Every write to this register will recalibrate the fuelgauge,
+-	 * which we only want to do once */
++	* Every write to this register will recalibrate the fuelgauge,
++	* which we only want to do once */
+ 	ret = dm_i2c_read(dev, CHANGE_OF_THE_PARAMETER_REG, buf, 2);
+-	if(ret==0 && *(u16*)buf == 0)
++	if (ret == 0 && *(u16 *)buf != type)
+ 	{
+-		/* Select battery profile 1 */
+-		fuelgauge_battery_profile_one();
++		/* Select battery profile */
++		fuelgauge_battery_profile(type);
+ 	}
++
++	if (ret == 0 && type == LC709204F)
++	{
++		/* Setup as LC709204 */
++		fuelgauge_write_reg(LC709204_APA, 0x002d, 0x002d);	  // set APA value 2d2d
++		fuelgauge_write_reg(LC709204_ChgTermCurr, 0x0003, 0); // set ChgTermCurr (taper current in 0.01C), 0.03C => 54mA with 1800mA battery
++		fuelgauge_write_reg(LC709204_Empty_Volt, 0x0000, 0);  // Empty Cell Voltage. 0 will disable ITE offset update.
++		fuelgauge_write_reg(LC709204_ITE_Offset, 0x0015, 0);  // set ITE Offset, will scale RSOC to reach 0% when 3.2V
++	}
++
+ 	return 0;
+ }
+-
+diff --git a/board/flir/ec201/lc709203.h b/board/flir/ec201/lc709203.h
+index 26cf08a383..f9236f911d 100644
+--- a/board/flir/ec201/lc709203.h
++++ b/board/flir/ec201/lc709203.h
+@@ -5,13 +5,23 @@
+ #define FUELGAUGE_I2C_BUS 5
+ #define CHANGE_OF_THE_PARAMETER_REG 0x12
+ #define BATTERY_PROFILE_ONE 0x01
++#define BATTERY_PROFILE_ZERO 0x00
+ 
+ #define IC_POWER_MODE_REG 0x15
+ #define STATUS_BIT_REG	0x16
++#define IC_VERSION 0x1a
+ #define THERMISTOR_MODE 0x1
+ #define OPERATIONAL_MODE 0x1
+ #define FUELGAUGE_SLEEP_MODE 0x2
+ 
++#define LC709204_APA 0x0b
++#define LC709204_ChgTermCurr 0x1c
++#define LC709204_Empty_Volt 0x1d
++#define LC709204_ITE_Offset 0x1e
++
++#define LC709203F 1
++#define LC709204F 0
++
+ int fuelgauge_init(void);
+ 
+ int fuelgauge_sleep(void);
+-- 
+2.17.1
+
