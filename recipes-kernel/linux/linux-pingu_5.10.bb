@@ -19,8 +19,9 @@ SRC_URI_append = "\
              file://defconfig \
              file://linux-videoflow-ec101.cfg \
              file://edt-ft5336.cfg \
-	     file://fakeframebuffer.cfg \
-	     file://wifi.cfg \
+             file://fakeframebuffer.cfg \
+             file://wifi.cfg \
+             file://compress-kernel.cfg \
 "
 
 # Set an external linux source, prevents Yocto from deleting your local changes
