@@ -61,9 +61,6 @@ FLIR_COMMON_PACKAGES = " \
     crda \
     dosfstools \
     e2fsprogs \
-    fis-service \
-    fis-worker \
-    flir-updater \
     flirapp-service \
     flirbase-files \
     flirbifrost \
@@ -72,9 +69,7 @@ FLIR_COMMON_PACKAGES = " \
     flirfad \
     flirmisc \
     fliruseradd \
-    flirversions \
     ftpd-service \
-    fulverify \
     glibmm \
     googletest \
     gstreamer1.0-plugins-bad \
@@ -113,12 +108,10 @@ FLIR_COMMON_PACKAGES = " \
     openssl \
     opkg \
     os-release \
-    oscombtab \
     packagegroup-machine-base \
     parted \
     pciutils \
     python \
-    runverify \
     screen \
     screen-service \
     sudo \
@@ -131,7 +124,6 @@ FLIR_COMMON_PACKAGES = " \
     tzdata \
     udev \
     udev-extraconf \
-    updonmount \
     zlib \
 "
 
@@ -155,10 +147,16 @@ UNAVAILABLE_PACKAGES = "\
 "
 
 IMAGE_INSTALL = " \
+    libstdc++ \
     packagegroup-boot \
+    packagegroup-flir-common-packages \
     packagegroup-flir-gstreamer \
     ${FLIR_COMMON_PACKAGES} \
 "
+
+#     libstdc++-dev \
+#
+#
 
 ## Additional SDK host side content (host binaries etc)
 TOOLCHAIN_HOST_TASK_append = "\
