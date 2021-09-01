@@ -49,114 +49,13 @@ BAD_RECOMMENDATIONS += "\
     ', d)} \
 "
 
-FLIR_COMMON_PACKAGES = " \
-    aufsrootfs \
-    avahi-daemon \
-    avahi-dnsconfd \
-    bash \
-    bootlogo \
-    connman \
-    connman-client \
-    cpio \
-    crda \
-    dosfstools \
-    e2fsprogs \
-    flirapp-service \
-    flirbase-files \
-    flirbifrost \
-    flirfvdk \
-    flirvcam \
-    flirfad \
-    flirmisc \
-    fliruseradd \
-    ftpd-service \
-    glibmm \
-    googletest \
-    gstreamer1.0-plugins-bad \
-    gstreamer1.0-plugins-base-app \
-    gstreamer1.0-plugins-base-tcp \
-    gstreamer1.0-plugins-base-videorate \
-    gstreamer1.0-rtsp-server \
-    i2c-tools \
-    imx-gpu-viv \
-    imx-kobs \
-    imx-lib \
-    iperf2 \
-    iproute2 \
-    iw \
-    kernel \
-    kernel-devicetree \
-    kernel-image \
-    kernel-module-g-ether \
-    kmod \
-    libpng \
-    libstdc++ \
-    libzip \
-    lighttpd  \
-    lighttpd-module-alias \
-    lighttpd-module-cgi \
-    lighttpd-module-deflate \
-    lighttpd-module-fastcgi \
-    lighttpd-module-proxy \
-    lighttpd-module-redirect \
-    lighttpd-module-rewrite \
-    mtd-utils \
-    mtd-utils-ubifs \
-    nano \
-    ncurses-libpanelw \
-    openssh \
-    openssl \
-    opkg \
-    os-release \
-    packagegroup-machine-base \
-    parted \
-    pciutils \
-    python \
-    screen \
-    screen-service \
-    sudo \
-    sysfsutils \
-    sysmon-service \
-    systemd \
-    systemd-analyze \
-    systemd-compat-units \
-    telnetd-service \
-    tzdata \
-    udev \
-    udev-extraconf \
-    zlib \
-"
-
-UNAVAILABLE_PACKAGES32 = "\
-    sleepd \
-"
-
-UNAVAILABLE_PACKAGES = "\
-    factoryreset-scripts \
-    factoryreset-service \
-    flashld \
-    flir-sysfs-links-service \
-    fliryildun \
-    getherload \
-    gstreamer1.0-plugins-bad-fragmented \
-    iio-utils \
-    libiio \
-    lighttpd-module-dynamicfile \
-    prodfacet-service \
-    wlanload \
-"
-
 IMAGE_INSTALL = " \
     libstdc++ \
-    packagegroup-boot \
+    libstdc++-dev \
     packagegroup-flir-common-packages \
+    packagegroup-boot \
     packagegroup-flir-gstreamer \
-    ${FLIR_COMMON_PACKAGES} \
 "
-
-#     libstdc++-dev \
-#
-#
 
 ## Additional SDK host side content (host binaries etc)
 TOOLCHAIN_HOST_TASK_append = "\

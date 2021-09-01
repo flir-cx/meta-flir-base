@@ -13,23 +13,22 @@ RDEPENDS_${PN}-packages = "\
     alsa-lib \
     alsa-utils \
     autofs \
-    blankscreen-service \
     bluez5 \
     btload \
-    chargeapp-service \
     chargelogo \
     firmware-imx-vpu-imx6d \
+    flirbifrost \
+    flirfad \
+    flirfvdk \
     fliriptables \
-    fliryildun \
+    flirvcam \
     haproxy \
     iputils-ping \
+    kernel-module-leds-as3649 \
     kernel-module-bh1750 \
-    kernel-module-btwilink \
     kernel-module-g-mass-storage \
-    kernel-module-g-uvc-msd \
     kernel-module-g-webcam \
     kernel-module-hci-uart \
-    kernel-module-si114x \
     kernel-module-usb-f-ecm \
     kernel-module-usb-f-ecm-subset \
     libevdev \
@@ -39,6 +38,16 @@ RDEPENDS_${PN}-packages = "\
     php-cgi \
     php-cli \
     progressapp-service \
+"
+
+UNBUILDABLE = "\
+    kernel-module-btwilink \
+    kernel-module-g-uvc-msd \
+    kernel-module-si114x \
+    kernel-module-leds-lm3644 \
+    blankscreen-service \
+    chargeapp-service \
+    fliryildun \
     ti-bt-firmware \
     ti-firmware \
     ti-nvs \
@@ -48,5 +57,3 @@ RDEPENDS_${PN}-packages = "\
     u-boot-script \
     wifi-test-suite \
 "
-
-

@@ -1,20 +1,20 @@
 require flir-image-base.inc
 
-### evco specifics for flir-image (cirrus)
+### nitrogen6x specifics for flir-image (cirrus)
 inherit populate_sdk_qt5
 
-### evco specifics for flir-image (Evander, Lennox)
+### nitrogen6x specifics for flir-image (sabrelite)
 
 TEST_SUITES = "ping ssh flir_test_valid_platform df connman \
                  scp python gst1-0-fsl-plugin dmesg2 flirsystemd wi-fi \
                  bluetooth sysfs standby wi-fi bluetooth mmdc"
 
-IMAGE_INSTALL_append = "\
-    packagegroup-flir-ec101-packages \
+IMAGE_INSTALL_append = " \
+    packagegroup-flir-nitrogen6x-packages \
     packagegroup-flir-opencv-packages \
 "
 
-NOTYET = "\
+UNAVAILABLE_PACKAGES_append = " \
     packagegroup-flir-pulseaudio-packages \
 "
 

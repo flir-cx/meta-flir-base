@@ -35,12 +35,8 @@ RDEPENDS_${PN}-packages = "\
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
-    flirbifrost \
-    flirfad \
-    flirfvdk \
     flirmisc \
     fliruseradd \
-    flirvcam \
     ftpd-service \
     glibmm \
     gstreamer1.0-plugins-bad \
