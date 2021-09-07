@@ -1,0 +1,27 @@
+From 9dd6bc4f8e48a03e1c4f5f0d12817bbdad595ec5 Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Tue, 7 Sep 2021 14:56:41 +0200
+Subject: [PATCH] Temporary fix for kernel paging error from videorender
+
+Starting videorender resultet in kernel crash due to paging error,
+Returning -EINVAL from ov5640_enum_fmt_cap avoids this paging error, but could probably introduce some other errors... So we should check back on this
+
+For now, just returning -EINVAL thoughgit diff
+---
+ drivers/media/platform/mxc/capture/ov5640_mipi.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/media/platform/mxc/capture/ov5640_mipi.c b/drivers/media/platform/mxc/capture/ov5640_mipi.c
+index 65cb449720a1..c2209f833328 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_mipi.c
++++ b/drivers/media/platform/mxc/capture/ov5640_mipi.c
+@@ -399,6 +399,9 @@ static int ioctl_enum_frameintervals(struct v4l2_int_device *s,
+ static int ov5640_enum_fmt_cap(struct ov5640 *sensor,
+ 			      struct v4l2_fmtdesc *fmt)
+ {
++	return -EINVAL;  //force return fmt cap, to avoid kernel paging error..
++	//this probably creates other errors...
++
+ 	if (fmt->index > ARRAY_SIZE(ov5640_colour_fmts))
+ 		return -EINVAL;
+ 
