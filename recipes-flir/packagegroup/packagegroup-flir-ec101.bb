@@ -22,22 +22,28 @@ RDEPENDS_${PN}-packages = "\
     flirfvdk \
     fliriptables \
     flirvcam \
+    gadgetload \
     haproxy \
     iputils-ping \
-    kernel-module-leds-as3649 \
     kernel-module-bh1750 \
     kernel-module-g-mass-storage \
     kernel-module-g-webcam \
     kernel-module-hci-uart \
+    kernel-module-leds-as3649 \
     kernel-module-usb-f-ecm \
     kernel-module-usb-f-ecm-subset \
     libevdev \
     mmc-utils \
     mtd-utils-jffs2 \
+    qtbase \
+    qtgraphicaleffects \
     php \
     php-cgi \
     php-cli \
     progressapp-service \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
+		     'weston weston-init \
+		      qtwayland qtwayland-plugins', '', d)} \
 "
 
 UNBUILDABLE = "\

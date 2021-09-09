@@ -52,9 +52,10 @@ BAD_RECOMMENDATIONS += "\
 IMAGE_INSTALL = " \
     libstdc++ \
     libstdc++-dev \
-    packagegroup-flir-common-packages \
     packagegroup-boot \
+    packagegroup-flir-common-packages \
     packagegroup-flir-gstreamer \
+    packagegroup-machine-base \
 "
 
 ## Additional SDK host side content (host binaries etc)
