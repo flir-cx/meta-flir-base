@@ -1,0 +1,20 @@
+#!/bin/bash
+# Send_HCI_VS_DRPb_Tester_Packet_TX_RX 0xFDCA, Freq, Mod, Test, Power, 0, 0
+# 
+
+if [ $# -eq 3 ]; then
+	if [ "$1" -le "39" ]; then
+		if [ "$2" -le "37" ] && [ "$3" -le "7" ]; then
+			printf -v ch "0x%02X" $1
+			printf -v len "0x%02X" $2
+
+			hcitool cmd 0x08 0x001e $ch $len 0x$3
+			exit
+		fi
+	fi
+fi
+echo "usage: bletx channel[0-39] length[0-37] testpattern[0-7]"
+echo "testpattern: 0=PRBS9, 1=F0F0, 2=AAAA, 3=PRBS15, 4=all1, 5=all0, 6=0F0F, 7=5555"
+
+
+

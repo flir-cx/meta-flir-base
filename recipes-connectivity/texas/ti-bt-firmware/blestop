@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stop bletx continuous transmission
+hcitool cmd 0x08 0x001f
+

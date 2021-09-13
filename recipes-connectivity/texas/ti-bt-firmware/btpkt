@@ -1,0 +1,50 @@
+#!/bin/bash
+# Send_HCI_VS_DRPb_Tester_Packet_TX_RX 0xFDCC, ACL, fmod, TX Freq, RX Freq, Test, len, power, dhwit
+# $1 = ACL
+# $2 = Frequency mode
+# $3 = TX Frequency
+# $4 = RX Frequency
+# $5 = Test mode
+# $6 = Length (decimal)
+# $7 = Power
+# $8 = Diable Whitning
+
+if [ $# -eq 8 ]; then
+    if [ "$1" == "A" ] || [ "$1" == "B" ] || [ "$1" -le "9" ]; then
+	if [ "$3" == "FFFF" ] || ([ "$3" -ge "2402" ] && [ "$3" -le "2480" ]); then
+	    if [ "$4" == "FFFF" ] || ([ "$4" -ge "2402" ] && [ "$4" -le "2480" ]); then
+		if [ "$2" -le "1" ] && [ "$5" -le "5" ] && [ "$7" -le "7" ] && [ "$8" -le "1" ]; then
+			if [ "$3" == "FFFF" ]; then
+				tfl="0xFF"
+				tfh="0xFF"
+			else
+				printf -v tfh "0x%02X" $(( $3 / 256 ))
+				printf -v tfl "0x%02X" $(( $3 % 256 ))
+			fi
+			if [ "$4" == "FFFF" ]; then
+				rfl="0xFF"
+				rfh="0xFF"
+			else
+				printf -v rfh "0x%02X" $(( $4 / 256 ))
+				printf -v rfl "0x%02X" $(( $4 % 256 ))
+			fi
+			printf -v lenh "0x%02X" $(( $6 / 256 ))
+			printf -v lenl "0x%02X" $(( $6 % 256 ))
+			hcitool cmd 0x3f 0x01cc 0x$1 0x$2 $tfl $tfh $rfl $rfh 0x$5 0x00 $lenl $lenh 0x$7 0x$8 0xFF 0x01
+			exit
+		fi
+	    fi
+	fi
+    fi
+fi
+echo "usage: btpkt acl[0-B] fmod[0-1] TXfreq[2402-2480, FFFF] RXfreq[2402-2480, FFFF] testpattern[0-5] length[0-17/27/121/183/224/339] power[0-7] dwhit[0-1]"
+echo "acl:  0-DM1, 1=DH1, 2=DM3, 3=DH3, 4=DM5, 5=DH5, 6=2-DH1, 7=2-DH3, 8=2-DH5, 9=3-DH1, A=3-DH3, B=3-DH5"
+echo "fmod:  0-Hopping, 1=Single frequency"
+echo "testpattern: 0=all0, 1=all1, 2=Z0Z0, 3=F0F0, 4=ordered, 5=PRBS9 random"
+echo "extf: 0=disabled, 1=enabled"
+echo "dwhit: 0=disabled, 1=enabled"
+
+
+
+
+

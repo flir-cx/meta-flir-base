@@ -1,0 +1,21 @@
+#!/bin/bash
+# Send_HCI_VS_DRPb_Tester_Packet_TX_RX 0xFDCA, Freq, Mod, Test, Power, 0, 0
+# 
+
+if [ $# -eq 4 ]; then
+	if [ "$1" -ge "2402" ] && [ "$1" -le "2479" ]; then
+		if [ "$2" -le "3" ] && [ "$3" -le "6" ] && [ "$4" -le "7" ]; then
+			printf -v fh "0x%02X" $(( $1 / 256 ))
+			printf -v fl "0x%02X" $(( $1 % 256 ))
+
+			hcitool cmd 0x3f 0x01ca $fl $fh 0x$2 0x$3 0x$4 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+			exit		
+		fi
+	fi
+fi
+echo "usage: bttx frequency[2402-2479] modulation[0-3] testpattern[0-6] power[0-7]"
+echo "modulation:  0=CW, 1=GFSK, 2=pi/4DQPSK, 3=8DPSK"
+echo "testpattern: 0=PN9, 1=PN15, 2=Z0Z0, 3=all1, 4=all0, 5=F0F0, 6=FF00"
+
+
+

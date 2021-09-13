@@ -1,0 +1,12 @@
+[Unit]
+Description=WLAN loader
+After=dbus.service
+Before=connman.service
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/wlanload
+
+[Install]
+WantedBy=multi-user.target
+

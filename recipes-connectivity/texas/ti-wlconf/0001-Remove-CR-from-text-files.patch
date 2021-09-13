@@ -1,0 +1,29 @@
+From a92680970c2feb24e9fa1d7106855f1105825d0a Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Mon, 11 Apr 2016 12:23:46 +0200
+Subject: [PATCH] Remove CR from text files
+
+Signed-off-by: Peter Fitger <peter.fitger@flir.se>
+---
+ wlconf/main.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/wlconf/main.c b/wlconf/main.c
+index 6a4d8ae..211265d 100644
+--- a/wlconf/main.c
++++ b/wlconf/main.c
+@@ -1187,6 +1187,11 @@ static int parse_text_file(char *conf_buffer, struct structure *structure,
+ 		if (elim)
+ 			*elim = '\0';
+ 
++		/* eliminate return */
++		elim = strchr(line, '\r');
++		if (elim)
++			*elim = '\0';
++
+ 		if (!strlen(line))
+ 			goto cont;
+ 
+-- 
+2.5.0
+

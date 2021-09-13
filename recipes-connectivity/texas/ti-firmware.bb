@@ -4,10 +4,11 @@ AUTHOR = "Peter Fitger <peter.fitger@flir.se>"
 LICENSE = "Proprietary"
 LIC_FILES_CHKSUM = "file://LICENCE;md5=4977a0fe767ee17765ae63c435a32a9e"
 PR = "r0"
-PV = "R8.7_SP3"
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:"
+PV = "8.9.0.0.81"
 
-SRC_URI = "git://git.ti.com/wilink8-wlan/wl18xx_fw.git;branch=master;tag=${PV}"
+SRCREV = "75f399c3b87e5cb9f9fc930a91024dcc679f5382"
+
+SRC_URI = "git://git.ti.com/wilink8-wlan/wl18xx_fw.git;nobranch=1"
 SRC_URI_append = " \
 	file://wl18xx-conf.bin \
 "
