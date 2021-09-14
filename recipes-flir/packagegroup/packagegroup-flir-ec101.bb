@@ -33,6 +33,7 @@ RDEPENDS_${PN}-packages = "\
     kernel-module-usb-f-ecm \
     kernel-module-usb-f-ecm-subset \
     libevdev \
+    libubootenv-bin \
     mmc-utils \
     mtd-utils-jffs2 \
     qtbase \
@@ -44,6 +45,7 @@ RDEPENDS_${PN}-packages = "\
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
+    u-boot-default-env-pingu \
 "
 
 UNBUILDABLE = "\
