@@ -1,0 +1,30 @@
+From 0a6ff414eb38e163c490ab823b383ececc6fa14d Mon Sep 17 00:00:00 2001
+From: Peter Fitger <peter.fitger@flir.se>
+Date: Tue, 14 Jun 2016 10:36:10 +0200
+Subject: [PATCH] Set up displays for Ninjago
+
+Signed-off-by: Peter Fitger <peter.fitger@flir.se>
+---
+ plugins/overlay_sink/imx_6q_display_config | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/plugins/overlay_sink/imx_6q_display_config b/plugins/overlay_sink/imx_6q_display_config
+index 5917fc3..dbde7fc 100644
+--- a/plugins/overlay_sink/imx_6q_display_config
++++ b/plugins/overlay_sink/imx_6q_display_config
+@@ -1,3 +1,11 @@
+-[master]
++[LCD]
+ device = /dev/video17
++fmt = RGBx
++width=640
++height=480
+ 
++[HDMI]
++device = /dev/video20
++fmt = RGBx
++width=640
++height=480
+-- 
+2.7.4
+

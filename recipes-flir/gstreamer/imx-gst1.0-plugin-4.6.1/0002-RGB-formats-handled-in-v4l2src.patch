@@ -1,0 +1,22 @@
+Index: git/libs/v4l2_core/gstimxv4l2.c
+===================================================================
+--- git.orig/libs/v4l2_core/gstimxv4l2.c
++++ git/libs/v4l2_core/gstimxv4l2.c
+@@ -193,6 +193,8 @@ static guint g_camera_format[] = {
+   V4L2_PIX_FMT_NV12,
+   V4L2_PIX_FMT_YUYV,
+   V4L2_PIX_FMT_UYVY,
++  V4L2_PIX_FMT_RGB24,
++  V4L2_PIX_FMT_RGB32,
+   0,
+ };
+ 
+@@ -201,6 +203,8 @@ static guint g_camera_format_IPU[] = {
+   V4L2_PIX_FMT_NV12,
+   V4L2_PIX_FMT_YUYV,
+   V4L2_PIX_FMT_UYVY,
++  V4L2_PIX_FMT_RGB24,
++  V4L2_PIX_FMT_RGB32,
+   0,
+ };
+ 
