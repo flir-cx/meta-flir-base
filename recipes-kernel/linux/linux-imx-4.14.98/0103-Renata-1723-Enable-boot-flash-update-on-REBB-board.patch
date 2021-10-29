@@ -1,0 +1,71 @@
+From fde0400ec1025e20d01e3ac91859d8b2e1313905 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?bo=20svang=C3=A5rd?= <bo.svangard@flir.se>
+Date: Tue, 26 Oct 2021 17:47:03 +0200
+Subject: [PATCH 2/4] Renata-1723 Enable boot flash update on REBB board
+
+- Move spi flash drivers to mtd device
+- Add partition map for fpga boot flash
+  - currently mtd partition 0 will contain the full flash,
+    due to srec file constraints, which might require this
+    would be good to break this constraint and only present each
+    memory areas as indiviual areas...
+---
+ arch/arm/boot/dts/imx7ulp-rebb.dtsi | 38 +++++++++++++++++++++++------
+ 1 file changed, 30 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-rebb.dtsi b/arch/arm/boot/dts/imx7ulp-rebb.dtsi
+index cfb5bc00ba8a..060e8316a34d 100644
+--- a/arch/arm/boot/dts/imx7ulp-rebb.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-rebb.dtsi
+@@ -181,18 +181,40 @@
+ 			interrupt-name = "okeanos";
+ 		};
+ 
+-		/* Detector flash */
+-		detector_flash_gpio: m25p80@1 {
+-			compatible = "jedec,spi-nor";
+-			spi-max-frequency = <1000000>;
++		/* Layer-0 calib flash */
++		calibflash@cs1 {
++			compatible = "micron,n25q256ax1", "jedec,spi-nor";
++			spi-max-frequency = <20000000>;
+ 			reg = <1>;
++			status = "okay";
+ 		};
+ 
+-		/* boot flash */
+-		fpga_flash_gpio: spidev@2 {
++		/* Bootrom on REMI */
++		bootromflash@cs2 {
++			compatible = "winbond,w25q64", "jedec,spi-nor";
++			spi-max-frequency = <20000000>;
+ 			reg = <2>;
+-			compatible = "rohm,dh2228fv";
+-			spi-max-frequency = <1000000>;
++			status = "okay";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "fpga";
++				reg = <0x0 0x0>;
++				//reg = <0x0 0x670000>;
++			};
++			partition@670000 {
++				label = "littlefs";
++				reg = <0x670000 0x17c000>;
++			};
++			partition@7ef000 {
++				label = "eeprom";
++				reg = <0x7ef000 0x1000>;
++			};
++			partition@7f0000 {
++				label = "fpgaheader";
++				reg = <0x7f0000 0x10000>;
++			};
+ 		};
+ 	};
+ };
+-- 
+2.31.0
+

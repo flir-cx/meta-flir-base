@@ -96,6 +96,10 @@ SRC_URI_append = " \
     file://0099-m4_rpmsg-Enable-telemetry-rows-in-frame.patch \
     file://0100-Adds-device-tree-for-REBB-rev-B.patch \
     file://0101-Add-support-for-lc709204f-fuelguage.patch \
+    file://0102-RENATA-1722-Flir-okeanus-driver-added-to-device-tree.patch \
+    file://0103-Renata-1723-Enable-boot-flash-update-on-REBB-board.patch \
+    file://0104-spi-nor-duplicate-JEDEC-id-for-w25q64-and-s25fl064k.patch \
+    file://0105-spi-nor-add-JEDEC-id-for-w25q64jw-im.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"

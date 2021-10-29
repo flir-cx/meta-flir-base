@@ -1,0 +1,38 @@
+From 0d1e8587b47501e057321b28c82f513e5b9fc2b2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?bo=20svang=C3=A5rd?= <bo.svangard@flir.se>
+Date: Wed, 6 Oct 2021 13:21:33 +0200
+Subject: [PATCH 1/4] RENATA-1722 Flir okeanus driver added to device tree
+
+Add device-tree bindings for okeanos spi communication driver
+---
+ arch/arm/boot/dts/imx7ulp-rebb.dtsi | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx7ulp-rebb.dtsi b/arch/arm/boot/dts/imx7ulp-rebb.dtsi
+index e115c57112c8..cfb5bc00ba8a 100644
+--- a/arch/arm/boot/dts/imx7ulp-rebb.dtsi
++++ b/arch/arm/boot/dts/imx7ulp-rebb.dtsi
+@@ -169,11 +169,16 @@
+ 			<&gpio_pte 0 GPIO_ACTIVE_LOW>,
+ 			<&gpio_pte 1 GPIO_ACTIVE_LOW>;
+ 
+-		mapcomm_gpio: spidev@0 {
++		mapcomm_gpio: okeanos@0 {
+ 			reg = <0>;
+-			/* just use a device available in spidev.c to get rid of warning in kernel log */
+-			compatible = "rohm,dh2228fv";
+-			spi-max-frequency = <1000000>;
++			compatible = "flir,okeanos";
++			status = "okay";
++			// pinctrl-names = "default";
++			// pinctrl-0 = <&okeanos_interrupt>;
++			spi-max-frequency = <2000000>;
++			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-parent = <&gpio_pte>;
++			interrupt-name = "okeanos";
+ 		};
+ 
+ 		/* Detector flash */
+-- 
+2.31.0
+
