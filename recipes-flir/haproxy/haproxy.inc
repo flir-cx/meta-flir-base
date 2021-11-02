@@ -8,8 +8,8 @@ PRIORITY = "optional"
 LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=2d862e836f92129cdc0ecccc54eed5e0"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:"
-DEPENDS += "openssl"
+DEPENDS += "openssl libgcrypt"
+RDEPENDS_${PN} += "bash"
 
 inherit systemd
 
@@ -38,10 +38,11 @@ SRC_URI = "https://www.haproxy.org/download/1.8/src/haproxy-${PV}.tar.gz \
         file://ssl/haproxy_env_check_ssl.sh \
 "
 
-S = "${WORKDIR}/haproxy-${PV}"
+#S = "${WORKDIR}/haproxy-${PV}"
 
+TARGET_CC_ARCH += "${LDFLAGS}"
 do_compile() {
-      make TARGET=linux26 USE_OPENSSL=1
+      oe_runmake TARGET=linux26 USE_OPENSSL=1
 }
 
 do_install() {
