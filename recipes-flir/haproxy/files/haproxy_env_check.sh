@@ -1,3 +1,5 @@
 #!/bin/bash -e
 
-# Nothing to do
+mkdir -p /var/run/haproxy
+chown haproxy:haproxy /var/run/haproxy
+
