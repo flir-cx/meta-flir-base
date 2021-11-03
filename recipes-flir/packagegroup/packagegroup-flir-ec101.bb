@@ -22,6 +22,7 @@ RDEPENDS_${PN}-packages = "\
     flirfvdk \
     fliriptables \
     flirvcam \
+    fliryildun \
     gadgetload \
     haproxy \
     iputils-ping \
@@ -55,7 +56,6 @@ UNBUILDABLE = "\
     kernel-module-leds-lm3644 \
     blankscreen-service \
     chargeapp-service \
-    fliryildun \
     ti-bt-firmware \
     ti-firmware \
     ti-nvs \

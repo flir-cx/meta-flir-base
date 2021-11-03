@@ -4,7 +4,7 @@ AUTHOR = "Peter Fitger <peter.fitger@flir.se>"
 SECTION = "flir/drivers"
 PRIORITY = "optional"
 LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0;md5=801f80980d171dd6425610833a22dbe6"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-only;md5=801f80980d171dd6425610833a22dbe6"
 DEPENDS = "flirsdk"
 PR = "r1"
 PV = "0.${SRCPV}"
@@ -26,7 +26,7 @@ inherit module
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
-SRCREV = "b6d5e148284cd101f17063df0fe4a95166cdd517"
+SRCREV = "919b24a2e33152ef9e8f919a6052d827f494950c"
 
 SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-yildun.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 SRC_URI += "file://yildun.conf"
