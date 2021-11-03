@@ -1,0 +1,577 @@
+From b824221bb66ab7b946b576f237854750c63c862e Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@teledyneflir.com>
+Date: Wed, 3 Nov 2021 10:32:01 +0100
+Subject: [PATCH] Added FLIR payloaders
+
+---
+ gst/rtp/gstrtp.c        |   8 ++
+ gst/rtp/gstrtpmjlspay.c | 221 ++++++++++++++++++++++++++++++++++++++++
+ gst/rtp/gstrtpmjlspay.h |  42 ++++++++
+ gst/rtp/gstrtpomdpay.c  | 167 ++++++++++++++++++++++++++++++
+ gst/rtp/gstrtpomdpay.h  |  42 ++++++++
+ gst/rtp/meson.build     |   2 +
+ 6 files changed, 482 insertions(+)
+ create mode 100644 gst/rtp/gstrtpmjlspay.c
+ create mode 100644 gst/rtp/gstrtpmjlspay.h
+ create mode 100644 gst/rtp/gstrtpomdpay.c
+ create mode 100644 gst/rtp/gstrtpomdpay.h
+
+diff --git a/gst/rtp/gstrtp.c b/gst/rtp/gstrtp.c
+index b2a6706e1..dd7507375 100644
+--- a/gst/rtp/gstrtp.c
++++ b/gst/rtp/gstrtp.c
+@@ -53,6 +53,7 @@
+ #include "gstrtpgsmdepay.h"
+ #include "gstrtpamrpay.h"
+ #include "gstrtpamrdepay.h"
++#include "gstrtpmjlspay.h"
+ #include "gstrtpmpapay.h"
+ #include "gstrtpmpadepay.h"
+ #include "gstrtpmparobustdepay.h"
+@@ -94,6 +95,7 @@
+ #include "gstrtpmp4gpay.h"
+ #include "gstrtpqcelpdepay.h"
+ #include "gstrtpqdmdepay.h"
++#include "gstrtpomdpay.h"
+ #include "gstrtpsbcdepay.h"
+ #include "gstrtpsbcpay.h"
+ #include "gstrtpsirenpay.h"
+@@ -213,6 +215,9 @@ plugin_init (GstPlugin * plugin)
+   if (!gst_rtp_pcma_pay_plugin_init (plugin))
+     return FALSE;
+ 
++  if (!gst_rtp_mjls_pay_plugin_init (plugin))
++    return FALSE;
++
+   if (!gst_rtp_mpa_depay_plugin_init (plugin))
+     return FALSE;
+ 
+@@ -330,6 +335,9 @@ plugin_init (GstPlugin * plugin)
+   if (!gst_rtp_mp4g_pay_plugin_init (plugin))
+     return FALSE;
+ 
++  if (!gst_rtp_omd_pay_plugin_init (plugin))
++    return FALSE;
++
+   if (!gst_rtp_qcelp_depay_plugin_init (plugin))
+     return FALSE;
+ 
+diff --git a/gst/rtp/gstrtpmjlspay.c b/gst/rtp/gstrtpmjlspay.c
+new file mode 100644
+index 000000000..3b21c157c
+--- /dev/null
++++ b/gst/rtp/gstrtpmjlspay.c
+@@ -0,0 +1,221 @@
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <string.h>
++
++#include <gst/rtp/gstrtpbuffer.h>
++
++#include "gstrtpmjlspay.h"
++
++GST_DEBUG_CATEGORY_STATIC (rtpmjlspay_debug);
++#define GST_CAT_DEFAULT (rtpmjlspay_debug)
++
++static GstStaticPadTemplate gst_rtp_mjls_pay_sink_template =
++  GST_STATIC_PAD_TEMPLATE ("sink",
++			   GST_PAD_SINK,
++			   GST_PAD_ALWAYS,
++			   GST_STATIC_CAPS ("video/x-raw;"));
++
++static GstStaticPadTemplate gst_rtp_mjls_pay_src_template =
++GST_STATIC_PAD_TEMPLATE ("src",
++			 GST_PAD_SRC,
++			 GST_PAD_ALWAYS,
++			 GST_STATIC_CAPS ("application/x-rtp, "
++					  "media = (string) \"video\", "
++					  "payload = (int) "
++					  GST_RTP_PAYLOAD_DYNAMIC_STRING ", "
++					  "clock-rate = (int) 90000, "
++					  "encoding-name = (string) \"MJLS\""
++					  /* we cannot express these as strings 
++					   * "width = (string) [1 32767],"
++					   * "height = (string) [1 32767],"
++					   */
++			 ));
++
++static gboolean gst_rtp_mjls_pay_setcaps (GstRTPBasePayload * payload,
++					  GstCaps * caps);
++static GstFlowReturn gst_rtp_mjls_pay_handle_buffer (GstRTPBasePayload *
++						     payload,
++						     GstBuffer * buffer);
++
++#define gst_rtp_mjls_pay_parent_class parent_class
++G_DEFINE_TYPE (GstRtpMJLSPay, gst_rtp_mjls_pay, GST_TYPE_RTP_BASE_PAYLOAD);
++
++static void
++gst_rtp_mjls_pay_class_init (GstRtpMJLSPayClass * klass)
++{
++  GstRTPBasePayloadClass *gstrtpbasepayload_class;
++  GstElementClass *gstelement_class;
++
++  GST_DEBUG_CATEGORY_INIT (rtpmjlspay_debug, "rtpmjlspay", 0,
++			   "JPEG-LS video RTP Payloader");
++
++  gstrtpbasepayload_class = (GstRTPBasePayloadClass *) klass;
++  gstelement_class = (GstElementClass *) klass;
++
++  gst_element_class_add_pad_template (gstelement_class,
++				      gst_static_pad_template_get
++				      (&gst_rtp_mjls_pay_src_template));
++  gst_element_class_add_pad_template (gstelement_class,
++				      gst_static_pad_template_get
++				      (&gst_rtp_mjls_pay_sink_template));
++
++  gst_element_class_set_static_metadata (gstelement_class,
++					 "RTP Motion JPEG-LS payloader",
++					 "Codec/Payloader/Network/RTP",
++					 "Payload JPEG-LS compressed video as RTP packets",
++					 "Klas Malmborg <klas.malmborg@flir.se>");
++
++  gstrtpbasepayload_class->set_caps = gst_rtp_mjls_pay_setcaps;
++  gstrtpbasepayload_class->handle_buffer = gst_rtp_mjls_pay_handle_buffer;
++}
++
++static void
++gst_rtp_mjls_pay_init (GstRtpMJLSPay * rtpmjlspay)
++{
++}
++
++static gboolean
++gst_rtp_mjls_pay_setcaps (GstRTPBasePayload * payload, GstCaps * caps)
++{
++  GstRtpMJLSPay *rtpmjlspay;
++  GstStructure *s;
++  gboolean res;
++  gint width, height;
++  gchar *wstr, *hstr;
++
++  rtpmjlspay = GST_RTP_MJLS_PAY (payload);
++
++  s = gst_caps_get_structure (caps, 0);
++
++  /* parse common width/height */
++  res = gst_structure_get_int (s, "width", &width);
++  res &= gst_structure_get_int (s, "height", &height);
++  if (!res)
++    goto missing_dimension;
++
++  rtpmjlspay->width = width;
++  rtpmjlspay->height = height;
++
++  GST_DEBUG_OBJECT (payload, "width %d, height %d", width, height);
++
++  wstr = g_strdup_printf ("%d", rtpmjlspay->width);
++  hstr = g_strdup_printf ("%d", rtpmjlspay->height);
++
++  gst_rtp_base_payload_set_options (payload, "video", TRUE, "MJLS", 90000);
++  res = gst_rtp_base_payload_set_outcaps (payload,
++					  "width", G_TYPE_STRING, wstr,
++					  "height", G_TYPE_STRING, hstr,
++					  NULL);
++
++  g_free (wstr);
++  g_free (hstr);
++
++  return res;
++
++  /* ERRORS */
++missing_dimension:
++  {
++    GST_ERROR_OBJECT (payload, "missing width or height property");
++    return FALSE;
++  }
++}
++
++static GstFlowReturn
++gst_rtp_mjls_pay_handle_buffer (GstRTPBasePayload * payload,
++				GstBuffer * buffer)
++{
++  GstMapInfo map = GST_MAP_INFO_INIT;
++  GstRtpMJLSPay *rtpmjlspay;
++  GstFlowReturn ret = GST_FLOW_OK;
++  guint offset = 0;
++  guint8 *data;
++  guint size;
++  guint mtu;
++
++  rtpmjlspay = GST_RTP_MJLS_PAY (payload);
++
++  if (!gst_buffer_map (buffer, &map, GST_MAP_READ) || !map.data)
++    goto error;
++
++  data = map.data;
++  size = map.size;
++
++  GST_LOG_OBJECT (rtpmjlspay, "new frame of %u bytes", size);
++
++  mtu = GST_RTP_BASE_PAYLOAD_MTU (payload);
++
++  /* write buffers */
++  while (offset < size)
++    {
++      GstBuffer *out;
++      GstRTPBuffer rtp = { NULL };
++      guint8 *outdata;
++      guint payload_len;
++      guint length;
++
++      /* get the max allowed payload length size, we try to fill the complete MTU */
++      payload_len = gst_rtp_buffer_calc_payload_len (mtu, 0, 0);
++      out = gst_rtp_buffer_new_allocate (payload_len, 0, 0);
++
++      GST_BUFFER_TIMESTAMP (out) = GST_BUFFER_TIMESTAMP (buffer);
++
++      gst_rtp_buffer_map (out, GST_MAP_WRITE, &rtp);
++
++      outdata = gst_rtp_buffer_get_payload (&rtp);
++
++      GST_LOG_OBJECT (rtpmjlspay, "created buffer of size %u for MTU %u",
++		      payload_len, mtu);
++
++      /* write the buffer data */
++      length = MIN (mtu, payload_len);
++      GST_LOG_OBJECT (payload, "writing length %u, offset %u", length,
++		      offset);
++      if (length > (size - offset))
++	memcpy (outdata, &data[offset], size - offset);
++      else
++	memcpy (outdata, &data[offset], length);
++
++      offset += length;
++      payload_len -= length;
++
++      if (offset >= size)
++	{
++	  GST_LOG_OBJECT (rtpmjlspay, "frame complete, set marker");
++	  gst_rtp_buffer_set_marker (&rtp, TRUE);
++	}
++
++      if (payload_len > 0)
++	{
++	  gsize sz;
++	  GST_LOG_OBJECT (rtpmjlspay, "we have %u bytes left", payload_len);
++	  sz = gst_buffer_get_size (out);
++	  gst_buffer_set_size (out, (sz - payload_len));
++	}
++
++      gst_rtp_buffer_unmap (&rtp);
++
++      /* push buffer */
++      ret = gst_rtp_base_payload_push (payload, out);
++    }
++
++  gst_buffer_unmap (buffer, &map);
++  gst_buffer_unref (buffer);
++  return ret;
++
++error:
++  if (map.memory != NULL)
++    {
++      gst_buffer_unmap (buffer, &map);
++    }
++
++  return ret;
++}
++
++gboolean
++gst_rtp_mjls_pay_plugin_init (GstPlugin * plugin)
++{
++  return gst_element_register (plugin, "rtpmjlspay",
++			       GST_RANK_SECONDARY, GST_TYPE_RTP_MJLS_PAY);
++}
+diff --git a/gst/rtp/gstrtpmjlspay.h b/gst/rtp/gstrtpmjlspay.h
+new file mode 100644
+index 000000000..99b4cea94
+--- /dev/null
++++ b/gst/rtp/gstrtpmjlspay.h
+@@ -0,0 +1,42 @@
++#ifndef __GST_RTP_MJLS_PAY_H__
++#define __GST_RTP_MJLS_PAY_H__
++
++#include <gst/gst.h>
++#include <gst/video/video.h>
++#include <gst/rtp/gstrtpbasepayload.h>
++
++G_BEGIN_DECLS
++
++#define GST_TYPE_RTP_MJLS_PAY \
++  (gst_rtp_mjls_pay_get_type())
++#define GST_RTP_MJLS_PAY(obj) \
++  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_RTP_MJLS_PAY,GstRtpMJLSPay))
++#define GST_RTP_MJLS_PAY_CLASS(klass) \
++  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_RTP_MJLS_PAY,GstRtpMJLSPayClass))
++#define GST_IS_RTP_MJLS_PAY(obj) \
++  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_RTP_MJLS_PAY))
++#define GST_IS_RTP_MJLS_PAY_CLASS(klass) \
++  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_RTP_MJLS_PAY))
++
++typedef struct _GstRtpMJLSPay GstRtpMJLSPay;
++typedef struct _GstRtpMJLSPayClass GstRtpMJLSPayClass;
++
++struct _GstRtpMJLSPay
++{
++  GstRTPBasePayload payload;
++
++  gint width, height;
++};
++
++struct _GstRtpMJLSPayClass
++{
++  GstRTPBasePayloadClass parent_class;
++};
++
++GType gst_rtp_mjls_pay_get_type (void);
++
++gboolean gst_rtp_mjls_pay_plugin_init (GstPlugin * plugin);
++
++G_END_DECLS
++
++#endif /* __GST_RTP_MJLS_PAY_H__ */
+diff --git a/gst/rtp/gstrtpomdpay.c b/gst/rtp/gstrtpomdpay.c
+new file mode 100644
+index 000000000..9f1cecd11
+--- /dev/null
++++ b/gst/rtp/gstrtpomdpay.c
+@@ -0,0 +1,167 @@
++#ifdef HAVE_CONFIG_H
++#  include "config.h"
++#endif
++
++#include <string.h>
++
++#include <gst/rtp/gstrtpbuffer.h>
++
++#include "gstrtpomdpay.h"
++
++GST_DEBUG_CATEGORY_STATIC (rtpomdpay_debug);
++#define GST_CAT_DEFAULT (rtpomdpay_debug)
++
++static GstStaticPadTemplate gst_rtp_omd_pay_sink_template =
++    GST_STATIC_PAD_TEMPLATE ("sink",
++    GST_PAD_SINK,
++    GST_PAD_ALWAYS,
++    GST_STATIC_CAPS ("application/xml;")
++    );
++
++static GstStaticPadTemplate gst_rtp_omd_pay_src_template =
++GST_STATIC_PAD_TEMPLATE ("src",
++    GST_PAD_SRC,
++    GST_PAD_ALWAYS,
++    GST_STATIC_CAPS ("application/x-rtp, "
++        "media = (string) \"application\", "
++        "payload = (int) " GST_RTP_PAYLOAD_DYNAMIC_STRING ", "
++        "clock-rate = (int) 90000, "
++        "encoding-name = (string) \"vnd.onvif.metadata\""
++    )
++    );
++
++static gboolean gst_rtp_omd_pay_setcaps (GstRTPBasePayload * payload,
++    GstCaps * caps);
++static GstFlowReturn gst_rtp_omd_pay_handle_buffer (GstRTPBasePayload *
++    payload, GstBuffer * buffer);
++
++#define gst_rtp_omd_pay_parent_class parent_class
++G_DEFINE_TYPE (GstRtpOMDPay, gst_rtp_omd_pay, GST_TYPE_RTP_BASE_PAYLOAD);
++
++static void
++gst_rtp_omd_pay_class_init (GstRtpOMDPayClass * klass)
++{
++  GstRTPBasePayloadClass *gstrtpbasepayload_class;
++  GstElementClass *gstelement_class;
++
++  GST_DEBUG_CATEGORY_INIT (rtpomdpay_debug, "rtpomdpay", 0,
++      "ONVIF meta data RTP Payloader");
++
++  gstrtpbasepayload_class = (GstRTPBasePayloadClass *) klass;
++  gstelement_class = (GstElementClass *) klass;
++
++  gst_element_class_add_pad_template (gstelement_class,
++      gst_static_pad_template_get (&gst_rtp_omd_pay_src_template));
++  gst_element_class_add_pad_template (gstelement_class,
++      gst_static_pad_template_get (&gst_rtp_omd_pay_sink_template));
++
++  gst_element_class_set_static_metadata (gstelement_class,
++      "RTP ONVIF meta data payloader", "Codec/Payloader/Network/RTP",
++      "Payload ONVIF meta data as RTP packets",
++      "Klas Malmborg <klas.malmborg@flir.se>");
++
++  gstrtpbasepayload_class->set_caps = gst_rtp_omd_pay_setcaps;
++  gstrtpbasepayload_class->handle_buffer = gst_rtp_omd_pay_handle_buffer;
++}
++
++static void
++gst_rtp_omd_pay_init (GstRtpOMDPay * rtpomdpay)
++{
++}
++
++static gboolean
++gst_rtp_omd_pay_setcaps (GstRTPBasePayload * payload, GstCaps * caps)
++{
++  GstRtpOMDPay *rtpomdpay;
++  GstStructure *s;
++  gboolean res;
++
++  rtpomdpay = GST_RTP_OMD_PAY (payload);
++
++  s = gst_caps_get_structure (caps, 0);
++
++  gst_rtp_base_payload_set_options (payload, "application", TRUE, "vnd.onvif.metadata", 90000);
++
++  res = gst_rtp_base_payload_set_outcaps (payload, NULL);
++  return res;
++}
++
++static GstFlowReturn
++gst_rtp_omd_pay_handle_buffer (GstRTPBasePayload * payload, GstBuffer * buffer)
++{
++  GstMapInfo map = GST_MAP_INFO_INIT;
++  GstRtpOMDPay *rtpomdpay;
++  GstFlowReturn ret = GST_FLOW_OK;
++  guint offset = 0;
++  guint8 *data;
++  guint size, max_payload_size;
++  guint mtu, hdrlen;
++
++  rtpomdpay = GST_RTP_OMD_PAY (payload);
++
++  if (!gst_buffer_map (buffer, &map, GST_MAP_READ) || !map.data)
++    goto error;
++  
++  data = map.data; /* Pointer to start of payload data */
++  size = map.size; /* Size of entire payload */
++
++  GST_LOG_OBJECT (rtpomdpay, "new frame of %u bytes", size);
++
++  mtu = GST_RTP_BASE_PAYLOAD_MTU (payload);
++  hdrlen = gst_rtp_buffer_calc_header_len(0);
++
++  max_payload_size = mtu - hdrlen;
++
++  /* write buffers */
++  while (offset < size) {
++      GstBuffer *out;
++      GstRTPBuffer rtp = { NULL };
++      guint8 *outdata;
++      guint length;
++
++      /* get the max allowed payload length size, we try to fill the complete MTU */
++      out = gst_rtp_buffer_new_allocate (max_payload_size, 0, 0);
++
++      GST_BUFFER_TIMESTAMP (out) = GST_BUFFER_TIMESTAMP (buffer);
++
++      gst_rtp_buffer_map (out, GST_MAP_WRITE, &rtp);
++
++      outdata = gst_rtp_buffer_get_payload (&rtp);
++
++      /* write the buffer data */
++      length = MIN(max_payload_size, size-offset);
++      GST_LOG_OBJECT (payload, "writing length %u, offset %u", length, offset);
++      memcpy (outdata, &data[offset], length);
++
++      offset += length;
++
++      if (offset >= size) {
++        GST_LOG_OBJECT (rtpomdpay, "frame complete, set marker");
++        gst_rtp_buffer_set_marker (&rtp, TRUE);
++      }
++
++      gst_buffer_set_size(out, hdrlen+length);
++      gst_rtp_buffer_unmap (&rtp);
++
++      /* push buffer */
++      ret = gst_rtp_base_payload_push (payload, out);
++  }
++
++  gst_buffer_unmap (buffer, &map);
++  gst_buffer_unref (buffer);
++  return ret;
++
++error:
++  if (map.memory != NULL) {
++    gst_buffer_unmap (buffer, &map);
++  }
++
++  return ret;
++}
++
++gboolean
++gst_rtp_omd_pay_plugin_init (GstPlugin * plugin)
++{
++  return gst_element_register (plugin, "rtpomdpay",
++      GST_RANK_SECONDARY, GST_TYPE_RTP_OMD_PAY);
++}
+diff --git a/gst/rtp/gstrtpomdpay.h b/gst/rtp/gstrtpomdpay.h
+new file mode 100644
+index 000000000..e4957fb29
+--- /dev/null
++++ b/gst/rtp/gstrtpomdpay.h
+@@ -0,0 +1,42 @@
++#ifndef __GST_RTP_OMD_PAY_H__
++#define __GST_RTP_OMD_PAY_H__
++
++#include <gst/gst.h>
++#include <gst/video/video.h>
++#include <gst/rtp/gstrtpbasepayload.h>
++
++G_BEGIN_DECLS
++
++#define GST_TYPE_RTP_OMD_PAY \
++  (gst_rtp_omd_pay_get_type())
++#define GST_RTP_OMD_PAY(obj) \
++  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_RTP_OMD_PAY,GstRtpOMDPay))
++#define GST_RTP_OMD_PAY_CLASS(klass) \
++  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_RTP_OMD_PAY,GstRtpOMDPayClass))
++#define GST_IS_RTP_OMD_PAY(obj) \
++  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_RTP_OMD_PAY))
++#define GST_IS_RTP_OMD_PAY_CLASS(klass) \
++  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_RTP_OMD_PAY))
++
++typedef struct _GstRtpOMDPay GstRtpOMDPay;
++typedef struct _GstRtpOMDPayClass GstRtpOMDPayClass;
++
++struct _GstRtpOMDPay
++{
++  GstRTPBasePayload payload;
++
++  gint width, height;
++};
++
++struct _GstRtpOMDPayClass
++{
++  GstRTPBasePayloadClass parent_class;
++};
++
++GType gst_rtp_omd_pay_get_type (void);
++
++gboolean gst_rtp_omd_pay_plugin_init (GstPlugin * plugin);
++
++G_END_DECLS
++
++#endif /* __GST_RTP_OMD_PAY_H__ */
+diff --git a/gst/rtp/meson.build b/gst/rtp/meson.build
+index d57a195ae..04e8c22d9 100644
+--- a/gst/rtp/meson.build
++++ b/gst/rtp/meson.build
+@@ -18,6 +18,7 @@ rtp_sources = [
+   'gstrtpilbcpay.c',
+   'gstrtpklvdepay.c',
+   'gstrtpklvpay.c',
++  'gstrtpmjlspay.c',
+   'gstrtpmpadepay.c',
+   'gstrtpmpapay.c',
+   'gstrtpmparobustdepay.c',
+@@ -71,6 +72,7 @@ rtp_sources = [
+   'gstrtpmp4gpay.c',
+   'gstrtpmp4adepay.c',
+   'gstrtpmp4apay.c',
++  'gstrtpomdpay.c',
+   'gstrtpqcelpdepay.c',
+   'gstrtpqdmdepay.c',
+   'gstrtpsbcdepay.c',
+-- 
+2.25.1
+
