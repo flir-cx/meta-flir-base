@@ -1,0 +1,257 @@
+From 935d125d56a28be3f7a1adfc8e0365dc28fa0f1c Mon Sep 17 00:00:00 2001
+From: Adrien Martinez <adrien.martinez@flir.com>
+Date: Tue, 9 Nov 2021 10:12:32 +0100
+Subject: [PATCH] ES-2138 Add High K conf to OV5640
+
+OV5640 visual camera module has several models. One is named "High K"
+and produces a slightly blueish tone and requires a different lens
+correction setting. Add configuration for this model to adjust the image
+tone and lens correction. Model identity is read from OTP memory.
+---
+ .../media/platform/mxc/capture/ov5640_v2.c    | 205 ++++++++++++++++++
+ 1 file changed, 205 insertions(+)
+
+diff --git a/drivers/media/platform/mxc/capture/ov5640_v2.c b/drivers/media/platform/mxc/capture/ov5640_v2.c
+index 90aa6b93abd0..2afe0a6540cc 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_v2.c
++++ b/drivers/media/platform/mxc/capture/ov5640_v2.c
+@@ -45,6 +45,15 @@
+ 
+ #define OV5640_CHIP_ID_HIGH_BYTE        0x300A
+ #define OV5640_CHIP_ID_LOW_BYTE         0x300B
++#define OV5640_SYSTEM_RESET00           0x3000
++#define OV5640_CLOCK_ENABLE00           0x3004
++#define OV5640_OTP_PROGRAM_CTRL         0x3D20
++#define OV5640_OTP_READ_CTRL            0x3D21
++#define OV5640_OTP_START_ADDR           0x3D05
++#define OV5640_OTP_END_ADDR             0x3D1F
++#define OV5640_SENSOR_MODEL_MAX_LEN     22
++#define OV5640_SENSOR_MODEL_HIGH_K      "OV5640-A71A-K_45039C15"
++#define OV5640_SENSOR_MODEL_CSP         "OV5640-A71A_45039C15J"
+ 
+ enum ov5640_mode {
+ 	ov5640_mode_MIN = 0,
+@@ -562,6 +571,106 @@ static struct reg_value ov5640_init_setting_30fps_BT656[] = {
+ 	{0x3008, 0x02, 0x0, 0x0},
+ 
+ };
++
++static struct reg_value ov5640_setting_High_K[] = {
++	/* AWB, High K */
++	{0x5180, 0xff, 0x0, 0x0},
++	{0x5181, 0xf2, 0x0, 0x0},
++	{0x5182, 0x00, 0x0, 0x0},
++	{0x5183, 0x14, 0x0, 0x0},
++	{0x5184, 0x25, 0x0, 0x0},
++	{0x5185, 0x24, 0x0, 0x0},
++	{0x5186, 0x09, 0x0, 0x0},
++	{0x5187, 0x09, 0x0, 0x0},
++	{0x5188, 0x09, 0x0, 0x0},
++	{0x5189, 0x60, 0x0, 0x0},
++	{0x518a, 0x4f, 0x0, 0x0},
++	{0x518b, 0xd6, 0x0, 0x0},
++	{0x518c, 0xaa, 0x0, 0x0},
++	{0x518d, 0x3d, 0x0, 0x0},
++	{0x518e, 0x36, 0x0, 0x0},
++	{0x518f, 0x55, 0x0, 0x0},
++	{0x5190, 0x46, 0x0, 0x0},
++	{0x5191, 0xf8, 0x0, 0x0},
++	{0x5192, 0x04, 0x0, 0x0},
++	{0x5193, 0x70, 0x0, 0x0},
++	{0x5194, 0xf0, 0x0, 0x0},
++	{0x5195, 0xf0, 0x0, 0x0},
++	{0x5196, 0x03, 0x0, 0x0},
++	{0x5197, 0x01, 0x0, 0x0},
++	{0x5198, 0x04, 0x0, 0x0},
++	{0x5199, 0xd8, 0x0, 0x0},
++	{0x519a, 0x04, 0x0, 0x0},
++	{0x519b, 0x00, 0x0, 0x0},
++	{0x519c, 0x05, 0x0, 0x0},
++	{0x519d, 0x6e, 0x0, 0x0},
++	{0x519e, 0x38, 0x0, 0x0},
++
++	/* Lens correction, High K */
++	{0x5800, 0x3f, 0x0, 0x0},
++	{0x5801, 0x3e, 0x0, 0x0},
++	{0x5802, 0x35, 0x0, 0x0},
++	{0x5803, 0x34, 0x0, 0x0},
++	{0x5804, 0x3f, 0x0, 0x0},
++	{0x5805, 0x3f, 0x0, 0x0},
++	{0x5806, 0x2c, 0x0, 0x0},
++	{0x5807, 0x1a, 0x0, 0x0},
++	{0x5808, 0x10, 0x0, 0x0},
++	{0x5809, 0x10, 0x0, 0x0},
++	{0x580a, 0x1a, 0x0, 0x0},
++	{0x580b, 0x29, 0x0, 0x0},
++	{0x580c, 0x1d, 0x0, 0x0},
++	{0x580d, 0x8, 0x0, 0x0},
++	{0x580e, 0x0, 0x0, 0x0},
++	{0x580f, 0x0, 0x0, 0x0},
++	{0x5810, 0x8, 0x0, 0x0},
++	{0x5811, 0x1c, 0x0, 0x0},
++	{0x5812, 0x1c, 0x0, 0x0},
++	{0x5813, 0x8, 0x0, 0x0},
++	{0x5814, 0x0, 0x0, 0x0},
++	{0x5815, 0x0, 0x0, 0x0},
++	{0x5816, 0x8, 0x0, 0x0},
++	{0x5817, 0x1c, 0x0, 0x0},
++	{0x5818, 0x2c, 0x0, 0x0},
++	{0x5819, 0x18, 0x0, 0x0},
++	{0x581a, 0xf, 0x0, 0x0},
++	{0x581b, 0xf, 0x0, 0x0},
++	{0x581c, 0x19, 0x0, 0x0},
++	{0x581d, 0x29, 0x0, 0x0},
++	{0x581e, 0x3f, 0x0, 0x0},
++	{0x581f, 0x3f, 0x0, 0x0},
++	{0x5820, 0x36, 0x0, 0x0},
++	{0x5821, 0x36, 0x0, 0x0},
++	{0x5822, 0x3f, 0x0, 0x0},
++	{0x5823, 0x3f, 0x0, 0x0},
++	{0x5824, 0x20, 0x0, 0x0},
++	{0x5825, 0x42, 0x0, 0x0},
++	{0x5826, 0x22, 0x0, 0x0},
++	{0x5827, 0x42, 0x0, 0x0},
++	{0x5828, 0x20, 0x0, 0x0},
++	{0x5829, 0x20, 0x0, 0x0},
++	{0x582a, 0x42, 0x0, 0x0},
++	{0x582b, 0x42, 0x0, 0x0},
++	{0x582c, 0x42, 0x0, 0x0},
++	{0x582d, 0x20, 0x0, 0x0},
++	{0x582e, 0x22, 0x0, 0x0},
++	{0x582f, 0x62, 0x0, 0x0},
++	{0x5830, 0x62, 0x0, 0x0},
++	{0x5831, 0x62, 0x0, 0x0},
++	{0x5832, 0x2, 0x0, 0x0},
++	{0x5833, 0x20, 0x0, 0x0},
++	{0x5834, 0x22, 0x0, 0x0},
++	{0x5835, 0x42, 0x0, 0x0},
++	{0x5836, 0x20, 0x0, 0x0},
++	{0x5837, 0x20, 0x0, 0x0},
++	{0x5838, 0x22, 0x0, 0x0},
++	{0x5839, 0x22, 0x0, 0x0},
++	{0x583a, 0x2, 0x0, 0x0},
++	{0x583b, 0x22, 0x0, 0x0},
++	{0x583c, 0x20, 0x0, 0x0},
++	{0x583d, 0xae, 0x0, 0x0},
++};
++
+ #if 0
+ static struct reg_value ov5640_init_setting_30fps_VGA[] = {
+ 	{0x3008, 0x42, 0, 0},
+@@ -1665,10 +1774,90 @@ static int ov5640_download_firmware(struct reg_value *pModeSetting, s32 ArySize)
+ 	return retval;
+ }
+ 
++static int ov5640_get_sensor_model(u8 *sensor_model, int n)
++{
++	int retval;
++	int i;
++
++	if ((n > OV5640_SENSOR_MODEL_MAX_LEN) || (n > (OV5640_OTP_END_ADDR - OV5640_OTP_START_ADDR + 1))) {
++		pr_err("ov5640: invalid length of sensor model\n");
++		return -1;
++	}
++
++	retval = ov5640_write_reg(OV5640_SYSTEM_RESET00, 0x0);
++	if (retval < 0) {
++		pr_err("ov5640: failed to enable OTP module\n");
++		return -1;
++	}
++
++	retval = ov5640_write_reg(OV5640_CLOCK_ENABLE00, 0xff);
++	if (retval < 0) {
++		pr_err("ov5640: failed to enable OTP clock\n");
++		return -1;
++	}
++
++	/* According to OTP read example in datasheet */
++	retval = ov5640_write_reg(OV5640_OTP_PROGRAM_CTRL, 0);
++	if (retval < 0) {
++		pr_err("ov5640: failed to disable OTP programming\n");
++		return -1;
++	}
++
++	retval = ov5640_write_reg(OV5640_OTP_READ_CTRL,  0);
++	if (retval < 0) {
++		pr_err("ov5640: failed to disable OTP read\n");
++		return -1;
++	}
++
++	retval = ov5640_write_reg(OV5640_OTP_READ_CTRL,  1);
++	if (retval < 0) {
++		pr_err("ov5640: failed to enable OTP read\n");
++		return -1;
++	}
++
++	/* delay 1ms according to datasheet*/
++	msleep(1);
++	for (i = 0; i < n && retval >= 0; i++) {
++		retval = ov5640_read_reg(OV5640_OTP_START_ADDR + i, &sensor_model[i]);
++	}
++
++	if (retval < 0) {
++		pr_err("ov5640: failed to read sensor model\n");
++		return -1;
++	}
++
++	/* delay 10ms according to datasheet*/
++	msleep(10);
++	retval = ov5640_write_reg(OV5640_OTP_READ_CTRL,  0);
++	if (retval < 0) {
++		pr_err("ov5640: failed to write otp control\n");
++		return -1;
++	}
++
++	return 0;
++}
++
++static int ov5640_get_sensor_model_conf(char *model, int model_len, struct reg_value **value)
++{
++	if (strncmp(model, OV5640_SENSOR_MODEL_HIGH_K, model_len) == 0) {
++		pr_info("ov5640: Sensor model id: \"%s\" (High K)\n", model);
++		*value = ov5640_setting_High_K;
++		return ARRAY_SIZE(ov5640_setting_High_K);
++	} else if (strncmp(model, OV5640_SENSOR_MODEL_CSP, model_len) == 0) {
++		pr_info("ov5640: Sensor model id: \"%s\" (CSP)\n", model);
++	} else {
++		pr_info("ov5640: Sensor model id: \"%s\" (Standard)\n", model);
++	}
++
++	*value = NULL;
++	return 0;
++}
++
+ static int ov5640_init_mode(void)
+ {
+ 	struct reg_value *pModeSetting = NULL;
+ 	int ArySize = 0, retval = 0;
++	char sensor_model[OV5640_SENSOR_MODEL_MAX_LEN + 1];
+ 
+ 	ov5640_soft_reset();
+ 
+@@ -1692,6 +1881,22 @@ static int ov5640_init_mode(void)
+ 	if (retval < 0)
+ 		goto err;
+ 
++	/* There are multiple sensor models and some of them needs
++	 * different settings. */
++	retval = ov5640_get_sensor_model((u8*)sensor_model, OV5640_SENSOR_MODEL_MAX_LEN);
++	if (retval < 0)
++		goto err;
++
++	sensor_model[OV5640_SENSOR_MODEL_MAX_LEN] = '\0';
++
++	ArySize = ov5640_get_sensor_model_conf(sensor_model, OV5640_SENSOR_MODEL_MAX_LEN, &pModeSetting);
++	if (ArySize > 0 && pModeSetting != NULL) {
++		pr_info("ov5640: loading sensor model specific configuration\n");
++		retval = ov5640_download_firmware(pModeSetting, ArySize);
++		if (retval < 0)
++			goto err;
++	}
++
+ 	pr_info("%s: config bt656 success\n", __func__);
+ 	/* change driver capability to 2x according to validation board.
+ 	 * if the image is not stable, please increase the driver strength.
+-- 
+2.25.1
+
