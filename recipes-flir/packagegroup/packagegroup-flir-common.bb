@@ -45,6 +45,7 @@ RDEPENDS_${PN}-packages = "\
     gstreamer1.0-plugins-base-tcp \
     gstreamer1.0-plugins-base-videorate \
     gstreamer1.0-rtsp-server \
+    gst-interpipes \
     i2c-tools \
     imx-gpu-viv \
     imx-kobs \
