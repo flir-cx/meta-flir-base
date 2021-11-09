@@ -26,13 +26,7 @@ RDEPENDS_${PN}-packages = "\
     gadgetload \
     haproxy \
     iputils-ping \
-    kernel-module-bh1750 \
-    kernel-module-g-mass-storage \
-    kernel-module-g-webcam \
-    kernel-module-hci-uart \
-    kernel-module-leds-as3649 \
-    kernel-module-usb-f-ecm \
-    kernel-module-usb-f-ecm-subset \
+    kernel-modules \
     libevdev \
     libubootenv-bin \
     mmc-utils \
@@ -47,7 +41,17 @@ RDEPENDS_${PN}-packages = "\
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
     u-boot-default-env-pingu \
+    umtp-responder \
 "
+
+#    kernel-module-bh1750 \
+#    kernel-module-g-mass-storage \
+#    kernel-module-g-webcam \
+#    kernel-module-hci-uart \
+#    kernel-module-leds-as3649 \
+#    kernel-module-usb-f-ecm \
+#    kernel-module-usb-f-ecm-subset \
+#
 
 UNBUILDABLE = "\
     kernel-module-btwilink \
