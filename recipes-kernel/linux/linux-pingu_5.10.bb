@@ -7,7 +7,7 @@ require linux-pingu.inc
 #SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_lf-5.10.y"
 SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 #SRCREV = "${AUTOREV}"
-SRCREV = "9f1d0af42f5c14569512c1615836b59bde6d171d"
+SRCREV = "1ec8eecc093eba45adc5e00f9f6b4a458d822933"
 PV="5.10-git${SRCPV}"
 PR="11"
 
