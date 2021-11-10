@@ -1,0 +1,8 @@
+#If kernel has detected two fxos8700 chips, use the seconde chip primarily 
+# (EVLC2)
+#If only one detected use that one!
+
+KERNEL=="FreescaleAccelerometer1", SYMLINK+="FreescaleAccelerometer"
+KERNEL=="FreescaleMagnetometer1", SYMLINK+="FreescaleMagnetometer"
+KERNEL=="FreescaleMagnetometer0", SYMLINK+="FreescaleMagnetometer"
+KERNEL=="FreescaleAccelerometer0", SYMLINK+="FreescaleAccelerometer"

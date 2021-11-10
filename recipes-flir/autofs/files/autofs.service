@@ -1,0 +1,15 @@
+[Unit]
+Description=Automounts filesystems on demand (FLIR)
+After=network.target remote-fs.target
+# ConditionPathExists=/proc/device-tree/aliases/sdcard0
+
+[Service]
+Type=notify
+EnvironmentFile=-/etc/default/autofs
+ExecStart=/usr/sbin/automount $OPTIONS --systemd-service --dont-check-daemon
+ExecReload=/usr/bin/kill -HUP $MAINPID
+KillMode=process
+TimeoutSec=180
+
+[Install]
+WantedBy=multi-user.target
