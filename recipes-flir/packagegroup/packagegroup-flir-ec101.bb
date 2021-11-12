@@ -41,6 +41,7 @@ RDEPENDS_${PN}-packages = "\
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
     u-boot-default-env-pingu \
+    u-boot-script \
     umtp-responder \
 "
 
@@ -66,6 +67,5 @@ UNBUILDABLE = "\
     ti-uim \
     ti-wl18xx-modules \
     u-boot-fw-utils-pingu \
-    u-boot-script \
     wifi-test-suite \
 "

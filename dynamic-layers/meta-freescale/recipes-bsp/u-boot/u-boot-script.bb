@@ -35,6 +35,6 @@ do_deploy() {
 FILES_${PN} = "${DESTDIR}/*"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
-COMPATIBLE_MACHINE = "(mx7)"
+COMPATIBLE_MACHINE = "(mx7|evco)"
 
 addtask deploy before do_build after do_compile
