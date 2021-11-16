@@ -10,3 +10,7 @@ PACKAGES += " \
 RDEPENDS_${PN}_ec501 = " \
     ipu-test \
 "
+
+RDEPENDS_${PN}_evco = " \
+    compass-test \
+"
