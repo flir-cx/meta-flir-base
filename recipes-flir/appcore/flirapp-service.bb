@@ -19,12 +19,17 @@ SYSTEMD_SERVICE_${PN} = "flirapp.service"
 SRC_URI += "file://flirapp.service"
 SRC_URI += "file://flirapp.conf"
 SRC_URI += "file://flirapp_env_check.sh"
+SRC_URI += "file://flirapp_weston_add.conf"
 
 S = "${WORKDIR}"
 
+# If distro uses wayland, flirapp should start "after" weston,
+# and we should define wayland specific environment
+WESTONADD = '${@bb.utils.contains("DISTRO_FEATURES", "wayland", "${WORKDIR}/flirapp_weston_add.conf", "", d)}'
+
 do_compile() {
     rm -f ${WORKDIR}/flirapp_comb.service
-    cat ${WORKDIR}/flirapp.service ${WORKDIR}/flirapp.conf > ${WORKDIR}/flirapp_comb.service
+    cat ${WORKDIR}/flirapp.service ${WORKDIR}/flirapp.conf ${WESTONADD} > ${WORKDIR}/flirapp_comb.service
 }
 
 do_install_append() {

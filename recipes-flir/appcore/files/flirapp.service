@@ -5,15 +5,11 @@ After=connman.service systemd-journald.service progressapp.service
 [Service]
 Type=simple
 ExecStartPre=/bin/bash -c '/usr/sbin/flirapp_env_check.sh'
-# Uncomment next line for (temporary) working cirrus autostart 
-# ExecStartPre=/bin/bash -c '/FLIR/usr/bin/fvd init'
 ExecStart=/FLIR/usr/bin/appcore -d
 ExecStop=/usr/bin/killall -HUP appcore
 KillMode=control-group
 TimeoutStopSec=10
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
-Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_RUNTIME_DIR=/run/user/0
 Group=userdata
 
 [Install]

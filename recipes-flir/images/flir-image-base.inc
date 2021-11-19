@@ -9,6 +9,8 @@ LICENSE = "CLOSED"
 COPY_LIC_MANIFEST = "1"  
 COPY_LIC_DIRS = "1"  
 
+IMAGE_FEATURES += '${@bb.utils.contains("DISTRO_FEATURES", "wayland", " weston", "", d)}'
+
 # Uncomment this to include opkg binaries and the opkg package database
 # for all rootfs packages (additional ~5-10 MB to image when used)
 #IMAGE_FEATURES += " \
