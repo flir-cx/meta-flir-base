@@ -51,7 +51,6 @@ BAD_RECOMMENDATIONS += "\
 
 IMAGE_INSTALL = " \
     libstdc++ \
-    libstdc++-dev \
     packagegroup-boot \
     packagegroup-flir-common-packages \
     packagegroup-flir-gstreamer \

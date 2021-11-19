@@ -76,7 +76,7 @@ RDEPENDS_${PN}-packages = "\
     os-release \
     parted \
     pciutils \
-    python \
+    python-core \
     sudo \
     sysfsutils \
     sysmon-service \
