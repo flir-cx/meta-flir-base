@@ -49,6 +49,7 @@ IMAGE_INSTALL = " \
     dosfstools \
     e2fsprogs \
     exfat-utils \
+    flashld \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
