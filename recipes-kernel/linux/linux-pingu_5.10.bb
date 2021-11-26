@@ -7,7 +7,9 @@ require linux-pingu.inc
 #SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_lf-5.10.y"
 SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 #SRCREV = "${AUTOREV}"
-SRCREV = "c9a5c08bb4a8d2ca3da379ec5d9cd4bec62f338f"
+# Note that when any of the imx headers are changed in the kernel tree, one
+# also needs to update the SRCREV in linux-imx-headers
+SRCREV = "3532c5c91bbe33285593a065cc542b03cc48ccde"
 PV="5.10-git${SRCPV}"
 PR="11"
 
