@@ -4,4 +4,5 @@ SRC_URI_append = " \
    file://0002-RGB-formats-handled-in-v4l2src.patch \
    file://0008-Set-up-displays-for-Ninjago.patch \
    file://0009-Find-empty-buffer.patch \
+   file://0010-Add-combine-support.patch \
 "

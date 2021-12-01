@@ -1,0 +1,619 @@
+From 1429c1786d831516cce4ad03f6735d686418185f Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@teledyneflir.com>
+Date: Fri, 26 Nov 2021 10:42:04 +0100
+Subject: [PATCH] Add combine support
+
+Signed-off-by: Klas Malmborg <klas.malmborg@teledyneflir.com>
+---
+ libs/device-2d/imx_2d_device.h            |  14 ++
+ libs/device-2d/imx_2d_device_g2d.c        |  46 +++++
+ libs/device-2d/imx_2d_device_ipu.c        | 219 +++++++++++++++++++++-
+ libs/device-2d/imx_2d_device_pxp.c        |  44 +++++
+ plugins/videoconvert/gstimxvideoconvert.c |  97 +++++++++-
+ 5 files changed, 416 insertions(+), 4 deletions(-)
+ mode change 100644 => 100755 libs/device-2d/imx_2d_device.h
+ mode change 100644 => 100755 libs/device-2d/imx_2d_device_g2d.c
+ mode change 100644 => 100755 libs/device-2d/imx_2d_device_ipu.c
+ mode change 100644 => 100755 libs/device-2d/imx_2d_device_pxp.c
+ mode change 100644 => 100755 plugins/videoconvert/gstimxvideoconvert.c
+
+diff --git a/libs/device-2d/imx_2d_device.h b/libs/device-2d/imx_2d_device.h
+old mode 100644
+new mode 100755
+index b3d918e..8348f6e
+--- a/libs/device-2d/imx_2d_device.h
++++ b/libs/device-2d/imx_2d_device.h
+@@ -124,6 +124,13 @@ struct _Imx2DDevice {
+   gint (*frame_copy)  (Imx2DDevice* device, PhyMemBlock *from, PhyMemBlock *to);
+   gint (*set_deinterlace) (Imx2DDevice* device, Imx2DDeinterlaceMode mode);
+   gint (*set_rotate)      (Imx2DDevice* device, Imx2DRotationMode mode);
++  gint (*set_combine)     (Imx2DDevice* device, gboolean combine);
++  gint (*set_combine_w)   (Imx2DDevice* device, guint width);
++  gint (*set_combine_h)   (Imx2DDevice* device, guint height);
++  gint (*set_combine_t)   (Imx2DDevice* device, guint top);
++  gint (*set_combine_l)   (Imx2DDevice* device, guint left);
++  gint (*set_combine_dev) (Imx2DDevice* device, const gchar * dev);
++  gint (*set_combine_yuv) (Imx2DDevice* device, gboolean yuv);
+   gint (*config_input)    (Imx2DDevice* device, Imx2DVideoInfo* in_info);
+   gint (*config_output)   (Imx2DDevice* device, Imx2DVideoInfo* out_info);
+   gint (*convert)   (Imx2DDevice* device, Imx2DFrame *dst, Imx2DFrame *src);
+@@ -136,6 +143,13 @@ struct _Imx2DDevice {
+   GList*               (*get_supported_out_fmts)  (Imx2DDevice* device);
+   Imx2DRotationMode    (*get_rotate)              (Imx2DDevice* device);
+   Imx2DDeinterlaceMode (*get_deinterlace)         (Imx2DDevice* device);
++  gboolean             (*get_combine)             (Imx2DDevice* device);
++  guint                (*get_combine_w)           (Imx2DDevice* device);
++  guint                (*get_combine_h)           (Imx2DDevice* device);
++  guint                (*get_combine_t)           (Imx2DDevice* device);
++  guint                (*get_combine_l)           (Imx2DDevice* device);
++  const gchar *        (*get_combine_dev)         (Imx2DDevice* device);
++  gboolean             (*get_combine_yuv)         (Imx2DDevice* device);
+ };
+ 
+ typedef struct _Imx2DDeviceInfo {
+diff --git a/libs/device-2d/imx_2d_device_g2d.c b/libs/device-2d/imx_2d_device_g2d.c
+old mode 100644
+new mode 100755
+index 3116323..0bfc46f
+--- a/libs/device-2d/imx_2d_device_g2d.c
++++ b/libs/device-2d/imx_2d_device_g2d.c
+@@ -626,6 +626,21 @@ static gint imx_g2d_set_deinterlace(Imx2DDevice *device,
+   return 0;
+ }
+ 
++static gint imx_g2d_set_combine (Imx2DDevice* device, gboolean combine)
++{
++  return 0;
++}
++
++static gint imx_g2d_set_combine_dummy (Imx2DDevice* device, guint dummy)
++{
++  return 0;
++}
++
++static gint imx_g2d_set_combine_dev (Imx2DDevice* device, const char * dev)
++{
++  return 0;
++}
++
+ static Imx2DRotationMode imx_g2d_get_rotate (Imx2DDevice* device)
+ {
+   if (!device || !device->priv)
+@@ -651,6 +666,21 @@ static Imx2DDeinterlaceMode imx_g2d_get_deinterlace (Imx2DDevice* device)
+   return IMX_2D_DEINTERLACE_NONE;
+ }
+ 
++static gboolean imx_g2d_get_combine (Imx2DDevice* device)
++{
++  return FALSE;
++}
++
++static guint imx_g2d_get_combine_dummy (Imx2DDevice* device)
++{
++  return 0;
++}
++
++static const char * imx_g2d_get_combine_dev (Imx2DDevice* device)
++{
++  return NULL;
++}
++
+ static gint imx_g2d_get_capabilities (Imx2DDevice* device)
+ {
+   gint capabilities = IMX_2D_DEVICE_CAP_SCALE|IMX_2D_DEVICE_CAP_CSC \
+@@ -786,8 +816,24 @@ Imx2DDevice * imx_g2d_create(Imx2DDeviceType  device_type)
+   device->fill                = imx_g2d_fill_color;
+   device->set_rotate          = imx_g2d_set_rotate;
+   device->set_deinterlace     = imx_g2d_set_deinterlace;
++  device->set_combine         = imx_g2d_set_combine;
++  device->set_combine_w       = imx_g2d_set_combine_dummy;
++  device->set_combine_h       = imx_g2d_set_combine_dummy;
++  device->set_combine_t       = imx_g2d_set_combine_dummy;
++  device->set_combine_l       = imx_g2d_set_combine_dummy;
++  device->set_combine_dev     = imx_g2d_set_combine_dev;
++  device->set_combine_yuv     = imx_g2d_set_combine;
++
+   device->get_rotate          = imx_g2d_get_rotate;
+   device->get_deinterlace     = imx_g2d_get_deinterlace;
++  device->get_combine         = imx_g2d_get_combine;
++  device->get_combine_w       = imx_g2d_get_combine_dummy;
++  device->get_combine_h       = imx_g2d_get_combine_dummy;
++  device->get_combine_t       = imx_g2d_get_combine_dummy;
++  device->get_combine_l       = imx_g2d_get_combine_dummy;
++  device->get_combine_dev     = imx_g2d_get_combine_dev;
++  device->get_combine_yuv     = imx_g2d_get_combine;
++
+   device->get_capabilities    = imx_g2d_get_capabilities;
+   device->get_supported_in_fmts  = imx_g2d_get_supported_in_fmts;
+   device->get_supported_out_fmts = imx_g2d_get_supported_out_fmts;
+diff --git a/libs/device-2d/imx_2d_device_ipu.c b/libs/device-2d/imx_2d_device_ipu.c
+old mode 100644
+new mode 100755
+index b9821e9..baf9961
+--- a/libs/device-2d/imx_2d_device_ipu.c
++++ b/libs/device-2d/imx_2d_device_ipu.c
+@@ -20,7 +20,12 @@
+ #include <fcntl.h>
+ #include <sys/ioctl.h>
+ #include <sys/mman.h>
++#define __EXPORTED_HEADERS__
+ #include <linux/ipu.h>
++typedef __u32 u_int32_t;
++#include <linux/mxcfb.h>
++#undef __EXPORTED_HEADERS__
++#include <unistd.h>
+ #include "imx_2d_device.h"
+ 
+ #define IPU_DEVICE_NAME "/dev/mxc_ipu"
+@@ -50,6 +55,8 @@ typedef struct _Imx2DDeviceIpu {
+   gboolean  new_input;
+   PhyMemBlock ov_temp;
+   PhyMemBlock ov_resize;
++  gboolean  combine_yuv;
++  char fb_device[16];
+ } Imx2DDeviceIpu;
+ 
+ typedef struct {
+@@ -135,6 +142,7 @@ static gint imx_ipu_open(Imx2DDevice *device)
+   ipu->ipu_fd = fd;
+   ipu->task.priority = 0;
+   ipu->task.timeout = 1000;
++  strcpy(ipu->fb_device, "/dev/fb0");
+ 
+   device->priv = (gpointer)ipu;
+ 
+@@ -381,8 +389,6 @@ static gint imx_ipu_convert(Imx2DDevice *device,
+ 
+   Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
+ 
+-  ipu->task.overlay_en = FALSE;
+-
+   // Set input
+   ipu->task.input.paddr = (dma_addr_t)(src->mem->paddr);
+   ipu->task.input.crop.pos.x = GST_ROUND_UP_8(src->crop.x);
+@@ -954,6 +960,131 @@ static gint imx_ipu_set_deinterlace (Imx2DDevice *device,
+   return 0;
+ }
+ 
++static gint imx_ipu_set_combine_width (Imx2DDevice* device, guint value)
++{
++  if (!device || !device->priv)
++    return -1;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  ipu->task.overlay.crop.w = value;
++  return 0;
++}
++
++static gint imx_ipu_set_combine_height (Imx2DDevice* device, guint value)
++{
++  if (!device || !device->priv)
++    return -1;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  ipu->task.overlay.crop.h = value;
++  return 0;
++}
++
++static gint imx_ipu_set_combine_top (Imx2DDevice* device, guint value)
++{
++  if (!device || !device->priv)
++    return -1;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  ipu->task.overlay.crop.pos.x = value;
++  return 0;
++}
++
++static gint imx_ipu_set_combine_left (Imx2DDevice* device, guint value)
++{
++  if (!device || !device->priv)
++    return -1;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  ipu->task.overlay.crop.pos.x = value;
++  return 0;
++}
++
++static gint imx_ipu_set_combine (Imx2DDevice* device, gboolean combine)
++{
++  if (!device || !device->priv)
++    return -1;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  ipu->task.overlay_en = combine;
++  if (combine) {
++    int fd_fb;
++    struct fb_fix_screeninfo fix;
++    struct fb_var_screeninfo var;
++    int alphabuf;
++
++    if ((fd_fb = open (ipu->fb_device, O_RDWR)) < 0) {
++      GST_ERROR (">>IPU_CSC: Unable to open frame buffer");
++      return -1;
++    }
++    if (ioctl (fd_fb, FBIOGET_VSCREENINFO, &var) < 0) {
++      GST_ERROR (">>IPU_CSC: Unable to to get vscreen buffer info");
++      close (fd_fb);
++      return -1;
++    }
++
++    if (var.bits_per_pixel > 24) {
++      ipu->task.overlay.format = IPU_PIX_FMT_BGRA32;
++      ipu->task.overlay.paddr = IPU_LATEST_SAVED_ADDRESS;
++    } else {
++      if (ipu->combine_yuv)
++        ipu->task.overlay.format = IPU_PIX_FMT_YUYV;
++      else
++        ipu->task.overlay.format = IPU_PIX_FMT_RGB565;
++        
++      if (ioctl (fd_fb, FBIOGET_FSCREENINFO, &fix) < 0) {
++        GST_ERROR (">>IPU_CSC: Unable to to get frame buffer info");
++        close (fd_fb);
++        return -1;
++      }
++      if (ioctl (fd_fb, MXCFB_GET_LOC_ALP_BUF, &alphabuf) < 0) {
++        GST_ERROR (">>IPU_CSC: Unable to to alpha buffer info");
++        close (fd_fb);
++        return -1;
++      }
++
++      ipu->task.overlay.alpha.loc_alp_paddr = alphabuf;
++      ipu->task.overlay.paddr = fix.smem_start;
++
++    }
++    ipu->task.overlay.alpha.mode = IPU_ALPHA_MODE_LOCAL;
++    ipu->task.overlay.colorkey.enable = 0;
++    ipu->task.overlay.width = var.xres;
++    ipu->task.overlay.height = var.yres;
++    close (fd_fb);
++  }
++  return 0;
++}
++
++static gint imx_ipu_set_combine_dev (Imx2DDevice* device, const char * dev)
++{
++  if (!device || !device->priv)
++    return -1;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  strncpy(ipu->fb_device, dev, sizeof(ipu->fb_device)-1);
++
++  return 0;
++}
++
++static gint imx_ipu_set_combine_yuv (Imx2DDevice* device, gboolean yuv)
++{
++  if (!device || !device->priv)
++    return -1;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  ipu->combine_yuv = yuv;
++
++  return 0;
++}
++
+ static Imx2DRotationMode imx_ipu_get_rotate (Imx2DDevice* device)
+ {
+   if (!device || !device->priv)
+@@ -993,6 +1124,76 @@ static Imx2DDeinterlaceMode imx_ipu_get_deinterlace (Imx2DDevice* device)
+   return deint_mode;
+ }
+ 
++static gboolean imx_ipu_get_combine (Imx2DDevice* device)
++{
++  if (!device || !device->priv)
++    return 0;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  return ipu->task.overlay_en;
++}
++
++static guint imx_ipu_get_combine_width (Imx2DDevice* device)
++{
++  if (!device || !device->priv)
++    return 0;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  return ipu->task.overlay.width;
++}
++
++static guint imx_ipu_get_combine_height (Imx2DDevice* device)
++{
++  if (!device || !device->priv)
++    return 0;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  return ipu->task.overlay.height;
++}
++
++static guint imx_ipu_get_combine_top (Imx2DDevice* device)
++{
++  if (!device || !device->priv)
++    return 0;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  return ipu->task.overlay.crop.pos.y;
++}
++
++static guint imx_ipu_get_combine_left (Imx2DDevice* device)
++{
++  if (!device || !device->priv)
++    return 0;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  return ipu->task.overlay.crop.pos.x;
++}
++
++static const char * imx_ipu_get_combine_dev (Imx2DDevice* device)
++{
++  if (!device || !device->priv)
++    return 0;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  return ipu->fb_device;
++}
++
++static gboolean imx_ipu_get_combine_yuv (Imx2DDevice* device)
++{
++  if (!device || !device->priv)
++    return 0;
++
++  Imx2DDeviceIpu *ipu = (Imx2DDeviceIpu *) (device->priv);
++
++  return ipu->combine_yuv;
++}
++
+ static gint imx_ipu_get_capabilities(Imx2DDevice* device)
+ {
+   return IMX_2D_DEVICE_CAP_CSC | IMX_2D_DEVICE_CAP_DEINTERLACE
+@@ -1051,8 +1252,22 @@ Imx2DDevice * imx_ipu_create(Imx2DDeviceType  device_type)
+   device->fill                = imx_ipu_fill_color;
+   device->set_rotate          = imx_ipu_set_rotate;
+   device->set_deinterlace     = imx_ipu_set_deinterlace;
++  device->set_combine         = imx_ipu_set_combine;
++  device->set_combine_w       = imx_ipu_set_combine_width;
++  device->set_combine_h       = imx_ipu_set_combine_height;
++  device->set_combine_t       = imx_ipu_set_combine_top;
++  device->set_combine_l       = imx_ipu_set_combine_left;
++  device->set_combine_dev     = imx_ipu_set_combine_dev;
++  device->set_combine_yuv     = imx_ipu_set_combine_yuv;
+   device->get_rotate          = imx_ipu_get_rotate;
+   device->get_deinterlace     = imx_ipu_get_deinterlace;
++  device->get_combine         = imx_ipu_get_combine;
++  device->get_combine_w       = imx_ipu_get_combine_width;
++  device->get_combine_h       = imx_ipu_get_combine_height;
++  device->get_combine_t       = imx_ipu_get_combine_top;
++  device->get_combine_l       = imx_ipu_get_combine_left;
++  device->get_combine_dev     = imx_ipu_get_combine_dev;
++  device->get_combine_yuv     = imx_ipu_get_combine_yuv;
+   device->get_capabilities    = imx_ipu_get_capabilities;
+   device->get_supported_in_fmts  = imx_ipu_get_supported_in_fmts;
+   device->get_supported_out_fmts = imx_ipu_get_supported_out_fmts;
+diff --git a/libs/device-2d/imx_2d_device_pxp.c b/libs/device-2d/imx_2d_device_pxp.c
+old mode 100644
+new mode 100755
+index 6cd6381..88664b3
+--- a/libs/device-2d/imx_2d_device_pxp.c
++++ b/libs/device-2d/imx_2d_device_pxp.c
+@@ -935,6 +935,21 @@ static gint imx_pxp_set_deinterlace(Imx2DDevice *device,
+   return 0;
+ }
+ 
++static gint imx_pxp_set_combine (Imx2DDevice* device, gboolean combine)
++{
++  return 0;
++}
++
++static gint imx_pxp_set_combine_dummy (Imx2DDevice* device, guint dummy)
++{
++  return 0;
++}
++
++static gint imx_pxp_set_combine_dev (Imx2DDevice* device, const char * dev)
++{
++  return 0;
++}
++
+ static Imx2DRotationMode imx_pxp_get_rotate (Imx2DDevice* device)
+ {
+   if (!device || !device->priv)
+@@ -963,6 +978,21 @@ static Imx2DDeinterlaceMode imx_pxp_get_deinterlace (Imx2DDevice* device)
+   return IMX_2D_DEINTERLACE_NONE;
+ }
+ 
++static gboolean imx_pxp_get_combine (Imx2DDevice* device)
++{
++  return FALSE;
++}
++
++static guint imx_pxp_get_combine_dummy (Imx2DDevice* device)
++{
++  return 0;
++}
++
++static const char * imx_pxp_get_combine_dev (Imx2DDevice* device)
++{
++  return NULL;
++}
++
+ static gint imx_pxp_get_capabilities (Imx2DDevice* device)
+ {
+   void *pxp_handle = NULL;
+@@ -1028,8 +1058,22 @@ Imx2DDevice * imx_pxp_create(Imx2DDeviceType  device_type)
+   device->fill                = imx_pxp_fill_color;
+   device->set_rotate          = imx_pxp_set_rotate;
+   device->set_deinterlace     = imx_pxp_set_deinterlace;
++  device->set_combine         = imx_pxp_set_combine;
++  device->set_combine_w       = imx_pxp_set_combine_dummy;
++  device->set_combine_h       = imx_pxp_set_combine_dummy;
++  device->set_combine_t       = imx_pxp_set_combine_dummy;
++  device->set_combine_l       = imx_pxp_set_combine_dummy;
++  device->set_combine_dev     = imx_pxp_set_combine_dev;
++  device->set_combine_yuv     = imx_pxp_set_combine;
+   device->get_rotate          = imx_pxp_get_rotate;
+   device->get_deinterlace     = imx_pxp_get_deinterlace;
++  device->get_combine         = imx_pxp_get_combine;
++  device->get_combine_w       = imx_pxp_get_combine_dummy;
++  device->get_combine_h       = imx_pxp_get_combine_dummy;
++  device->get_combine_t       = imx_pxp_get_combine_dummy;
++  device->get_combine_l       = imx_pxp_get_combine_dummy;
++  device->get_combine_dev     = imx_pxp_get_combine_dev;
++  device->get_combine_yuv     = imx_pxp_get_combine;
+   device->get_capabilities    = imx_pxp_get_capabilities;
+   device->get_supported_in_fmts  = imx_pxp_get_supported_in_fmts;
+   device->get_supported_out_fmts = imx_pxp_get_supported_out_fmts;
+diff --git a/plugins/videoconvert/gstimxvideoconvert.c b/plugins/videoconvert/gstimxvideoconvert.c
+old mode 100644
+new mode 100755
+index 578b6c7..5df0288
+--- a/plugins/videoconvert/gstimxvideoconvert.c
++++ b/plugins/videoconvert/gstimxvideoconvert.c
+@@ -70,7 +70,14 @@ enum {
+   PROP_DEINTERLACE_MODE,
+   PROP_COMPOSITION_META_ENABLE,
+   PROP_COMPOSITION_META_IN_PLACE,
+-  PROP_VIDEOCROP_META_ENABLE
++  PROP_VIDEOCROP_META_ENABLE,
++  PROP_CSC_COMBINE,
++  PROP_CSC_COMBINE_WIDTH,
++  PROP_CSC_COMBINE_TOP,
++  PROP_CSC_COMBINE_LEFT,
++  PROP_CSC_COMBINE_HEIGHT,
++  PROP_CSC_COMBINE_DEVICE,
++  PROP_CSC_COMBINE_YUV,
+ };
+ 
+ static GstElementClass *parent_class = NULL;
+@@ -149,6 +156,27 @@ static void gst_imx_video_convert_set_property (GObject * object,
+     case PROP_VIDEOCROP_META_ENABLE:
+       imxvct->videocrop_meta_enable = g_value_get_boolean(value);
+       break;
++    case PROP_CSC_COMBINE:
++      device->set_combine(device, g_value_get_boolean(value));
++      break;
++    case PROP_CSC_COMBINE_WIDTH:
++      device->set_combine_w(device, g_value_get_uint(value));
++      break;
++    case PROP_CSC_COMBINE_HEIGHT:
++      device->set_combine_h(device, g_value_get_uint(value));
++      break;
++    case PROP_CSC_COMBINE_TOP:
++      device->set_combine_t(device, g_value_get_uint(value));
++      break;
++    case PROP_CSC_COMBINE_LEFT:
++      device->set_combine_l(device, g_value_get_uint(value));
++      break;
++    case PROP_CSC_COMBINE_DEVICE:
++      device->set_combine_dev(device, g_value_get_string(value));
++      break;
++    case PROP_CSC_COMBINE_YUV:
++      device->set_combine_yuv(device, g_value_get_boolean(value));
++      break;
+     default:
+       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+       break;
+@@ -183,6 +211,27 @@ static void gst_imx_video_convert_get_property (GObject * object,
+     case PROP_VIDEOCROP_META_ENABLE:
+       g_value_set_boolean(value, imxvct->videocrop_meta_enable);
+       break;
++    case PROP_CSC_COMBINE:
++      g_value_set_boolean(value, device->get_combine(device));
++      break;
++    case PROP_CSC_COMBINE_WIDTH:
++      g_value_set_uint(value, device->get_combine_w(device));
++      break;
++    case PROP_CSC_COMBINE_HEIGHT:
++      g_value_set_uint(value, device->get_combine_h(device));
++      break;
++    case PROP_CSC_COMBINE_TOP:
++      g_value_set_uint(value, device->get_combine_t(device));
++      break;
++    case PROP_CSC_COMBINE_LEFT:
++      g_value_set_uint(value, device->get_combine_l(device));
++      break;
++    case PROP_CSC_COMBINE_DEVICE:
++      g_value_set_string(value, device->get_combine_dev(device));
++      break;
++    case PROP_CSC_COMBINE_YUV:
++      g_value_set_boolean(value, device->get_combine_yuv(device));
++      break;
+     default:
+       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+       break;
+@@ -1863,6 +1912,50 @@ gst_imx_video_convert_class_init (GstImxVideoConvertClass * klass)
+           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+   }
+ 
++  if (capabilities & IMX_2D_DEVICE_CAP_OVERLAY) {
++    g_object_class_install_property (gobject_class, PROP_CSC_COMBINE_WIDTH,
++        g_param_spec_uint ("combine-width",
++            "combine_width",
++            "gets the width of the image to be displayed for combine. \n"
++            "\t\t\tNote:property is valid only when combine property is enabled",
++            16, 1920, 176, G_PARAM_READWRITE));
++
++    g_object_class_install_property (gobject_class, PROP_CSC_COMBINE_HEIGHT,
++        g_param_spec_uint ("combine-height",
++            "combine_height",
++            "gets the height of the image to be displayed for combine. \n"
++            "\t\t\tNote:property is valid only when combine property is enabled",
++            16, 1080, 144, G_PARAM_READWRITE));
++
++    g_object_class_install_property (gobject_class, PROP_CSC_COMBINE_TOP,
++        g_param_spec_uint ("combine-top",
++            "combine_top",
++            "gets the top pixel offset at which the combine should start. \n"
++            "\t\t\tNote:property is valid only when combine property is enabled",
++            0, 320, 0, G_PARAM_READWRITE));
++
++    g_object_class_install_property (gobject_class, PROP_CSC_COMBINE_LEFT,
++        g_param_spec_uint ("combine-left",
++            "combine_left",
++            "gets the left pixel offset at which the combine should start. \n"
++            "\t\t\tNote:property is valid only when combine property is enabled",
++            0, 240, 0, G_PARAM_READWRITE));
++
++    g_object_class_install_property (gobject_class, PROP_CSC_COMBINE,
++        g_param_spec_boolean ("combine", "Combine",
++            "enable the combine of capture, it will add frame buffer overlay to stream",
++            FALSE, G_PARAM_READWRITE));
++
++    g_object_class_install_property (gobject_class, PROP_CSC_COMBINE_DEVICE,
++        g_param_spec_string ("combine-device", "combine_device",
++            "Device to use for combine of capture (/dev/fbX)",
++            "/dev/fb0", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
++
++    g_object_class_install_property (gobject_class, PROP_CSC_COMBINE_YUV,
++        g_param_spec_boolean ("combine-yuv", "combine_yuv",
++            "True if overlay is in YUV instead of RGB",
++            FALSE, G_PARAM_READWRITE));
++  }
+   in_plugin->destroy(dev);
+ 
+   base_transform_class->src_event =
+@@ -1888,7 +1981,7 @@ gst_imx_video_convert_class_init (GstImxVideoConvertClass * klass)
+   base_transform_class->transform_ip =
+       GST_DEBUG_FUNCPTR(imx_video_convert_transform_ip);
+ 
+-  base_transform_class->passthrough_on_same_caps = TRUE;
++  base_transform_class->passthrough_on_same_caps = FALSE;
+ }
+ 
+ static void
+-- 
+2.25.1
+
