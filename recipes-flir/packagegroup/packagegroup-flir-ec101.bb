@@ -37,6 +37,10 @@ RDEPENDS_${PN}-packages = "\
     php-cgi \
     php-cli \
     progressapp-service \
+    ti-bt-firmware \
+    ti-firmware \
+    ti-nvs \
+    ti-uim \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
@@ -61,11 +65,6 @@ UNBUILDABLE = "\
     kernel-module-leds-lm3644 \
     blankscreen-service \
     chargeapp-service \
-    ti-bt-firmware \
-    ti-firmware \
-    ti-nvs \
-    ti-uim \
-    ti-wl18xx-modules \
     u-boot-fw-utils-pingu \
     wifi-test-suite \
 "

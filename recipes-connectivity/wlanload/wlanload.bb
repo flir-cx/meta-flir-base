@@ -5,7 +5,6 @@ SECTION = "flir/applications"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
 PR = "r1"
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
 
 inherit systemd
 
@@ -14,11 +13,11 @@ RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "wlanload.service"
 
-# Note: "include" will not fail if file is not found 
-include ${MACHINE}/machine_enable.inc
-
-# Keep service disabled as default if not stated otherwise (from include above)
+# Keep service disabled as default if not stated otherwise
 SYSTEMD_AUTO_ENABLE_${PN} ?= "disable"
+SYSTEMD_AUTO_ENABLE_${PN}_evco = "disable"
+SYSTEMD_AUTO_ENABLE_${PN}_ec501 = "disable"
+SYSTEMD_AUTO_ENABLE_${PN}_roco = "enable"
 
 SRC_URI += "file://wlanload.sh"
 SRC_URI += "file://wlanload.service"

@@ -31,4 +31,5 @@ RDEPENDS_${PN}-packages = "\
     ${WIRELESS_MODULE} \
     libasound-module-bluez \
     bluez-hcidump \
+    wlanload \
 "

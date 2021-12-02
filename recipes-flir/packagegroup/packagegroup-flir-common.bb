@@ -95,7 +95,6 @@ UNBUILDABLE = " \
     getherload \
     iio-utils \
     sleepd \
-    wlanload \
     gstreamer1.0-plugins-bad-fragmented \
     lighttpd-module-compress \
     lighttpd-module-dynamicfile \
