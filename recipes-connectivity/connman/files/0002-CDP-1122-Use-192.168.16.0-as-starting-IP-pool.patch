@@ -1,0 +1,26 @@
+From fcdfaa67267dbc63eaab4aeb6de4990db65cfcca Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@flir.se>
+Date: Thu, 2 Feb 2017 15:46:49 +0100
+Subject: [PATCH] Use 192.168.16.0 as starting IP pool
+
+Signed-off-by: Klas Malmborg <klas.malmborg@flir.se>
+---
+ src/ippool.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ippool.c b/src/ippool.c
+index bb8568d..df61ba4 100644
+--- a/src/ippool.c
++++ b/src/ippool.c
+@@ -445,7 +445,7 @@ int __connman_ippool_init(void)
+ {
+ 	DBG("");
+ 
+-	block_16_bits = ntohl(inet_addr("192.168.0.0"));
++	block_16_bits = ntohl(inet_addr("192.168.16.0"));
+ 	block_20_bits = ntohl(inet_addr("172.16.0.0"));
+ 	block_24_bits = ntohl(inet_addr("10.0.0.0"));
+ 	subnet_mask_24 = ntohl(inet_addr("255.255.255.0"));
+-- 
+1.9.1
+

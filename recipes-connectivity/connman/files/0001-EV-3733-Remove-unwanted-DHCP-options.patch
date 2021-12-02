@@ -1,0 +1,28 @@
+From ef5bf2e9ffcbaee7f28b2d47593cc293bf590e25 Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@flir.se>
+Date: Wed, 25 Jan 2017 10:40:00 +0100
+Subject: [PATCH] EV-3733: Remove unwanted DHCP options
+
+Signed-off-by: Klas Malmborg <klas.malmborg@flir.se>
+---
+ src/tethering.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/tethering.c b/src/tethering.c
+index c44cb36..1e16b21 100644
+--- a/src/tethering.c
++++ b/src/tethering.c
+@@ -155,8 +155,8 @@ static GDHCPServer *dhcp_server_start(const char *bridge,
+ 
+ 	g_dhcp_server_set_lease_time(dhcp_server, lease_time);
+ 	g_dhcp_server_set_option(dhcp_server, G_DHCP_SUBNET, subnet);
+-	g_dhcp_server_set_option(dhcp_server, G_DHCP_ROUTER, router);
+-	g_dhcp_server_set_option(dhcp_server, G_DHCP_DNS_SERVER, dns);
++	//g_dhcp_server_set_option(dhcp_server, G_DHCP_ROUTER, router);
++	//g_dhcp_server_set_option(dhcp_server, G_DHCP_DNS_SERVER, dns);
+ 	g_dhcp_server_set_ip_range(dhcp_server, start_ip, end_ip);
+ 
+ 	g_dhcp_server_start(dhcp_server);
+-- 
+1.9.1
+

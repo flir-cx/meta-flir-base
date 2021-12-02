@@ -1,0 +1,24 @@
+Index: connman-1.39/gdhcp/client.c
+===================================================================
+--- connman-1.39.orig/gdhcp/client.c
++++ connman-1.39/gdhcp/client.c
+@@ -47,8 +47,8 @@
+ #include "gdhcp.h"
+ #include "common.h"
+ 
+-#define DISCOVER_TIMEOUT 5
+-#define DISCOVER_RETRIES 6
++#define DISCOVER_TIMEOUT 2
++#define DISCOVER_RETRIES 3
+ 
+ #define REQUEST_TIMEOUT 5
+ #define REQUEST_RETRIES 3
+@@ -2890,7 +2890,7 @@ int g_dhcp_client_start(GDHCPClient *dhc
+ 	send_discover(dhcp_client, addr);
+ 
+ 	dhcp_client->timeout = g_timeout_add_seconds_full(G_PRIORITY_HIGH,
+-							DISCOVER_TIMEOUT,
++							DISCOVER_TIMEOUT * (dhcp_client->retry_times+1),
+ 							discover_timeout,
+ 							dhcp_client,
+ 							NULL);
