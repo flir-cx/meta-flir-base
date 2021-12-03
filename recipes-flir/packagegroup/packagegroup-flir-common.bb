@@ -18,8 +18,7 @@ PACKAGES += " \
 "
 DISTRO_SSH_DAEMON ?= "openssh"
 
-
-RDEPENDS_${PN}-packages = "\
+COMMON_PACKAGES = " \
     ${DISTRO_SSH_DAEMON} \
     aufsrootfs \
     avahi-daemon \
@@ -47,15 +46,10 @@ RDEPENDS_${PN}-packages = "\
     gstreamer1.0-rtsp-server \
     gst-interpipes \
     i2c-tools \
-    imx-gpu-viv \
-    imx-kobs \
-    imx-lib \
     iproute2 \
     iw \
     kernel \
-    kernel-devicetree \
     kernel-image \
-    kernel-module-g-ether \
     kmod \
     libiio \
     libpng \
@@ -88,6 +82,22 @@ RDEPENDS_${PN}-packages = "\
     udev \
     udev-extraconf \
     zlib \
+"
+
+RDEPENDS_${PN}-packages = "\
+    ${COMMON_PACKAGES} \
+"
+
+RDEPENDS_${PN}-packages_mx6 = "\
+    ${COMMON_PACKAGES} \
+    imx-gpu-viv \
+    imx-kobs \
+    imx-lib \
+    kernel-devicetree \
+"
+
+UNUSED = " \
+    kernel-module-g-ether \
 "
 
 UNBUILDABLE = " \
