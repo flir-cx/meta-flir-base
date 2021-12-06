@@ -1,0 +1,11 @@
+[Unit]
+Description=Skylab cmd
+After=systemd-journald.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/skylab-cmd.sh
+ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
+
+[Install]
+WantedBy=multi-user.target
