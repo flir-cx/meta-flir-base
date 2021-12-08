@@ -52,6 +52,7 @@ BAD_RECOMMENDATIONS += "\
 "
 
 IMAGE_INSTALL = " \
+    civetweb \
     libstdc++ \
     packagegroup-boot \
     packagegroup-flir-common-packages \
@@ -72,15 +73,22 @@ TOOLCHAIN_TARGET_TASK_append = "\
     boost-staticdev \
     breakpad \
     breakpad-staticdev \
+    doctest-dev \
     flirbifrost-dev \
+    glibmm-dev \
     googletest-staticdev \
     gperftools \
     gupnp \
+    immer-dev inja-dev \
     kernel-dev \
     kernel-devsrc \
     libasan-dev \
     libconfig-dev \
     libstdc++-dev \
     libstdc++-staticdev \
+    nlohmann-json-dev \
+    stduuid-dev \
     zlib-dev \
+    zstr-dev \
+    valijson-dev \
 "
