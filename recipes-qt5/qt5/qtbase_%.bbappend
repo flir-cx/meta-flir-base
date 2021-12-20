@@ -4,3 +4,5 @@ QT_CONFIG_FLAGS_APPEND_imxgpu3d = "\
             '-eglfs', d), d)}"
 
 OE_QMAKE_CXXFLAGS += "-fpermissive"
+
+PACKAGECONFIG_append_pn-qtbase = " xkbcommon"
