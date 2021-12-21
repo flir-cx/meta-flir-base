@@ -9,7 +9,6 @@ PACKAGES += " \
 "
 
 RDEPENDS_${PN}-packages = "\
-    pulseaudioservice \
     pulseaudio-server \
     pulseaudio-misc \
     pulseaudio-module-bluetooth-policy \

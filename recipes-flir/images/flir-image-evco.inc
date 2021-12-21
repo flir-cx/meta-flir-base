@@ -12,9 +12,6 @@ TEST_SUITES = "ping ssh flir_test_valid_platform df connman \
 IMAGE_INSTALL_append = "\
     packagegroup-flir-ec101-packages \
     packagegroup-flir-opencv-packages \
-"
-
-NOTYET = "\
     packagegroup-flir-pulseaudio-packages \
 "
 
