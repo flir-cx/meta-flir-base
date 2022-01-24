@@ -3,7 +3,7 @@
 #
 require flir-image-${MACHINE}.inc
 
-COMPATIBLE_MACHINE = "(ec201|f1g4)"
+COMPATIBLE_MACHINE = "(ec201|ec401w)"
 
 ## ec201
 # Provide old image names for backwards compatibility
@@ -29,8 +29,8 @@ IMAGE_INSTALL_append_ec201 = " \
     boost-staticdev \
 "
 
-## f1g4
-IMAGE_INSTALL_append_f1g4 = " \
+## ec401w
+IMAGE_INSTALL_append_ec401w = " \
     alsa-dev \
     breakpad \
     breakpad-staticdev \
