@@ -1,0 +1,41 @@
+From 35911b75f8c5abf0d42842884594d5b829b7a0c9 Mon Sep 17 00:00:00 2001
+From: Adrien Martinez <adrien.martinez@flir.com>
+Date: Fri, 21 Jan 2022 10:35:07 +0100
+Subject: [PATCH] HABA-273 Add timestamp to buffers, viu and rpmsg
+
+---
+ drivers/media/platform/mxc/capture/mxc_rpmsg.c | 3 +++
+ drivers/media/platform/mxc/capture/mxc_viu.c   | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_rpmsg.c b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+index 9ff9dca2f8bf..19b11d27f23e 100644
+--- a/drivers/media/platform/mxc/capture/mxc_rpmsg.c
++++ b/drivers/media/platform/mxc/capture/mxc_rpmsg.c
+@@ -758,6 +758,9 @@ static int imx_rpmsg_dma_done_handle(struct imx_rpmsg_device *rpmsg_dev, dma_add
+ 			/* delete current buffer from queue  and make vb2 know buffer is done. */
+ 			list_del_init(&buf->internal.queue);
+ 			to_vb2_v4l2_buffer(vb)->sequence = rpmsg_dev->frame_count++;
++
++			/* set timestamp */
++			vb->timestamp = ktime_get_ns();
+ 			vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+ 			break;
+ 		}
+diff --git a/drivers/media/platform/mxc/capture/mxc_viu.c b/drivers/media/platform/mxc/capture/mxc_viu.c
+index 3d2f1694b44e..98572e6a2242 100644
+--- a/drivers/media/platform/mxc/capture/mxc_viu.c
++++ b/drivers/media/platform/mxc/capture/mxc_viu.c
+@@ -926,6 +926,9 @@ static int imx_viu_dma_done_handle(struct imx_viu_device *viu_dev)
+ 		/* delete current buffer from queue */
+ 		list_del_init(&buf->internal.queue);
+ 		to_vb2_v4l2_buffer(vb)->sequence = viu_dev->frame_count;
++
++		/* set timestamp */
++		vb->timestamp = ktime_get_ns();
+ 		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+ 	}
+ 
+-- 
+2.25.1
+
