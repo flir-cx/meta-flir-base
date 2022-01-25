@@ -74,7 +74,6 @@ TOOLCHAIN_TARGET_TASK_append = "\
     breakpad \
     breakpad-staticdev \
     doctest-dev \
-    flirbifrost-dev \
     glibmm-dev \
     googletest-staticdev \
     gperftools \

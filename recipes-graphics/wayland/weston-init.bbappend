@@ -1,6 +1,6 @@
 # configure shell in weston.ini
 # set black background
-do_install_append() {
+do_install_append_mx6() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
 
 	echo "	
