@@ -1,11 +1,14 @@
 [Unit]
 Description=Skylab streamserver
-After=systemd-journald.service
+After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/skylab-streamserver.sh
-ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
+ExecStart=/usr/bin/skylab-streamserver \
+				       --verbosity=5 \
+				       --frames-bind-endpoint=tcp://*:5550 \
+				       --cmd-bind-endpoint=tcp://*:5552
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

@@ -1,11 +1,14 @@
 [Unit]
 Description=Skylab cmd
-After=systemd-journald.service
+After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/skylab-cmd.sh
-ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
+ExecStart=/usr/bin/skylab-cmd \
+			      --verbosity=5 \
+			      --server-connect-endpoint=tcp://127.0.0.1:5552 \
+			      --client-bind-endpoint=tcp://*:5551
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
