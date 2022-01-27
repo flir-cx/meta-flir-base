@@ -31,6 +31,7 @@ IMAGE_INSTALL = " \
     avahi-dnsconfd \
     bash \
     bluez5 \
+    ble-discovery \
     brcm-patchram \
     btload \
     cjson \
