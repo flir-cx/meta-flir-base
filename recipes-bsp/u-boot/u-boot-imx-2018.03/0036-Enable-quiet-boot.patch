@@ -1,0 +1,25 @@
+From b708f03a79201ad45b165504c0cc3afcb1ef326a Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.com>
+Date: Sun, 6 Feb 2022 12:11:52 +0100
+Subject: [PATCH] CXX-361 Enable quiet boot
+
+Enable quiet boot in linux, it saves arount 2s of boot time.
+---
+ include/configs/ec201.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/configs/ec201.h b/include/configs/ec201.h
+index 8171eeadda..948035e215 100644
+--- a/include/configs/ec201.h
++++ b/include/configs/ec201.h
+@@ -397,6 +397,7 @@
+ 	"fdt_addr=0x63000000\0" \
+ 	"fdt_high=0xffffffff\0"	  \
+ 	"initrd_high=0xffffffff\0" \
++	"extra_bootargs=quiet\0" \
+ \
+ 	CONFIG_M4_BOOT_ENV \
+ 	CONFIG_MMC_BOOT_COMMON_ENV\
+-- 
+2.17.1
+
