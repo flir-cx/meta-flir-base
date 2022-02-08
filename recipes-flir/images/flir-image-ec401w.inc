@@ -1,7 +1,5 @@
 require flir-image-base.inc
 
-inherit populate_sdk_qt5
-
 TEST_SUITES = "ping ssh flir_test_valid_platform df connman builddate scp python gst1-0-fsl-plugin dmesg2 \
                flirsystemd wi-fi bluetooth sysfs standby mmdc"
 
