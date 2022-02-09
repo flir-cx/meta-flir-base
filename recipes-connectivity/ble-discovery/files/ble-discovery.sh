@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # BLE 4.0 Legacy
 

@@ -95,6 +95,7 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     umtp-responder \
+    wlanload \
     wifi-test-suite \
     zeromq \
 "

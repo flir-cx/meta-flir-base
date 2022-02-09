@@ -1,0 +1,13 @@
+[Unit]
+Description=WLAN loader
+# wait for network to come up before we run
+After=network.target
+
+[Service]
+Type=simple
+KillSignal=2	# SIGINT doesn't leave the service in failed state
+ExecStartPre=-/sbin/wlanload
+ExecStart=/usr/sbin/udhcpd -f -I192.168.0.1
+
+[Install]
+WantedBy=multi-user.target
