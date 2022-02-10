@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/imx-gst1.0-plugin-4.6.2:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/imx-gst1.0-plugin-4.6:"
 
 SRC_URI_append = " \
    file://0002-RGB-formats-handled-in-v4l2src.patch \

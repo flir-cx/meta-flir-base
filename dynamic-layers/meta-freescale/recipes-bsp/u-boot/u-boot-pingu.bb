@@ -3,7 +3,7 @@
 # Copyright 2017-2021 NXP
 
 require recipes-bsp/u-boot/u-boot.inc
-require recipes-bsp/u-boot/u-boot-imx-common.inc
+require recipes-bsp/u-boot/u-boot-imx-common_2021.04.inc
 
 #include u-boot-pingu_${MACHINE}.inc
 
