@@ -1,28 +1,59 @@
-meta-flir-base
+meta-flir-base (yocto3.3 branch)
 ==============
-FLIR setup for imx7 yocto is to add a layer on top of freescale 
+FLIR setup for manifest based yocto is to add 2 (or 1) layers on top of NXP 
 distribution.
 
-meta-flir-base: FLIR open source yocto distribution
-Layer addition as such is added through files in meta-flir-base/tools folder
+We then have an inheritance to monitor 
+(As of now, https://source.codeaurora.org/external/imx/imx-manifest)
 
-Fetching code (public):
+FLIR manifest is built around what is fetched by imx-5.10.72-2.2.0.xml
+(yocto 3.3 / imx-linux-hardknott branch) from this repo
+
+(and also boundarys addition to this
+(https://github.com/boundarydevices/boundary-bsp-platform.git,
+branch boundary-imx-5.4.70-2.3.0, manifest default.xml - poorly maintained)
+
+On this manifest, FLIR adds layers
+meta-flir-base: FLIR open source yocto distribution
+(meta-flir-internal: Add-on to meta-flir-base, with non-public additions
+to yocto distribution)
+Layer additions as such are added through files in tools folder(s)
+
+Fetching code (internal):
 1.  mkdir <your selection>
 2.  cd <your selection>
-3.  repo init -u ssh://git@bitbucketcommercial.flir.com:7999/im7/flir-yocto-manifest.git -m flir-exported.xml
-    (flir-exported.xml as manifest, master as branch, 
+3.  repo init -u ssh://git@bitbucketcommercial.flir.com:7999/im7/flir-yocto-manifest.git -b yocto3.3 -m flir-exported.xml
+    (flir-exported.xml as manifest, yocto3.3 as branch, 
      use -b/-m flags if change to this is required)
 4.  repo sync
-5a. MACHINE=bblc source ./flir-setup-release.sh -b build_bblc
-    or
-    MACHINE=ec201 source ./flir-setup-release.sh -b build_ec201
-    (DISTRO=flir is implicit)
-5b. (or, for trying a fsl distro variants, typically: 
-    MACHINE=bblc DISTRO=fsl-imx-xwayland source ./flir-setup-release.sh -b build_bblc-xwl)
-6.  bitbake core-image-sherlock (core-image-minimal, core-image-bblc)
+5a. First time setup:
+    MACHINE=evco DISTRO=flir source ./flir-setup-release -b build_evco
+    (DISTRO=flir is implicit, and may be left out)
+    or (not maintained...)
+    MACHINE=imx6qsabrelite DISTRO=fsl-imx-wayland-boundary source flir-setup-release -b build_imx6qsabrelite
 
-Note;
-FLIR cameras uses meta-flir-base as distributed for FLIR public components.
-As an addition to this there is a meta-flir-internal yocto layer that contains
-non public code.
-Camera content thus has some additons to images that extends this public code
+5b. Restore work:
+    source setup-environment build_evco    
+    or
+    source setup-environment build_imx6qsabrelite
+
+6.  bitbake flir-image
+    (core-image-minimal should also work)
+
+Code updates:
+Add code in sources/meta-flir-base (public recipes) 
+Make sure that public stuff does not depend on internal stuff
+(checkout branch in meta-flir-xxx explicitely before pushing changes, 
+repo tool checks out code out of branch)
+Push change requests to meta-flir-base
+
+If official test build is required, checkout a branch of manifest repo
+(found in <your selection>/.repo, follow default.xml link to see which file)
+edit .xml reference to branch in meta-flir-base and push branch of manifest repo
+or better, generate a new manifest using:
+repo manifest -r --suppress-upstream-revision --suppress-dest-branch -o my_master.xml
+For others (including jenkins) to build test;
+repo init -u ssh://git@bitbucketcommercial.flir.com:7999/im7/flir-yocto-manifest.git -b <manifest test branch name> -m master.xml
+repo sync
+...
+bitbake... 
