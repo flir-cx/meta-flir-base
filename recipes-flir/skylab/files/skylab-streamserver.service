@@ -5,7 +5,7 @@ After=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/skylab-streamserver \
-				       --verbosity=5 \
+				       --verbosity=3 \
 				       --frames-bind-endpoint=tcp://*:5550 \
 				       --cmd-bind-endpoint=tcp://*:5552
 Restart=on-failure

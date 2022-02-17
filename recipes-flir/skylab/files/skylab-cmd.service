@@ -7,6 +7,7 @@ Type=simple
 ExecStart=/usr/bin/skylab-cmd \
 			      --verbosity=5 \
 			      --server-connect-endpoint=tcp://127.0.0.1:5552 \
+				  --appcoregw-connect-endpoint=tcp://127.0.0.1:5553 \
 			      --client-bind-endpoint=tcp://*:5551
 Restart=on-failure
 
