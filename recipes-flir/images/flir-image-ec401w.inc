@@ -5,23 +5,6 @@ TEST_SUITES = "ping ssh flir_test_valid_platform df connman builddate scp python
 
 DISTRO_SSH_DAEMON ?= "openssh"
 
-WEB_PACKAGES = " \
-    haproxy \
-    lighttpd \
-    lighttpd-module-alias \
-    lighttpd-module-cgi \
-    lighttpd-module-compress \
-    lighttpd-module-dynamicfile \
-    lighttpd-module-fastcgi \
-    lighttpd-module-proxy \
-    lighttpd-module-redirect \
-    lighttpd-module-rewrite \
-    php \
-    php-cgi \
-    php-cli \
-    php-opcache \
-"
-
 IMAGE_INSTALL = " \
     ${DISTRO_SSH_DAEMON} \
     aufsrootfs \
@@ -36,12 +19,10 @@ IMAGE_INSTALL = " \
     connman \
     connman-client \
     crda \
-    data-collection-service \
     dosfstools \
     e2fsprogs \
     exfat-utils \
     firmware-qca9377 \
-    flir-activity-monitor \
     flir-sysfs-links-service \
     flirapp-service \
     flirbase-files \
@@ -66,7 +47,6 @@ IMAGE_INSTALL = " \
     mmc-utils \
     mmc7mounter \
     mtd-utils \
-    nano \
     ncurses-libpanelw \
     opkg \
     os-release \
@@ -94,8 +74,8 @@ IMAGE_INSTALL = " \
     u-boot-script \
     udev \
     udev-extraconf \
-    umtp-responder \
     wlanload \
     wifi-test-suite \
+    wpa-supplicant \
     zeromq \
 "
