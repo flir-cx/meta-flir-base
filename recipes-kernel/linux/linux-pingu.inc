@@ -10,7 +10,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 DEPENDS += "lzop-native bc-native"
 
 PROVIDES+=" linux virtual/kernel"
-COMPATIBLE_MACHINE = "evco|ec501"
+COMPATIBLE_MACHINE = "evco|ec501|eoco"
 
 S = "${WORKDIR}/git"
 
