@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# Called from appcore when USB MSD function driver is changed
+#
+
+usage()
+{
+  echo "Usage: usbfn [<usbmode>]"
+  echo "RNDIS           - ethernet function driver"
+  echo
+  echo "--help  - show this text"
+}
+
+if [ $# -eq 0 ]; then
+    if [ ! -e /etc/usbmode ]
+    then
+	usage
+	exit 0
+    fi
+    echo "$(cat /etc/usbmode 2>/dev/null)"
+    exit
+fi
+
+if [ "$1" == "--help" ]; then
+    usage
+    exit 0
+fi
+
+USBMODE=$1
+if [ "${USBMODE}" != "RNDIS" ]
+then
+    echo "Unknown USB mode ${USBMODE}"
+    usage
+    exit 1
+fi
+logger "USB function driver changed to ${USBMODE}"
+
+if gadget.sh isloaded ; then
+    CURRUSBMODE="$(cat /etc/usbmode  2>/dev/null)"
+    if [ "$CURRUSBMODE" == "$USBMODE" ] ; then
+        echo "USBMODE ${USBMODE} already set"
+        exit
+    fi
+fi
+
+echo $USBMODE > /etc/usbmode
+sync
+
+export LD_LIBRARY_PATH=/FLIR/usr/lib
+export PATH=$PATH:/usr/bin:/bin:/sbin:/FLIR/usr/bin
+
+CABLE_STATE="$(cat /etc/sysfs-links/usb2_control/state)"
+logger "CABLE_STATE ${CABLE_STATE}"
+
+USBFNDRV="$(lsmod | grep -o '^g_[a-z_]*')"
+logger "USB function driver loaded is ${USBFNDRV}"
+
+USBCMDRV="$(lsmod | grep -o '^usb_[a-z_]*')"
+logger "USB composite driver loaded is ${USBCMDRV}"
+
+gadget.sh unload
+
+#indicate USB FN mode change
+touch /var/lock/ufnchange
+
+logger "New USB Composite driver is $usbmode"
+
+#load desired USB function driver
+gadget.sh load
+sleep 2
+
+rm /var/lock/ufnchange
