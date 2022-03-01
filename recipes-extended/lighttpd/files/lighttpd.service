@@ -1,13 +1,16 @@
 [Unit]
-Description=Lightning Fast Webserver With Light System Requirements
+Description=Lightning Fast Webserver
 After=network.target
 
 [Install]
 WantedBy=multi-user.target
 
 [Service]
+Type=simple
+PIDFile=/run/lighttpd.pid
 ExecStartPre=/bin/bash -c '/usr/sbin/lighttpd_env_check.sh'
-ExecStartPre=@SBINDIR@/lighttpd -t -f @SYSCONFDIR@/lighttpd.conf
-ExecStart=@SBINDIR@/lighttpd -D -f @SYSCONFDIR@/lighttpd.conf
-ExecReload=@BASE_BINDIR@/kill -HUP $MAINPID
+ExecStartPre=@SBINDIR@/lighttpd -tt -f @SYSCONFDIR@/lighttpd/lighttpd.conf
+ExecStart=@SBINDIR@/lighttpd -D -f @SYSCONFDIR@/lighttpd/lighttpd.conf
+ExecReload=@BASE_BINDIR@/kill -USR1 $MAINPID
+Restart=on-failure
 Environment="LD_LIBRARY_PATH=/FLIR/usr/lib"
