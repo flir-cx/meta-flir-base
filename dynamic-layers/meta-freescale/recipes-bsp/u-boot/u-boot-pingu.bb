@@ -14,7 +14,7 @@ FILESEXTRAPATHS_prepend_evco := "${S}/meta-freescale:"
 UBOOT_SRC ?= "git://bitbucketcommercial.flir.com:7999/camos/uboot-pingu.git;protocol=ssh"
 #SRCBRANCH = "FLIR_EC101_v21_04"
 #SRC_URI = "${UBOOT_SRC};branch=${SRCBRANCH}"
-SRC_URI = "${UBOOT_SRC}"
+SRC_URI = "${UBOOT_SRC};nobranch=1"
 SRCREV = "faf88f0ca46894cb2c68f1a7ae51329cc196c53d"
 
 LOCALVERSION = "-${SRCBRANCH}"
