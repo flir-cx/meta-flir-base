@@ -68,6 +68,7 @@ IMAGE_INSTALL = " \
     systemd-analyze \
     skylab-service \
     systemd-compat-units \
+    sqlite3 \
     telnetd-service \
     tzdata \
     u-boot-fw-utils \
