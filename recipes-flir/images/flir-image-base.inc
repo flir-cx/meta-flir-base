@@ -78,7 +78,8 @@ TOOLCHAIN_TARGET_TASK_append = "\
     googletest-staticdev \
     gperftools \
     gupnp \
-    immer-dev inja-dev \
+    immer-dev \
+    inja-dev \
     kernel-dev \
     kernel-devsrc \
     libasan-dev \
@@ -86,8 +87,8 @@ TOOLCHAIN_TARGET_TASK_append = "\
     libstdc++-dev \
     libstdc++-staticdev \
     nlohmann-json-dev \
+    php-dev \
     stduuid-dev \
-    zlib-dev \
-    zstr-dev \
     valijson-dev \
+    zstr-dev \
 "

@@ -36,6 +36,7 @@ RDEPENDS_${PN}-packages = "\
     php \
     php-cgi \
     php-cli \
+    php-opcache \
     progressapp-service \
     ti-bt-firmware \
     ti-firmware \
