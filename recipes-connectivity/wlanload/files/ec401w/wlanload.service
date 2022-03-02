@@ -4,10 +4,11 @@ Description=WLAN loader
 After=network.target
 
 [Service]
-Type=simple
-KillSignal=2	# SIGINT doesn't leave the service in failed state
+Type=forking
+# SIGINT doesn't leave the service in failed state
+KillSignal=SIGINT
 ExecStartPre=-/sbin/wlanload
-ExecStart=/usr/sbin/udhcpd -f -I192.168.0.1
+ExecStart=/usr/sbin/udhcpd -I192.168.0.1
 
 [Install]
 WantedBy=multi-user.target
