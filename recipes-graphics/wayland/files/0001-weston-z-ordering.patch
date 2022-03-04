@@ -1,0 +1,90 @@
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index ef63edcb..2446bbdb 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -1916,6 +1916,26 @@ shell_surface_calculate_layer_link (struct shell_surface *shsurf)
+ 		return &shsurf->shell->fullscreen_layer.view_list;
+ 	}
+ 
++        weston_log("Recalculating layer for surface \n");
++        const char *id = weston_desktop_surface_get_app_id(shsurf->desktop_surface);
++        if (id && (strncmp(id, "se.flir.background", 32) == 0)) {
++                weston_log_continue(STAMP_SPACE "%s (background)\n", id);
++                return &shsurf->shell->background_layer.view_list;
++        } else if (id && (strncmp(id, "waylandsink", 32) == 0)) {
++                weston_log_continue(STAMP_SPACE "%s (background)\n", id);
++                return &shsurf->shell->background_layer.view_list;
++        } else if (id && (strncmp(id, "facet", 32) == 0)) {
++                weston_log_continue(STAMP_SPACE "%s (overlay)\n", id);
++                return &shsurf->shell->overlay_layer.view_list;
++        } else if (id && (strncmp(id, "progressapp", 32) == 0)) {
++                weston_log_continue(STAMP_SPACE "%s (overlay)\n", id);
++                return &shsurf->shell->progress_layer.view_list;
++        } else if (id) {
++                weston_log_continue(STAMP_SPACE "%s (default)\n", id);
++        } else {
++                weston_log_continue(STAMP_SPACE "<no id> (default)\n");
++        }
++
+ 	/* Move the surface to a normal workspace layer so that surfaces
+ 	 * which were previously fullscreen or transient are no longer
+ 	 * rendered on top. */
+@@ -4878,6 +4898,8 @@ shell_for_each_layer(struct desktop_shell *shell,
+ 
+ 	func(shell, &shell->fullscreen_layer, data);
+ 	func(shell, &shell->panel_layer, data);
++        func(shell, &shell->progress_layer, data);
++        func(shell, &shell->overlay_layer, data);
+ 	func(shell, &shell->background_layer, data);
+ 	func(shell, &shell->lock_layer, data);
+ 	func(shell, &shell->input_panel_layer, data);
+@@ -5205,6 +5227,8 @@ wet_shell_init(struct weston_compositor *ec,
+ 	weston_layer_init(&shell->fullscreen_layer, ec);
+ 	weston_layer_init(&shell->panel_layer, ec);
+ 	weston_layer_init(&shell->background_layer, ec);
++	weston_layer_init(&shell->progress_layer, ec);
++	weston_layer_init(&shell->overlay_layer, ec);
+ 	weston_layer_init(&shell->lock_layer, ec);
+ 	weston_layer_init(&shell->input_panel_layer, ec);
+ 
+@@ -5212,6 +5236,10 @@ wet_shell_init(struct weston_compositor *ec,
+ 				  WESTON_LAYER_POSITION_FULLSCREEN);
+ 	weston_layer_set_position(&shell->panel_layer,
+ 				  WESTON_LAYER_POSITION_UI);
++        weston_layer_set_position(&shell->overlay_layer,
++                                  WESTON_LAYER_POSITION_PROGRESS);
++        weston_layer_set_position(&shell->overlay_layer,
++                                  WESTON_LAYER_POSITION_OVERLAY);
+ 	weston_layer_set_position(&shell->background_layer,
+ 				  WESTON_LAYER_POSITION_BACKGROUND);
+ 
+diff --git a/desktop-shell/shell.h b/desktop-shell/shell.h
+index 9f0b6abe..b8ef024b 100644
+--- a/desktop-shell/shell.h
++++ b/desktop-shell/shell.h
+@@ -145,6 +145,8 @@ struct desktop_shell {
+ 
+ 	struct weston_layer fullscreen_layer;
+ 	struct weston_layer panel_layer;
++	struct weston_layer progress_layer;
++	struct weston_layer overlay_layer;
+ 	struct weston_layer background_layer;
+ 	struct weston_layer lock_layer;
+ 	struct weston_layer input_panel_layer;
+diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
+index 089f2d9a..23a0982e 100644
+--- a/include/libweston/libweston.h
++++ b/include/libweston/libweston.h
+@@ -848,6 +848,12 @@ enum weston_layer_position {
+ 	 * to ensure proper stacking control. */
+ 	WESTON_LAYER_POSITION_NORMAL     = 0x50000000,
+ 
++	/* For camera UI overlay. */
++	WESTON_LAYER_POSITION_OVERLAY    = 0x60000000,
++
++	/* For camera UI progress indication. */
++	WESTON_LAYER_POSITION_PROGRESS   = 0x70000000,
++
+ 	/* For desktop UI, like panels. */
+ 	WESTON_LAYER_POSITION_UI         = 0x80000000,
+ 
