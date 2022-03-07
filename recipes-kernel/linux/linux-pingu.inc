@@ -1,16 +1,16 @@
 PINGU_INHERIT = ""
-PINGU_INHERIT_mx6  = "kernel fsl-kernel-localversion fsl-vivante-kernel-driver-handler"
+PINGU_INHERIT  = "kernel fsl-kernel-localversion fsl-vivante-kernel-driver-handler"
 inherit ${PINGU_INHERIT}
 
 SECTION = "kernel"
 DESCRIPTION = "Linux Kernel for FLIR pingu based devices"
 LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
-
+#LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d7810fab7487fb0aad327b76f1be7cd7"
 DEPENDS += "lzop-native bc-native"
 
 PROVIDES+=" linux virtual/kernel"
-COMPATIBLE_MACHINE = "evco|ec501|eoco"
+COMPATIBLE_MACHINE = "evco|ec501|eoco|ec201|ec401w|rebb"
 
 S = "${WORKDIR}/git"
 

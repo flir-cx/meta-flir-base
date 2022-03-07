@@ -4,18 +4,18 @@
 
 require linux-pingu.inc
 
-#SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_lf-5.10.y"
+#SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_imx-4.14.y"
 SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "5edc820053994bb46f0b561e36dd29f32f7dc475"
-PV="5.10-git${SRCPV}"
+SRCREV = "4ca520609801a7aea8b12061edb3939aff84ae9f"
+PV="4.14-git${SRCPV}"
 PR="12"
 
-LINUX_VERSION = "5.10.72"
+LINUX_VERSION = "4.14.98"
 
-FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-5.10:"
+FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-4.14:"
 
 SRC_URI_append = "\
              file://defconfig \
