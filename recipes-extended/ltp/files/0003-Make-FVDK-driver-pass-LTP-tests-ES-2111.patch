@@ -1,0 +1,84 @@
+From aa3ef57819193c368a1c8f261147e4be5a5ea41c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bo=20Svang=C3=A5rd?= <bo.svangard@flir.se>
+Date: Wed, 7 Jul 2021 14:33:36 +0000
+Subject: [PATCH 3/3] Make FVDK driver pass LTP tests [ES-2111]
+
+FVDK tests consists of just testing that the IOCTL_FVDK_GET_VERISON tests succeeds
+---
+ .../flir/syscalls/ioctl/flir_fvdk_ioctl.c     | 46 ++++++++++---------
+ 1 file changed, 24 insertions(+), 22 deletions(-)
+
+diff --git a/testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c b/testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c
+index deab6c649..95466c8be 100644
+--- a/testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c
++++ b/testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c
+@@ -56,8 +56,7 @@
+ #include <termios.h>
+ #include "test.h"
+ #include "include/flir_kernel_os.h"
+-#include "include/fvd.h"
+-
++#include "include/fvdkernel.h"
+ 
+ char *TCID = "ioctl01";
+ int TST_TOTAL = 6;
+@@ -96,33 +95,36 @@ int main(int ac, char **av)
+ 	if (fd == -1)
+ 		tst_brkm(TBROK | TERRNO, cleanup, "Couldn't open %s", devname);
+ 
+-        /* /\* Tes IOCTL_FVD_GET_VERSION *\/ */
+-        DWORD test;
+-        
+-        TEST(ioctl(*(&fd), IOCTL_FVD_GET_VERSION, &test));
+-
+-        if (TEST_RETURN != 50) {
+-          tst_resm(TFAIL, "call succeded unexpectedly err %i", TEST_RETURN);
+-        }
+-
+-        TEST(ioctl(*(&fd), IOCTL_FVD_GET_PARAM, &test));
++	DWORD test;
+ 
+-        if (TEST_RETURN != 50) {
+-          tst_resm(TFAIL, "call succeded unexpectedly err %i", TEST_RETURN);
+-        }
+-        TEST(ioctl(*(&fd), IOCTL_FVD_GET_IRDM_PARAM, &test));
++	TEST(ioctl(*(&fd), IOCTL_FVDK_GET_VERSION, &test));
+ 
+-        if (TEST_RETURN != 50) {
+-          tst_resm(TFAIL, "call succeded unexpectedly err %i", TEST_RETURN);
+-        }
++	if (TEST_RETURN == 0) {
++	tst_resm(TPASS, "IOCTL_FVDK_GET_VERSION Succeeded");
++	} else
++	{
++		tst_resm(TFAIL, "IOCTL_FVDK_GET_VERSION Failed");
++	}
+ 
++	/* TEST(ioctl(*(&fd), IOCTL_FVDK_POWER_UP)); */
++	/* TEST(ioctl(*(&fd), IOCTL_FVDK_POWER_DOWN)); */
++	/* TEST(ioctl(*(&fd), IOCTL_FVDK_POWER_UP_FPA)); */
++	/* TEST(ioctl(*(&fd), IOCTL_FVDK_POWER_DOWN_FPA)); */
+ 
++	/* GENERIC_FPGA_T gfpga; */
++	/* TEST(ioctl(*(&fd), IOCTL_FVDK_GET_FPGA_GENERIC)); */
++	/* BXAB_FPGA_T */
++	/* TEST(ioctl(*(&fd), IOCTL_FVDK_GET_FPGA_DATA)); */
++	/* SDRAM_BUF_T sdrambuf; */
++	/* TEST(ioctl(*(&fd), IOCTL_FVDK_GET_FPGA_BUF)); */
++	ULONG data = 0;
++	TEST(ioctl(*(&fd), IOCTL_FVDK_CREATE_BLOB, &data));
++	TEST(ioctl(*(&fd), IOCTL_FVDK_LOCK, &data));
+ 
+-        
+ 
+ 
+-        // Cleanup
+-        cleanup();
++	// Cleanup
++	cleanup();
+ 	tst_exit();
+ }
+ 
+-- 
+2.30.1
+

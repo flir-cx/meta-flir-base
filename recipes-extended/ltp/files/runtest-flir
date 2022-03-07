@@ -1,0 +1,3 @@
+flir_fvdk_ioctl flir_fvdk_ioctl -D /dev/fvdk
+flir_fad_ioctl flir_fad_ioctl -D /dev/fad0
+flir_vcam_ioctl flir_vcam_ioctl -D /dev/vcam0

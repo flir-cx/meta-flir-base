@@ -1,0 +1,24 @@
+Index: git/testcases/kernel/Makefile
+===================================================================
+--- git.orig/testcases/kernel/Makefile
++++ git/testcases/kernel/Makefile
+@@ -28,14 +28,16 @@ include $(top_srcdir)/include/mk/env_pre
+ # NOTE (garrcoop): mce-test isn't integrated into the build.
+ 
+ # Build syscalls in all scenarios.
+-SUBDIRS			:= syscalls
++#SUBDIRS			:= syscalls
+ 
+ # Build lib
+-SUBDIRS			+= lib
++SUBDIRS			:= lib
+ 
+ ifneq ($(UCLINUX),1)
+ # KEEP THIS LIST ALPHABETIZED PLEASE!
+-SUBDIRS			+= connectors \
++SUBDIRS			+= fs
++
++SKIP_SUBDIRS		+= connectors \
+ 			   containers \
+ 			   controllers \
+ 			   crypto \

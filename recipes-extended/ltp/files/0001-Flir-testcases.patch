@@ -1,0 +1,3739 @@
+From bfac2d6ca15f85f8608fbfafb0ca1a642e6c12f9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bo=20Svang=C3=A5rd?= <bobo@larven.se>
+Date: Thu, 1 Apr 2021 15:05:34 +0200
+Subject: [PATCH] Flir testcases
+
+---
+ testcases/flir/Makefile                       |   27 +
+ testcases/flir/syscalls/Makefile              |   32 +
+ testcases/flir/syscalls/ioctl/Makefile        |   25 +
+ .../flir/syscalls/ioctl/flir_fad_ioctl.c      |  256 +++
+ .../flir/syscalls/ioctl/flir_fvdk_ioctl.c     |  158 ++
+ .../flir/syscalls/ioctl/flir_vcam_ioctl.c     |  411 ++++
+ .../flir/syscalls/ioctl/include/faddev.h      |  309 +++
+ .../flir/syscalls/ioctl/include/flir_ioctl.h  |   41 +
+ .../syscalls/ioctl/include/flir_kernel_os.h   |   95 +
+ testcases/flir/syscalls/ioctl/include/fvd.h   | 2012 +++++++++++++++++
+ .../flir/syscalls/ioctl/include/fvdkernel.h   |   41 +
+ .../flir/syscalls/ioctl/include/rovfdev.h     |   18 +
+ testcases/flir/syscalls/ioctl/include/vcam.h  |  199 ++
+ 13 files changed, 3624 insertions(+)
+ create mode 100644 testcases/flir/Makefile
+ create mode 100644 testcases/flir/syscalls/Makefile
+ create mode 100644 testcases/flir/syscalls/ioctl/Makefile
+ create mode 100644 testcases/flir/syscalls/ioctl/flir_fad_ioctl.c
+ create mode 100644 testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c
+ create mode 100644 testcases/flir/syscalls/ioctl/flir_vcam_ioctl.c
+ create mode 100644 testcases/flir/syscalls/ioctl/include/faddev.h
+ create mode 100644 testcases/flir/syscalls/ioctl/include/flir_ioctl.h
+ create mode 100644 testcases/flir/syscalls/ioctl/include/flir_kernel_os.h
+ create mode 100644 testcases/flir/syscalls/ioctl/include/fvd.h
+ create mode 100644 testcases/flir/syscalls/ioctl/include/fvdkernel.h
+ create mode 100644 testcases/flir/syscalls/ioctl/include/rovfdev.h
+ create mode 100644 testcases/flir/syscalls/ioctl/include/vcam.h
+
+diff --git a/testcases/flir/Makefile b/testcases/flir/Makefile
+new file mode 100644
+index 000000000..fee8decad
+--- /dev/null
++++ b/testcases/flir/Makefile
+@@ -0,0 +1,27 @@
++#
++#    misc test suite Makefile.
++#
++#    Copyright (C) 2009, Cisco Systems Inc.
++#    Copyright (C) 2010, Linux Test Project.
++#
++#    This program is free software; you can redistribute it and/or modify
++#    it under the terms of the GNU General Public License as published by
++#    the Free Software Foundation; either version 2 of the License, or
++#    (at your option) any later version.
++#
++#    This program is distributed in the hope that it will be useful,
++#    but WITHOUT ANY WARRANTY; without even the implied warranty of
++#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++#    GNU General Public License for more details.
++#
++#    You should have received a copy of the GNU General Public License along
++#    with this program; if not, write to the Free Software Foundation, Inc.,
++#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++#
++# Ngie Cooper, July 2009
++#
++
++top_srcdir		?= ../..
++
++include $(top_srcdir)/include/mk/env_pre.mk
++include $(top_srcdir)/include/mk/generic_trunk_target.mk
+diff --git a/testcases/flir/syscalls/Makefile b/testcases/flir/syscalls/Makefile
+new file mode 100644
+index 000000000..8acb395d2
+--- /dev/null
++++ b/testcases/flir/syscalls/Makefile
+@@ -0,0 +1,32 @@
++#
++#    testcases/kernel/syscalls Makefile.
++#
++#    Copyright (C) 2009, Cisco Systems Inc.
++#
++#    This program is free software; you can redistribute it and/or modify
++#    it under the terms of the GNU General Public License as published by
++#    the Free Software Foundation; either version 2 of the License, or
++#    (at your option) any later version.
++#
++#    This program is distributed in the hope that it will be useful,
++#    but WITHOUT ANY WARRANTY; without even the implied warranty of
++#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++#    GNU General Public License for more details.
++#
++#    You should have received a copy of the GNU General Public License along
++#    with this program; if not, write to the Free Software Foundation, Inc.,
++#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++#
++# Garrett Cooper, July 2009
++#
++
++top_srcdir		?= ../../..
++
++include	$(top_srcdir)/include/mk/env_pre.mk
++
++ifeq ($(UCLINUX),1)
++FILTER_OUT_DIRS	+= capget capset chmod chown clone fork getcontext llseek \
++		   mincore mprotect nftw profil remap_file_pages sbrk
++endif
++
++include $(top_srcdir)/include/mk/generic_trunk_target.mk
+diff --git a/testcases/flir/syscalls/ioctl/Makefile b/testcases/flir/syscalls/ioctl/Makefile
+new file mode 100644
+index 000000000..a15afa76a
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/Makefile
+@@ -0,0 +1,25 @@
++#
++#  Copyright (c) International Business Machines  Corp., 2001
++#
++#  This program is free software;  you can redistribute it and/or modify
++#  it under the terms of the GNU General Public License as published by
++#  the Free Software Foundation; either version 2 of the License, or
++#  (at your option) any later version.
++#
++#  This program is distributed in the hope that it will be useful,
++#  but WITHOUT ANY WARRANTY;  without even the implied warranty of
++#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
++#  the GNU General Public License for more details.
++#
++#  You should have received a copy of the GNU General Public License
++#  along with this program;  if not, write to the Free Software
++#  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++#
++
++top_srcdir		?= ../../../..
++
++include $(top_srcdir)/include/mk/testcases.mk
++
++INSTALL_TARGETS		+= test_ioctl
++
++include $(top_srcdir)/include/mk/generic_leaf_target.mk
+diff --git a/testcases/flir/syscalls/ioctl/flir_fad_ioctl.c b/testcases/flir/syscalls/ioctl/flir_fad_ioctl.c
+new file mode 100644
+index 000000000..a148a85db
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/flir_fad_ioctl.c
+@@ -0,0 +1,256 @@
++/*
++ *
++ *   Copyright (c) International Business Machines  Corp., 2001
++ *
++ *   This program is free software;  you can redistribute it and/or modify
++ *   it under the terms of the GNU General Public License as published by
++ *   the Free Software Foundation; either version 2 of the License, or
++ *   (at your option) any later version.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY;  without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
++ *   the GNU General Public License for more details.
++ *
++ *   You should have received a copy of the GNU General Public License
++ *   along with this program;  if not, write to the Free Software
++ *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
++ */
++
++/*
++ * NAME
++ *	ioctl01.c
++ *
++ * DESCRIPTION
++ *	Testcase to check the errnos set by the ioctl(2) system call.
++ *
++ * ALGORITHM
++ *	1. EBADF: Pass an invalid fd to ioctl(fd, ..) and expect EBADF.
++ *	2. EFAULT: Pass an invalid address of arg in ioctl(fd, .., arg)
++ *	3. EINVAL: Pass invalid cmd in ioctl(fd, cmd, arg)
++ *	4. ENOTTY: Pass an non-streams fd in ioctl(fd, cmd, arg)
++ *	5. EFAULT: Pass a NULL address for termio
++ *
++ * USAGE:  <for command-line>
++ *  ioctl01 -D /dev/tty[0-9] [-c n] [-e] [-i n] [-I x] [-P x] [-t]
++ *     where,  -c n : Run n copies concurrently.
++ *             -e   : Turn on errno logging.
++ *             -i n : Execute test n times.
++ *             -I x : Execute test for x seconds.
++ *             -P x : Pause for x seconds between iterations.
++ *             -t   : Turn on syscall timing.
++ *
++ * HISTORY
++ *	07/2001 Ported by Wayne Boyer
++ *	04/2002 Fixes by wjhuie
++ *
++ * RESTRICTIONS
++ *      test must be run with the -D option
++ *      test may have to be run as root depending on the tty permissions
++ */
++
++#include <errno.h>
++#include <fcntl.h>
++#include <stdio.h>
++#include <termio.h>
++#include <termios.h>
++#include "test.h"
++#include "include/flir_kernel_os.h"
++#include "include/faddev.h"
++
++
++char *TCID = "ioctl01";
++int TST_TOTAL = 6;
++
++#define	INVAL_IOCTL	9999999
++
++static void setup(void);
++static void cleanup(void);
++static void help(void);
++
++static int fd, fd1;
++
++
++static int Devflag;
++static char *devname;
++
++static option_t options[] = {
++	{"D:", &Devflag, &devname},
++	{NULL, NULL, NULL}
++};
++
++int main(int ac, char **av)
++{
++
++	tst_parse_opts(ac, av, options, &help);
++
++	if (!Devflag)
++		tst_brkm(TBROK, NULL, "You must specify a tty device with "
++			 "the -D option.");
++
++	tst_require_root();
++
++	setup();
++
++	fd = open(devname, O_RDWR, 0777);
++	if (fd == -1)
++		tst_brkm(TBROK | TERRNO, cleanup, "Couldn't open %s", devname);
++
++        /* Test GPS */
++        struct _FADDEVIOCTLGPS gps;
++        
++        TEST(ioctl(*(&fd), IOCTL_FAD_GET_GPS_ENABLE, &gps));
++
++        if (TEST_RETURN != 0) {
++          tst_resm(TFAIL, "call failed unexpectedly");
++        }
++
++        if (TEST_ERRNO == ERROR_SUCCESS)
++          tst_resm(TPASS | TTERRNO, "succeded as expected");
++        else
++          tst_resm(TFAIL | TTERRNO,
++                   "failed unexpectedly; expected %d - %s",
++                   EFAULT, strerror(EFAULT));
++
++        printf("Gps active? %u\n",  gps.bGPSEnabled);
++
++        //Disable GPS
++        gps.bGPSEnabled = FALSE;
++
++        TEST(ioctl(*(&fd), IOCTL_FAD_SET_GPS_ENABLE, &gps));
++
++        if (TEST_RETURN != 0) {
++          tst_resm(TFAIL, "call failed unexpectedly");
++        }
++
++        if (TEST_ERRNO == ERROR_SUCCESS)
++          tst_resm(TPASS | TTERRNO, "succeded as expected");
++        else
++          tst_resm(TFAIL | TTERRNO,
++                   "failed unexpectedly; expected %d - %s",
++                   EFAULT, strerror(EFAULT));
++
++        //Check GPS
++        TEST(ioctl(*(&fd), IOCTL_FAD_GET_GPS_ENABLE, &gps));
++
++        if (TEST_RETURN != 0) {
++          tst_resm(TFAIL, "call failed unexpectedly");
++        }
++
++        if (TEST_ERRNO == ERROR_SUCCESS)
++          tst_resm(TPASS | TTERRNO, "succeded as expected");
++        else
++          tst_resm(TFAIL | TTERRNO,
++                   "failed unexpectedly; expected %d - %s",
++                   EFAULT, strerror(EFAULT));
++
++        printf("Gps active? %u\n",  gps.bGPSEnabled);
++
++        //Enable GPS
++                        
++        gps.bGPSEnabled = TRUE;
++
++        TEST(ioctl(*(&fd), IOCTL_FAD_SET_GPS_ENABLE, &gps));
++
++        if (TEST_RETURN != 0) {
++          tst_resm(TFAIL, "call failed unexpectedly");
++        }
++
++        if (TEST_ERRNO == ERROR_SUCCESS)
++          tst_resm(TPASS | TTERRNO, "succeded as expected");
++        else
++          tst_resm(TFAIL | TTERRNO,
++                   "failed unexpectedly; expected %d - %s",
++                   EFAULT, strerror(EFAULT));
++
++        //Check GPS
++        TEST(ioctl(*(&fd), IOCTL_FAD_GET_GPS_ENABLE, &gps));
++
++        if (TEST_RETURN != 0) {
++          tst_resm(TFAIL, "call failed unexpectedly");
++        }
++
++        if (TEST_ERRNO == ERROR_SUCCESS)
++          tst_resm(TPASS | TTERRNO, "succeded as expected");
++        else
++          tst_resm(TFAIL | TTERRNO,
++                   "failed unexpectedly; expected %d - %s",
++                   EFAULT, strerror(EFAULT));
++
++        printf("Gps active? %u\n",  gps.bGPSEnabled);
++
++
++        //TEST Laser
++        FADDEVIOCTLLASER laser;
++        
++        TEST(ioctl(*(&fd), IOCTL_FAD_GET_LASER_STATUS, &laser));
++
++        if (TEST_RETURN != 0) {
++          tst_resm(TFAIL, "call failed unexpectedly");
++        }
++
++        if (TEST_ERRNO == ERROR_SUCCESS)
++          tst_resm(TPASS | TTERRNO, "succeded as expected");
++        else
++          tst_resm(TFAIL | TTERRNO,
++                   "failed unexpectedly; expected %d - %s",
++                   EFAULT, strerror(EFAULT));
++
++        printf("Laser status? %u %u\n",  laser.bLaserPowerEnabled, laser.bLaserIsOn);
++
++
++        //TEST Laseractive
++        FADDEVIOCTLLASERACTIVE laseractive;
++        
++        TEST(ioctl(*(&fd), IOCTL_FAD_GET_LASER_ACTIVE, &laseractive));
++
++        if (TEST_RETURN != 0) {
++          tst_resm(TFAIL, "call failed unexpectedly");
++        }
++
++        if (TEST_ERRNO == ERROR_SUCCESS)
++          tst_resm(TPASS | TTERRNO, "succeded as expected");
++        else
++          tst_resm(TFAIL | TTERRNO,
++                   "failed unexpectedly; expected %d - %s",
++                   EFAULT, strerror(EFAULT));
++
++        printf("Laser active?  %u\n",  laseractive.bLaserActive);
++
++
++
++        // Cleanup
++        cleanup();
++	tst_exit();
++}
++
++static void help(void)
++{
++	printf("  -D <fad device> : for example, /dev/fad0\n");
++}
++
++static void setup(void)
++{
++	tst_sig(NOFORK, DEF_HANDLER, cleanup);
++
++	TEST_PAUSE;
++
++	/* make a temporary directory and cd to it */
++	tst_tmpdir();
++
++	/* if (tst_kvercmp(3, 7, 0) < 0) { */
++	/* 	TC[2].error = EINVAL; */
++	/* } */
++
++	/* create a temporary file */
++	fd1 = open("x", O_CREAT, 0777);
++	if (fd1 == -1)
++		tst_resm(TFAIL | TERRNO, "Could not open test file");
++}
++
++static void cleanup(void)
++{
++	close(fd1);
++
++	tst_rmdir();
++}
+diff --git a/testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c b/testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c
+new file mode 100644
+index 000000000..deab6c649
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/flir_fvdk_ioctl.c
+@@ -0,0 +1,158 @@
++/*
++ *
++ *   Copyright (c) International Business Machines  Corp., 2001
++ *
++ *   This program is free software;  you can redistribute it and/or modify
++ *   it under the terms of the GNU General Public License as published by
++ *   the Free Software Foundation; either version 2 of the License, or
++ *   (at your option) any later version.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY;  without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
++ *   the GNU General Public License for more details.
++ *
++ *   You should have received a copy of the GNU General Public License
++ *   along with this program;  if not, write to the Free Software
++ *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
++ */
++
++/*
++ * NAME
++ *	ioctl01.c
++ *
++ * DESCRIPTION
++ *	Testcase to check the errnos set by the ioctl(2) system call.
++ *
++ * ALGORITHM
++ *	1. EBADF: Pass an invalid fd to ioctl(fd, ..) and expect EBADF.
++ *	2. EFAULT: Pass an invalid address of arg in ioctl(fd, .., arg)
++ *	3. EINVAL: Pass invalid cmd in ioctl(fd, cmd, arg)
++ *	4. ENOTTY: Pass an non-streams fd in ioctl(fd, cmd, arg)
++ *	5. EFAULT: Pass a NULL address for termio
++ *
++ * USAGE:  <for command-line>
++ *  ioctl01 -D /dev/tty[0-9] [-c n] [-e] [-i n] [-I x] [-P x] [-t]
++ *     where,  -c n : Run n copies concurrently.
++ *             -e   : Turn on errno logging.
++ *             -i n : Execute test n times.
++ *             -I x : Execute test for x seconds.
++ *             -P x : Pause for x seconds between iterations.
++ *             -t   : Turn on syscall timing.
++ *
++ * HISTORY
++ *	07/2001 Ported by Wayne Boyer
++ *	04/2002 Fixes by wjhuie
++ *
++ * RESTRICTIONS
++ *      test must be run with the -D option
++ *      test may have to be run as root depending on the tty permissions
++ */
++
++#include <errno.h>
++#include <fcntl.h>
++#include <stdio.h>
++#include <termio.h>
++#include <termios.h>
++#include "test.h"
++#include "include/flir_kernel_os.h"
++#include "include/fvd.h"
++
++
++char *TCID = "ioctl01";
++int TST_TOTAL = 6;
++
++#define	INVAL_IOCTL	9999999
++
++static void setup(void);
++static void cleanup(void);
++static void help(void);
++
++static int fd, fd1;
++
++
++static int Devflag;
++static char *devname;
++
++static option_t options[] = {
++	{"D:", &Devflag, &devname},
++	{NULL, NULL, NULL}
++};
++
++int main(int ac, char **av)
++{
++
++	tst_parse_opts(ac, av, options, &help);
++
++	if (!Devflag)
++		tst_brkm(TBROK, NULL, "You must specify a fvdk device with "
++			 "the -D option.");
++
++	tst_require_root();
++
++	setup();
++
++	fd = open(devname, O_RDWR, 0777);
++	if (fd == -1)
++		tst_brkm(TBROK | TERRNO, cleanup, "Couldn't open %s", devname);
++
++        /* /\* Tes IOCTL_FVD_GET_VERSION *\/ */
++        DWORD test;
++        
++        TEST(ioctl(*(&fd), IOCTL_FVD_GET_VERSION, &test));
++
++        if (TEST_RETURN != 50) {
++          tst_resm(TFAIL, "call succeded unexpectedly err %i", TEST_RETURN);
++        }
++
++        TEST(ioctl(*(&fd), IOCTL_FVD_GET_PARAM, &test));
++
++        if (TEST_RETURN != 50) {
++          tst_resm(TFAIL, "call succeded unexpectedly err %i", TEST_RETURN);
++        }
++        TEST(ioctl(*(&fd), IOCTL_FVD_GET_IRDM_PARAM, &test));
++
++        if (TEST_RETURN != 50) {
++          tst_resm(TFAIL, "call succeded unexpectedly err %i", TEST_RETURN);
++        }
++
++
++
++        
++
++
++        // Cleanup
++        cleanup();
++	tst_exit();
++}
++
++static void help(void)
++{
++	printf("  -D <fad device> : for example, /dev/fvdk0\n");
++}
++
++static void setup(void)
++{
++	tst_sig(NOFORK, DEF_HANDLER, cleanup);
++
++	TEST_PAUSE;
++
++	/* make a temporary directory and cd to it */
++	tst_tmpdir();
++
++	/* if (tst_kvercmp(3, 7, 0) < 0) { */
++	/* 	TC[2].error = EINVAL; */
++	/* } */
++
++	/* create a temporary file */
++	fd1 = open("x", O_CREAT, 0777);
++	if (fd1 == -1)
++		tst_resm(TFAIL | TERRNO, "Could not open test file");
++}
++
++static void cleanup(void)
++{
++	close(fd1);
++
++	tst_rmdir();
++}
+diff --git a/testcases/flir/syscalls/ioctl/flir_vcam_ioctl.c b/testcases/flir/syscalls/ioctl/flir_vcam_ioctl.c
+new file mode 100644
+index 000000000..97604e486
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/flir_vcam_ioctl.c
+@@ -0,0 +1,411 @@
++/*
++ *
++ *   Copyright (c) International Business Machines  Corp., 2001
++ *   Copyright (c) FLIR, 2021
++ *
++ *   This program is free software;  you can redistribute it and/or modify
++ *   it under the terms of the GNU General Public License as published by
++ *   the Free Software Foundation; either version 2 of the License, or
++ *   (at your option) any later version.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY;  without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
++ *   the GNU General Public License for more details.
++ *
++ *   You should have received a copy of the GNU General Public License
++ *   along with this program;  if not, write to the Free Software
++ *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
++ */
++
++/*
++ * NAME
++ *	flir_vcam_ioctl.c
++ *
++ * DESCRIPTION
++ *	Testcase to check the errnos set by the ioctl(2) system call.
++ *
++ * ALGORITHM
++ *      Test each IOCTL available
++ *
++ *
++ * USAGE:  <for command-line>
++ *  flir_vcam_ioctl -D /dev/vcam0 
++ *
++ * HISTORY
++ *	07/2001 Ported by Wayne Boyer
++ *	04/2002 Fixes by wjhuie
++ *      03/2021 converted to flir vcam Bo Svangård
++ *
++ * RESTRICTIONS
++ *      test must be run with the -D option
++ *      test may have to be run as root depending on the tty permissions
++ */
++
++#include <errno.h>
++#include <fcntl.h>
++#include <stdio.h>
++#include <termio.h>
++#include <termios.h>
++#include "test.h"
++#include "include/flir_kernel_os.h"
++#include "include/vcam.h"
++#include <unistd.h>
++#include <stdlib.h>
++
++
++char *TCID = "flir_vcam_ioctl";
++int TST_TOTAL = 6;
++
++#define	INVAL_IOCTL	9999999
++
++static void setup(void);
++static void cleanup(void);
++static void help(void);
++int do_ioctl(unsigned long request, void *data, int expectedreturn);
++void flir_vcam_test_model();
++void flir_vcam_test_fov(void);
++void flir_vcam_test_suspend();
++void flir_vcam_test_focus();
++void flir_vcam_test_flash();
++void flir_vcam_test_test();
++
++static int fd, fd1;
++
++
++static int Devflag;
++static char *devname;
++
++static option_t options[] = {
++	{"D:", &Devflag, &devname},
++	{NULL, NULL, NULL}
++};
++
++
++
++
++
++int main(int ac, char **av)
++{
++
++	tst_parse_opts(ac, av, options, &help);
++
++	if (!Devflag)
++		tst_brkm(TBROK, NULL, "You must specify a vcam device with "
++			 "the -D option.");
++
++	tst_require_root();
++
++	setup();
++
++	fd = open(devname, O_RDWR, 0777);
++	if (fd == -1)
++		tst_brkm(TBROK | TERRNO, cleanup, "Couldn't open %s", devname);
++
++        /* #define IOCTL_CAM_GET_CAM_MODEL VCAM_IOCTL_R_W(7, VCAMIOCTLCAMMODEL) */
++        flir_vcam_test_model();
++
++        //#define IOCTL_CAM_SUSPEND           VCAM_IOCTL_N(17)
++        //#define IOCTL_CAM_RESUME            VCAM_IOCTL_N(18)
++        flir_vcam_test_suspend();
++
++        //#define IOCTL_CAM_GET_FOV           VCAM_IOCTL_R(15, VCAMIOCTLFOV)
++        //#define IOCTL_CAM_SET_FOV           VCAM_IOCTL_W(16, VCAMIOCTLFOV)
++        flir_vcam_test_fov();
++        
++        //#define IOCTL_CAM_SET_FOCUS			VCAM_IOCTL_W(12, VCAMIOCTLFOCUS)
++        //#define IOCTL_CAM_GET_FOCUS			VCAM_IOCTL_W(13, VCAMIOCTLFOCUS)
++        flir_vcam_test_focus();
++
++        //#define IOCTL_CAM_GET_FLASH 	    VCAM_IOCTL_R(3, VCAMIOCTLFLASH)
++        //#define IOCTL_CAM_SET_FLASH         VCAM_IOCTL_W(4, VCAMIOCTLFLASH)
++        flir_vcam_test_flash();
++
++
++        //#define IOCTL_CAM_GET_TEST  	    VCAM_IOCTL_R(1, VCAMIOCTLTEST)
++        //#define IOCTL_CAM_SET_TEST	        VCAM_IOCTL_W(2, VCAMIOCTLTEST)
++        flir_vcam_test_test();
++
++        // Cleanup
++        cleanup();
++	tst_exit();
++}
++
++static void help(void)
++{
++	printf("  -D <fad device> : for example, /dev/fvdk0\n");
++}
++
++static void setup(void)
++{
++	tst_sig(NOFORK, DEF_HANDLER, cleanup);
++
++	TEST_PAUSE;
++
++	/* make a temporary directory and cd to it */
++	tst_tmpdir();
++
++	/* if (tst_kvercmp(3, 7, 0) < 0) { */
++	/* 	TC[2].error = EINVAL; */
++	/* } */
++
++	/* create a temporary file */
++	fd1 = open("x", O_CREAT, 0777);
++	if (fd1 == -1)
++		tst_resm(TFAIL | TERRNO, "Could not open test file");
++}
++
++static void cleanup(void)
++{
++	close(fd1);
++	tst_rmdir();
++}
++
++int do_ioctl(unsigned long request, void *data, int expectedreturn)
++{
++        
++        TEST(ioctl(*(&fd), request, data));
++
++        if (TEST_RETURN != expectedreturn) {
++                tst_resm(TFAIL, "call failed unexpectedly err %i", TEST_RETURN);
++                return -TFAIL;
++        }
++        
++        return 0;
++}
++
++
++void flir_vcam_test_fov(void)
++{
++        //#define IOCTL_CAM_GET_FOV           VCAM_IOCTL_R(15, VCAMIOCTLFOV)
++        //#define IOCTL_CAM_SET_FOV           VCAM_IOCTL_W(16, VCAMIOCTLFOV)
++        VCAMIOCTLFOV fov;
++        
++        fov.fov=39;
++
++        do_ioctl(IOCTL_CAM_SET_FOV, (void *)&fov, ERROR_SUCCESS);
++        fov.fov=0;
++        do_ioctl(IOCTL_CAM_GET_FOV, (void *)&fov, ERROR_SUCCESS);
++
++        if (fov.fov != 39) {
++		tst_resm(TFAIL, "Could not set OV5640 FOV to 39 degrees");
++        } else {
++		tst_resm(TPASS, "OV5640 FOV set to 39 degrees");
++        }
++        
++
++        //system("cat /dev/fb1 > ~/fb1_camera_fov_39.raw");
++        sleep(1);
++        fov.fov=28;
++        do_ioctl(IOCTL_CAM_SET_FOV, (void *)&fov, ERROR_SUCCESS);
++        fov.fov=0;
++        do_ioctl(IOCTL_CAM_GET_FOV, (void *)&fov, ERROR_SUCCESS);
++        
++        
++        if (fov.fov != 28) {
++		tst_resm(TFAIL, "Could not set OV5640 FOV to 28 degrees");
++        } else {
++		tst_resm(TPASS, "OV5640 FOV set to 28 degrees");
++        }
++
++        //system("cat /dev/fb1 > ~/fb1_camera_fov_28.raw");
++        sleep(1);
++        fov.fov=54;
++
++        do_ioctl(IOCTL_CAM_SET_FOV, (void *)&fov, ERROR_SUCCESS);
++        fov.fov=0;
++        do_ioctl(IOCTL_CAM_GET_FOV, (void *)&fov, ERROR_SUCCESS);
++        
++        if (fov.fov != 54) {
++		tst_resm(TFAIL, "Could not set OV5640 FOV to 54 degrees");
++        } else {
++		tst_resm(TPASS, "OV5640 FOV set to 54 degrees");
++        }
++
++
++        //system("cat /dev/fb1 > ~/fb1_camera_fov_54.raw");
++        sleep(1);
++
++        fov.fov=60;
++        do_ioctl(IOCTL_CAM_SET_FOV, (void *)&fov, ERROR_NOT_SUPPORTED);
++        fov.fov=0;
++        do_ioctl(IOCTL_CAM_GET_FOV, (void *)&fov, ERROR_SUCCESS);
++
++        if (fov.fov != 54) {
++		tst_resm(TFAIL, "FOV changed after erronous setting tried");
++        } else {
++		tst_resm(TPASS, "OV5640 FOV remains at old setting after erronous setting");
++        }
++        
++}
++
++
++void flir_vcam_test_suspend()
++{
++        //#define IOCTL_CAM_SUSPEND           VCAM_IOCTL_N(17)
++        //#define IOCTL_CAM_RESUME            VCAM_IOCTL_N(18)
++        do_ioctl(IOCTL_CAM_SUSPEND, (void *)NULL, ERROR_SUCCESS);
++        sleep(1);
++        //system("dd if=/dev/fb1 of=~/fb1_camera_suspended.raw");
++        do_ioctl(IOCTL_CAM_RESUME, (void *)NULL, ERROR_SUCCESS);
++}
++
++void flir_vcam_test_model()
++{
++        VCAMIOCTLCAMMODEL cammodel;
++        
++        do_ioctl(IOCTL_CAM_GET_CAM_MODEL, (void *)&cammodel, ERROR_SUCCESS);
++        
++	if (cammodel.eCamModel == OV5640) {
++		tst_resm(TPASS, "OV5640 Camera detected");
++        } else {
++		tst_resm(TFAIL, "Could not detect OV5640 camera... (got %u, expected %u)", cammodel.eCamModel, OV5640);
++	}
++}
++
++void flir_vcam_test_focus()
++{
++        VCAMIOCTLFOCUS focus;
++        int ret;
++        
++        ret = do_ioctl(IOCTL_CAM_SET_FOCUS, (void *)&focus, ERROR_NOT_SUPPORTED);
++	if (ret == 0) {
++		tst_resm(TPASS, "IOCTL_CAM_SET_FOCUS not supported");
++        } else {
++		tst_resm(TFAIL, "IOCTL_CAM_GET_FOCUS should report not supported...");
++	}
++
++        ret = do_ioctl(IOCTL_CAM_GET_FOCUS, (void *)&focus, ERROR_NOT_SUPPORTED);
++	if (ret == 0) {
++		tst_resm(TPASS, "IOCTL_CAM_GET_FOCUS not supported");
++        } else {
++		tst_resm(TFAIL, "IOCTL_CAM_GET_FOCUS should report not supported...");
++	}
++}
++
++
++void flir_vcam_test_flash()
++{
++        VCAMIOCTLFLASH flash;
++        int ret;
++
++        flash.bTorchOn=0;
++        flash.bFlashOn=0;
++
++        ret = do_ioctl(IOCTL_CAM_SET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        ret = do_ioctl(IOCTL_CAM_GET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        if (ret == 0) {
++          if (flash.bTorchOn == 0) {
++            tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Torch returned off after setting it to off");
++          } else {
++            tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Torch On, expected Torch Off after setting it to Off");
++          }
++
++          if (flash.bFlashOn == 0) {
++            tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Flash returned off after setting it to off");
++          } else {
++            tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Flash On, expected Flash Off after setting it to Off");
++          }
++        }
++        
++        flash.bTorchOn=1;
++        flash.bFlashOn=1;
++        
++        ret = do_ioctl(IOCTL_CAM_SET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        ret = do_ioctl(IOCTL_CAM_GET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        if (ret == 0) {
++                if (flash.bTorchOn == 1) {
++                        tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Torch returned on after setting it to on");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Torch Off, expected Torch On after setting it to On");
++                }
++
++                if (flash.bFlashOn == 1) {
++                        tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Flash returned on after setting it to on");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Flash Off, expected Flash On after setting it to on");
++                }
++        }
++
++        flash.bTorchOn=0;
++        flash.bFlashOn=0;
++        
++        ret = do_ioctl(IOCTL_CAM_SET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        ret = do_ioctl(IOCTL_CAM_GET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        if (ret == 0) {
++                if (flash.bTorchOn == 0) {
++                        tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Torch returned off after setting it to off");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Torch On, expected Torch Off after setting it to Off");
++                }
++
++                if (flash.bFlashOn == 0) {
++		tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Flash returned off after setting it to off");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Flash On, expected Flash Off after setting it to Off");
++                }
++        }
++
++        flash.bTorchOn=0;
++        flash.bFlashOn=1;
++
++        ret = do_ioctl(IOCTL_CAM_SET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        ret = do_ioctl(IOCTL_CAM_GET_FLASH, (void *)&flash, ERROR_SUCCESS);
++
++        if (ret == 0) {
++                if (flash.bTorchOn == 0) {
++                        tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Torch returned off after setting it to off");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Torch On, expected Torch Off after setting it to Off");
++                }
++
++                if (flash.bFlashOn == 1) {
++                        tst_resm(TPASS, "IOCTL_CAM_GET_FLASH Flash returned on after setting it to on");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_FLASH returned Flash Off, expected Flash On after setting it to on");
++                }
++        }
++}
++
++
++flir_vcam_test_test()
++{
++        VCAMIOCTLTEST test;
++        int ret;
++        
++        test.bTestMode=0;
++        
++        ret = do_ioctl(IOCTL_CAM_SET_TEST, (void *)&test, ERROR_SUCCESS);
++
++        ret = do_ioctl(IOCTL_CAM_GET_TEST, (void *)&test, ERROR_SUCCESS);
++        if (ret == 0) {
++                if (test.bTestMode == 0) {
++                        tst_resm(TPASS, "IOCTL_CAM_GET_TEST disabled after setting it to off");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_TEST returned test On, expected test Off after setting it to Off");
++                }
++        }
++        
++
++        test.bTestMode=1;
++        
++        ret = do_ioctl(IOCTL_CAM_SET_TEST, (void *)&test, ERROR_SUCCESS);
++
++        ret = do_ioctl(IOCTL_CAM_GET_TEST, (void *)&test, ERROR_SUCCESS);
++
++        if (ret == 0) {
++                if (test.bTestMode == 1) {
++                        tst_resm(TPASS, "IOCTL_CAM_GET_TEST enabled after setting it to on");
++                } else {
++                        tst_resm(TFAIL, "IOCTL_CAM_GET_TEST returned test On, expected test On after setting it to On");
++                }
++        }
++}
++
+diff --git a/testcases/flir/syscalls/ioctl/include/faddev.h b/testcases/flir/syscalls/ioctl/include/faddev.h
+new file mode 100644
+index 000000000..93d1c86c9
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/include/faddev.h
+@@ -0,0 +1,309 @@
++#ifndef __FADDEV_H__
++#define __FADDEV_H__
++
++// Definitions
++
++typedef struct _FADDEVIOCTLLASER 
++{
++	BOOL	bLaserPowerEnabled;
++    BOOL	bLaserIsOn;
++} FADDEVIOCTLLASER, *PFADDEVIOCTLLASER;
++
++typedef struct _FADDEVIOCTLSHUTTER 
++{
++	BOOL	bShutterEnabled;
++} FADDEVIOCTLSHUTTER, *PFADDEVIOCTLSHUTTER;
++
++typedef struct _FADDEVIOCTLTORCH 
++{
++	BOOL	bTorchEnabled;
++	BOOL	bFlashEnabled;
++} FADDEVIOCTLTORCH, *PFADDEVIOCTLTORCH;
++
++typedef struct _FADDEVIOCTLBUZZER 
++{
++    enum { BUZZER_ON, BUZZER_OFF, BUZZER_TIME } eState;
++	UCHAR   ucPWM;      // Sound PWM in % (0-100, default 50)
++	USHORT  usFreq;     // Sound frequency in Hz (200 - 12000)
++	USHORT  usTime;     // Sound length in ms (if BUZZER_TIME)
++} FADDEVIOCTLBUZZER, *PFADDEVIOCTLBUZZER;
++
++typedef struct _FADDEVIOCTL7173MODE
++{
++    BOOL    bPALmode;       // TRUE = PAL, FALSE = NTSC
++    BOOL    bTESTmode;      // TRUE = Color bar, FALSE = normal image
++    BOOL    bCableDetect;   // Only used in GET operations
++} FADDEVIOCTL7173MODE, *PFADDEVIOCTL7173MODE;
++
++typedef struct _FADDEVIOCTLLCD
++{
++	BOOL	bLCDOut;        // True = LCD out (used), False = LCD in (not used)
++} FADDEVIOCTLLCD, *PFADDEVIOCTLLCD;
++
++typedef struct _FADDEVIOCTLCOMPASS
++{
++	USHORT usAngle;        // 0-359 value
++    enum { COMPASS_UNKNOWN, 
++           COMPASS_N,
++           COMPASS_NE,
++           COMPASS_E,
++           COMPASS_SE,
++           COMPASS_S,
++           COMPASS_SW,
++           COMPASS_W,
++           COMPASS_NW} eDirection;
++} FADDEVIOCTLCOMPASS, *PFADDEVIOCTLCOMPASS;
++
++typedef struct _FADDEVIOCTLDIGIO
++{
++    UCHAR   ucNumOfDigIn;   // Output: Number of valid bits (inputs)
++    UCHAR   ucNumOfDigOut;  // Output: Number of valid bits (outputs)
++    USHORT  usInputState;   // Output: State of each input (LSB = IN 0)
++    USHORT  usOutputState;  // Output: State of each output
++    USHORT  usOutputSet;    // Input:  Outputs to set high (SET only)
++    USHORT  usOutputClear;  // Input:  Outputs to set low  (SET only)
++    USHORT  usReserved;
++    ULONG   ulReserved;
++} FADDEVIOCTLDIGIO, *PFADDEVIOCTLDIGIO;
++
++typedef struct _FADDEVIOCTLWDOG
++{
++	BOOL	bEnable;        // True = Enable watchdog, False = disable (set time to 22 minutes)
++    USHORT  usTimeMs;       // Time in ms from watchdog trig until watchdog reset (default 5000)
++} FADDEVIOCTLWDOG, *PFADDEVIOCTLWDOG;
++
++typedef struct _FADDEVIOCTLLED
++{
++    enum { LED_COLOR_OFF,
++           LED_COLOR_GREEN,
++           LED_COLOR_RED,
++           LED_COLOR_YELLOW 
++    } eColor;
++    enum { LED_STATE_OFF,
++           LED_STATE_ON,
++           LED_FLASH_SLOW,  // 1 Hz         
++           LED_FLASH_FAST   // 3 Hz
++    } eState;
++} FADDEVIOCTLLED, *PFADDEVIOCTLLED;
++
++typedef struct _FADDEVIOCTLGPS 
++{
++	BOOL	bGPSEnabled;
++} FADDEVIOCTLGPS, *PFADDEVIOCTLGPS;
++
++typedef struct _FADDEVIOCTLLASERACTIVE 
++{
++	BOOL	bLaserActive;
++} FADDEVIOCTLLASERACTIVE, *PFADDEVIOCTLLASERACTIVE;
++
++typedef struct _FADDEVIOCTLHDMI
++{
++	BOOL	bHdmiPresent;
++} FADDEVIOCTLHDMI, *PFADDEVIOCTLHDMI;
++
++typedef struct _FADDEVIOCTLCOOLER
++{
++	BOOL	bFanOn;
++	BOOL	bCoolerDisable;
++} FADDEVIOCTLCOOLER, *PFADDEVIOCTLCOOLER;
++
++typedef struct _FADDEVIOCTLBACKLIGHT
++{
++	UINT8 backlight;    // IN/OUT: Percentage value
++                        // 0 = Off
++                        // 100 = fully on
++} FADDEVIOCTLBACKLIGHT, *PFADDEVIOCTLBACKLIGHT;
++
++typedef	enum {	
++	KP_SUBJ_LOW, 
++	KP_SUBJ_MEDIUM, 
++	KP_SUBJ_HIGH,
++	KP_SUBJ_OFF
++} SUBJ_KEYPAD_BACKL_E;
++
++typedef enum {
++    FAD_NO_EVENT,
++    FAD_RESET_EVENT,
++    FAD_LASER_EVENT,
++    FAD_DIGIN_EVENT
++} FAD_EVENT_E;
++
++typedef struct _FADDEVIOCTLSUBJBACKLIGHT
++{
++    SUBJ_KEYPAD_BACKL_E	subjectiveBacklight;
++} FADDEVIOCTLSUBJBACKLIGHT, *PFADDEVIOCTLSUBJBACKLIGHT;
++
++#define INITIAL_VERSION 101
++// version 100 uses BOOL on the CFC levels below... 
++typedef struct _FADDEVIOCTLSECURITY
++{
++    ULONG       ulVersion;
++    ULONG       ulRequiredConfigCFClevel;
++    ULONG       ulRequire30HzCFClevel;
++    ULONGLONG   ullUniqueID;
++} FADDEVIOCTLSECURITY, *PFADDEVIOCTLSECURITY;
++
++typedef struct _FADDEVIOCTLTRIGPRESSED
++{
++	BOOL	bTrigPressed;
++} FADDEVIOCTLTRIGPRESSED, *PFADDEVIOCTLTRIGPRESSED;
++
++typedef enum 
++{ 
++    LASERMODE_POINTER, 
++    LASERMODE_DISTANCE 
++} FADDEVIOCTLLASERMODES;
++
++typedef enum 
++{ 
++    LASERMODE_DISTANCE_NONE = 0, 
++    LASERMODE_DISTANCE_LOW_ACCURACY, 
++    LASERMODE_DISTANCE_HIGH_ACCURACY 
++} FADDEVIOCTLLASERMODEACCURACY;
++
++typedef struct _FADDEVIOCTLLASERMODE
++{
++    FADDEVIOCTLLASERMODES mode;
++    BOOL continousMeasurment;
++    FADDEVIOCTLLASERMODEACCURACY accuracy;
++} FADDEVIOCTLLASERMODE, *PFADDEVIOCTLLASERMODE;
++
++// The diffrent power-state we can when we use the Truck Mounted Charger in Fenix.
++typedef enum { TC_HANDHELD, TC_PRODUCTION, TC_IN_TC_POWER, TC_IN_TC_NOPOWER} FADDEVIOCTLTCPOWERSTATES;
++
++//Public defines:
++#define FAD_FILE_MUTEX_NAME				TEXT("FAD_FILE_FLUSH_MUTEX")
++#define FAD_FILE_MUTEX_TIMEOUT			500
++
++#define FAD_REG_NAME_SOURCEPATH			TEXT("SourcePath")
++#define FAD_REG_NAME_DESTPATH			TEXT("DestPath")
++
++// IOCTL codes.
++#define FAD_SERVICE						0x8000
++
++// Quickie fix to avoid lots of new preproc defines
++#if defined(_WIN32) && !(defined(UNDER_CE)) && !(defined(BTZCAMSIM))
++#define BTZCAMSIM
++#endif
++
++#ifdef UNDER_CE
++#define FAD_IOCTL_W(code,type)   CTL_CODE(FAD_SERVICE, code, METHOD_BUFFERED, FILE_WRITE_ACCESS)
++#define FAD_IOCTL_R_W(code,type) CTL_CODE(FAD_SERVICE, code, METHOD_BUFFERED, FILE_WRITE_ACCESS)
++#define FAD_IOCTL_R(code,type)   CTL_CODE(FAD_SERVICE, code, METHOD_BUFFERED, FILE_READ_ACCESS)
++#define FAD_IOCTL_N(code)        CTL_CODE(FAD_SERVICE, code, METHOD_BUFFERED, FILE_WRITE_ACCESS)
++#else
++#define FAD_IOCTL_W(code,type)   _IOW('a', code, type)
++#define FAD_IOCTL_R_W(code,type) _IOR('a', code, type)
++#define FAD_IOCTL_R(code,type)   _IOR('a', code, type)
++#define FAD_IOCTL_N(code)        _IO('a', code)
++#endif
++
++#define IOCTL_FAD_GET_LASER_STATUS		FAD_IOCTL_R(1, FADDEVIOCTLLASER)
++#define IOCTL_FAD_SET_LASER_STATUS		FAD_IOCTL_W(2, FADDEVIOCTLLASER)
++#define IOCTL_SET_APP_EVENT				FAD_IOCTL_W(3, DWORD)	// Null-terminated string
++#define IOCTL_FAD_GET_SHUTTER_STATUS	FAD_IOCTL_R(4, NotUsedAnyMore) 
++#define IOCTL_FAD_SET_SHUTTER_STATUS	FAD_IOCTL_W(5, NotUsedAnyMore) 
++// The following reset enters programming state
++#define IOCTL_FAD_RESET_TEMPCPU			FAD_IOCTL_W(6, NotUsedAnyMore)
++#define IOCTL_FAD_AQUIRE_FILE_ACCESS	FAD_IOCTL_W(7, NotUsedAnyMore) 
++#define IOCTL_FAD_RELEASE_FILE_ACCESS	FAD_IOCTL_R(8, NotUsedAnyMore) 
++// The following reset restarts the ADuC without entering bootloader mode
++#define IOCTL_FAD_RESTART_TEMPCPU		FAD_IOCTL_W(9, NotUsedAnyMore)
++#define IOCTL_FAD_GET_TORCH_STATUS      FAD_IOCTL_R(10, NotUsedAnyMore) 
++#define IOCTL_FAD_SET_TORCH_STATUS      FAD_IOCTL_W(11, NotUsedAnyMore) 
++#define IOCTL_FAD_BUZZER                FAD_IOCTL_W(12, FADDEVIOCTLBUZZER) 
++#define IOCTL_FAD_7173_GET_MODE         FAD_IOCTL_R(13, NotUsedAnyMore) 
++#define IOCTL_FAD_7173_SET_MODE         FAD_IOCTL_W(14, FADDEVIOCTL7173MODE)
++#define IOCTL_FAD_GET_LCD_STATUS		FAD_IOCTL_R(15, FADDEVIOCTLLCD)
++#define IOCTL_FAD_TRIG_OPTICS           FAD_IOCTL_N(16)
++#define IOCTL_FAD_DISABLE_IRDA          FAD_IOCTL_W(17, NotUsedAnyMore) 
++#define IOCTL_FAD_ENABLE_IRDA           FAD_IOCTL_W(18, NotUsedAnyMore) 
++#define IOCTL_FAD_GET_COMPASS           FAD_IOCTL_R(19, NotUsedAnyMore) 
++#define IOCTL_FAD_GET_DIG_IO_STATUS     FAD_IOCTL_R(20, FADDEVIOCTLDIGIO)
++#define IOCTL_FAD_SET_DIG_IO_STATUS     FAD_IOCTL_R(21, FADDEVIOCTLDIGIO)
++#define IOCTL_FAD_ENABLE_WATCHDOG       FAD_IOCTL_R(22, NotUsedAnyMore) 
++#define IOCTL_FAD_TRIG_WATCHDOG         FAD_IOCTL_R(23, NotUsedAnyMore) 
++#define IOCTL_FAD_ENABLE_PT1000			FAD_IOCTL_R(24, NotUsedAnyMore)
++#define IOCTL_FAD_GET_LED				FAD_IOCTL_R(25, FADDEVIOCTLLED)
++#define IOCTL_FAD_SET_LED				FAD_IOCTL_W(26, FADDEVIOCTLLED)
++#define IOCTL_FAD_GET_GPS_ENABLE		FAD_IOCTL_R(27, FADDEVIOCTLGPS)
++#define IOCTL_FAD_SET_GPS_ENABLE		FAD_IOCTL_W(28, FADDEVIOCTLGPS)
++#define IOCTL_FAD_GET_LASER_ACTIVE		FAD_IOCTL_R(29, FADDEVIOCTLLASERACTIVE)
++#define IOCTL_FAD_SET_LASER_ACTIVE		FAD_IOCTL_W(30, FADDEVIOCTLLASERACTIVE)
++#define IOCTL_FAD_GET_HDMI_STATUS		FAD_IOCTL_R(31, FADDEVIOCTLHDMI)
++#define IOCTL_FAD_GET_COOLER_STATE		FAD_IOCTL_W(32, NotUsedAnyMore)
++#define IOCTL_FAD_SET_COOLER_STATE		FAD_IOCTL_W(33, NotUsedAnyMore)
++#define IOCTL_FAD_GET_MODE_WHEEL_POS    FAD_IOCTL_R(34, DWORD)
++#define IOCTL_FAD_SET_HDMI_ACCESS       FAD_IOCTL_W(35, DWORD)
++#define IOCTL_FAD_GET_KAKA_LED			FAD_IOCTL_R(36, FADDEVIOCTLLED)
++#define IOCTL_FAD_SET_KAKA_LED			FAD_IOCTL_W(37, FADDEVIOCTLLED)
++#define IOCTL_FAD_GET_CPU_INFO			FAD_IOCTL_R(38, NotUsedAnyMore)
++#define IOCTL_FAD_SET_L2CACHE			FAD_IOCTL_W(39, NotUsedAnyMore)
++#define IOCTL_FAD_GET_KP_BACKLIGHT      FAD_IOCTL_R(40, FADDEVIOCTLBACKLIGHT) 
++#define IOCTL_FAD_SET_KP_BACKLIGHT      FAD_IOCTL_W(41, FADDEVIOCTLBACKLIGHT) 
++#define IOCTL_FAD_GET_KP_SUBJ_BACKLIGHT FAD_IOCTL_R(42, FADDEVIOCTLSUBJBACKLIGHT) 
++#define IOCTL_FAD_SET_KP_SUBJ_BACKLIGHT FAD_IOCTL_W(43, FADDEVIOCTLSUBJBACKLIGHT) 
++#define IOCTL_FAD_GET_TC_STATE          FAD_IOCTL_W(44, NotUsedAnyMore) 
++#define IOCTL_FAD_GET_PAGE_POOL_INFO    FAD_IOCTL_W(45, NotUsedAnyMore) 
++#define IOCTL_FAD_GET_START_REASON      FAD_IOCTL_R_W(46, DWORD)
++#define IOCTL_FAD_IS_WDOG_DISABLE_SUPP  FAD_IOCTL_W(47, NotUsedAnyMore)
++#define IOCTL_FAD_GET_SECURITY_PARAMS   FAD_IOCTL_R(48, FADDEVIOCTLSECURITY)
++#define IOCTL_FAD_RELEASE_READ          FAD_IOCTL_N(49)
++#define IOCTL_FAD_GET_TRIG_PRESSED      FAD_IOCTL_R(50, FADDEVIOCTLTRIGPRESSED)
++#define IOCTL_FAD_SET_LASER_MODE        FAD_IOCTL_W(51, FADDEVIOCTLLASERMODE)
++
++// DeviceIoControl wrapper for CE/Linux/BTZCAMSIM crosscompatibility
++
++// Win CE
++//
++#ifdef UNDER_CE
++
++#define FADDRVNAME L"FAD1:"
++#define FADControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret) DeviceIoControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret, NULL)
++#define FADCreateHandle(path) CreateFile(path, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
++#define FADCloseHandle(hnd) CloseHandle(hnd)
++
++// BTZCAMSIM (NT, Linux, iOS, OSX) - Not fully supported
++//
++#elif defined(BTZCAMSIM)
++
++#define FADControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret) TRUE
++#define FADCreateHandle(path) (DHANDLE) 1
++#define FADCloseHandle(hnd)
++
++// Linux device
++//
++#else
++
++#define FADDRVNAME "/dev/fad0"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++DHANDLE FOpenDriver(const char *name,
++		    DWORD dwDesiredAccess,
++		    DWORD dwShareMode,
++		    void* res,
++		    DWORD dwCreationDisposition,
++		    DWORD dwFlagsAndAttributes,
++		    void* res2);
++BOOL DEVControl(DHANDLE hDev,
++		DWORD dwIoControlCode,
++		LPVOID lpInBuffer,
++		DWORD nInBufSize,
++		LPVOID lpOutBuffer,
++		DWORD nOutBufSize,
++		LPDWORD lpBytesReturned);
++
++#ifdef __cplusplus
++};
++#endif
++
++#define FADCreateHandle(path) FOpenDriver(path, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
++#define FADCloseHandle(f) close((f))
++#define FADControl(a, b, c, d, e, f, g) DEVControl(a, b, c, d, e, f, g)
++
++#endif /* UNDER_CE */
++
++#endif /* __MISCDEV_H__ */
+diff --git a/testcases/flir/syscalls/ioctl/include/flir_ioctl.h b/testcases/flir/syscalls/ioctl/include/flir_ioctl.h
+new file mode 100644
+index 000000000..6b7e8e744
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/include/flir_ioctl.h
+@@ -0,0 +1,41 @@
++/***********************************************************************
++ *                                                                     
++ * Project: Balthazar
++ * $Date$
++ * $Author$
++ *
++ * $Id$
++ *
++ * Description of file:
++ *   Common definitions for FLIR driver access from applications
++ *
++ * Last check-in changelist:
++ * $Change$
++ *
++ * Copyright: FLIR Systems AB
++ ***********************************************************************/
++
++#ifndef __FLIR_IOCTL_H__
++#define __FLIR_IOCTL_H__
++
++// Includes
++
++// #include "Service.h"
++
++// Definitions
++
++#define FLIR_SERVICE         0x9000
++
++#define IOCTL_UFN_GET_CABLE_STATE   CTL_CODE(FLIR_SERVICE,1,METHOD_BUFFERED,FILE_READ_ACCESS)
++#define IOCTL_UFN_SET_ACTION_EVENT  CTL_CODE(FLIR_SERVICE,2,METHOD_BUFFERED,FILE_READ_ACCESS)
++#define IOCTL_UFN_SET_EJECT         CTL_CODE(FLIR_SERVICE,3,METHOD_BUFFERED,FILE_READ_ACCESS)
++#define IOCTL_SDHC_EJECT            CTL_CODE(FLIR_SERVICE,4,METHOD_BUFFERED,FILE_READ_ACCESS)
++#define IOCTL_SDHC_DETECT           CTL_CODE(FLIR_SERVICE,5,METHOD_BUFFERED,FILE_READ_ACCESS)
++#define IOCTL_UFN_SET_FORCE_FS      CTL_CODE(FLIR_SERVICE,6,METHOD_BUFFERED,FILE_READ_ACCESS)
++#define IOCTL_UFN_GET_FORCE_FS      CTL_CODE(FLIR_SERVICE,7,METHOD_BUFFERED,FILE_READ_ACCESS)
++
++
++#define UFN_EJECT_POWER_DOWN    0x55
++#define UFN_EJECT_POWER_UP      0xAA
++
++#endif /* __FLIR_IOCTL_H__ */
+diff --git a/testcases/flir/syscalls/ioctl/include/flir_kernel_os.h b/testcases/flir/syscalls/ioctl/include/flir_kernel_os.h
+new file mode 100644
+index 000000000..c6c8cd600
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/include/flir_kernel_os.h
+@@ -0,0 +1,95 @@
++/***********************************************************************
++ *                                                                     
++ * Project: Balthazar
++ * $Date$
++ * $Author$
++ *
++ * $Id$
++ *
++ * Description of file:
++ *    OS-independent basic include file
++ *
++ * Last check-in changelist:
++ * $Change$
++ *
++ * 
++ *
++ *	Copyright:	FLIR Systems AB
++ ***********************************************************************/
++
++#ifndef _FLIROS_H
++#define _FLIROS_H
++
++/* #include <linux/init.h> */
++/* #include <linux/module.h> */
++/* #include <linux/kernel.h> */
++/* #include <linux/cdev.h> */
++/* #include <linux/moduleparam.h> */
++/* #include <linux/time.h> */
++/* #include <linux/interrupt.h> */
++/* #include <asm/gpio.h> */
++/* #include <linux/workqueue.h> */
++/* #include <linux/delay.h> */
++/* #include <linux/slab.h> */
++/* #include <linux/syscalls.h> */
++/* #include <linux/version.h> */
++/* #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0) */
++/* #include <../arch/arm/mach-imx/iomux-v3.h> */
++/* #else */
++/* #include <mach/iomux-v3.h> */
++/* #endif */
++/* #include <linux/ioctl.h> */
++/* #include <linux/device.h> */
++
++typedef unsigned char BYTE;
++typedef unsigned char UCHAR;
++typedef unsigned char UINT8;
++typedef char CHAR;
++typedef short SHORT;
++typedef short INT16;
++typedef unsigned short WORD;
++typedef unsigned short USHORT;
++typedef unsigned short UINT16;
++typedef unsigned short* PUINT16;
++typedef unsigned long DWORD;
++typedef unsigned long UINT32;
++typedef unsigned long UINT;
++typedef unsigned long ULONG;
++typedef unsigned long* PULONG;
++typedef long INT;
++typedef long LONG;
++typedef long INT32;
++typedef unsigned long long ULONGLONG;
++typedef int BOOL;
++typedef void* LPVOID;
++typedef void* PVOID;
++typedef BYTE* PBYTE;
++typedef BYTE* PUCHAR;
++typedef DWORD* PDWORD;
++typedef DWORD* LPDWORD;
++typedef struct timeval SYSTEMTIME;
++
++
++#define ERROR_SUCCESS              0
++#define ERROR_FILE_NOT_FOUND       2
++#define ERROR_ACCESS_DENIED        5
++#define ERROR_INVALID_HANDLE       6
++#define ERROR_NOT_SUPPORTED       50
++#define ERROR_FILE_EXISTS         80
++#define ERROR_INVALID_PARAMETER   87
++#define ERROR_ALREADY_EXISTS     183
++#define	ERROR_TIMEOUT			1001
++#define ERROR_OUT_OF_STRUCTURES	1002
++#define ERROR_OUTOFMEMORY		1002
++#define ERROR_INVALID_DATA		1003
++#define ERROR_NOT_ENOUGH_MEMORY 1004
++#define ERROR_IO_DEVICE			1005
++
++
++#define TRUE  1
++#define FALSE 0
++
++typedef int DHANDLE;
++#define INVALID_DHANDLE_VALUE ((int) -1)
++
++#endif // _FLIROS_H
+diff --git a/testcases/flir/syscalls/ioctl/include/fvd.h b/testcases/flir/syscalls/ioctl/include/fvd.h
+new file mode 100644
+index 000000000..86d29fe65
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/include/fvd.h
+@@ -0,0 +1,2012 @@
++#ifndef __FVD_H__
++#define __FVD_H__
++
++// Definitions
++
++//
++// Detector type reported by FPGA
++//
++#define DET_TYPE_SB320_0201     0  // SB 320 ISC0201     (X)
++#define DET_TYPE_ULIS320        1  // Not used
++#define DET_TYPE_SB640          2  // Not used
++#define DET_TYPE_ULIS640        3  // ULIS 640 UL04171   (P)
++#define DET_TYPE_ULIS640_DS320  4  // ULIS 640 UL04171 640x480 downsampled to 320x240  (P test)
++#define DET_TYPE_SB320_0401     5  // SB 320 ISC0401     (E, A)
++#define DET_TYPE_SB320_0601     6  // SB 320 ISC0601     (E, A, Z, X2)
++#define DET_TYPE_SB160_0703     7  // SB 160 ISC0703     (Z)
++#define DET_TYPE_ULIS320_03162  8  // ULIS 320 UL03162   (E)
++#define DET_TYPE_SB320_0209     9  // SB 320 ISC0209     (G)
++#define DET_TYPE_ULIS640_04272  10 // ULIS 640 UL04272   (A2, PT)
++#define DET_TYPE_ULIS1024_05251 11 //new ULIS on SART ULIS 1024 UL05251 (AF) 
++#define DET_TYPE_SB320_0901     12 // SB 320 ISC0901     (Z3)  Astra
++#define DET_TYPE_SB640_0801     13 // SB 640 ISC0801     (640x480) (PT, Evander)
++#define DET_TYPE_SB80_1101      14 // SB 80 ISC1101      (80x60) (Lepton)  
++#define DET_TYPE_SB640_1002     15 // SB 640 ISC1002     (640x480) (PT)
++#define DET_TYPE_ULIS_PICO1024E 16 // ULIS 1024          (T1K) (Rocky)
++#define DET_TYPE_SB160_1403     17 // SB 160 ISC1403     (160x120) (Lepton)
++#define DET_TYPE_SB640_1407     18 // SB 640, ISC1407    (640x480) (Evander)
++#define DET_TYPE_I3_DB640       19 // I3 Systems DB640   (640x480) (Evander/Lennox)
++//
++// FPGA Execute Control Request Flags
++//
++#define FVD_EXE_CALC_OFFSET                         0x0001
++#define FVD_EXE_GEN_HISTO                           0x0002
++#define FVD_EXE_SWAP_COLOR_TABLE                    0x0004
++#define FVD_EXE_SWAP_EXP_TABLE                      0x0008
++#define FVD_EXE_SWAP_PALETTE                        0x0010
++#define FVD_EXE_FRAME_GRAB                          0x0020
++#define FVD_EXE_FRAME_GRAB_WRITE                    0x0040
++#define FVD_EXE_POWER_DOWN                          0x0080
++#define FVD_EXE_SWAP_COARSE_MAP                     0x0100
++#define FVD_EXE_SWAP_COMBINED_MAP                   0x0200
++#define FVD_EXE_SWAP_GAIN_MAP                       0x0400
++#define FVD_EXE_REGISTER_UPDATE                     0x0800
++#define FVD_EXE_LOAD_FPGA                           0x1000
++#define FVD_EXE_RESTORE_REGISTERS                   0x2000
++#define FVD_EXE_QCI_REQUEST                         0x4000 // used by display driver to perform QCI one shot
++
++//
++// Execute Control Request structure (used by IOCTL_FVD_EXECUTE)
++//
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_images;
++    USHORT  us_binsize;
++    USHORT  us_offset;
++    USHORT  us_minx;
++    USHORT  us_miny;
++    USHORT  us_maxx;
++    USHORT  us_maxy;
++    wchar_t sz_event[20];   // Event name
++} FVD_Execute;
++
++typedef struct {
++    UCHAR cr;               // Chrominance color red component value of palette entry.
++    UCHAR cb;               // Chrominance color blue component value of palette entry.
++    UCHAR y;                // Luminance value of palette entry.
++    UCHAR unused;
++} FVD_Palette_Entry;
++
++typedef struct
++{
++    USHORT us_version;      // Major and minor version of palette table
++    USHORT us_entries;      // Number of palette entries in the request
++    USHORT us_start;        // Supplied entries start at this index
++    USHORT us_swap;         // 0 = don't swap palette table 
++    // 1 = swap palette table
++} FVD_Set_Palette_Request;
++
++typedef struct {
++    USHORT  inp_lo;         // Defines first input pixel level where segment is valid.
++    USHORT  inp_hi;         // Defines last input pixel level where segment is valid.
++    USHORT  out_lo;         // Bit 9
++                            // 0 = Palette indirect (output is used as an index to palette table)
++                            // 1 = Y-direct (output used as luminance value).
++                            // Bit 8:0 Output value corresponding to input low limit
++    USHORT  out_hi;         // Bit 8:0 Output value corresponding to input high limit
++    UCHAR   cr;             // Chrominance color red component value. Valid for Y-direct segment type.
++    UCHAR   cb;             // Chrominance color blue component value. Valid for Y-direct segment type.
++} FVD_Color_Func_Entry;
++
++typedef struct {
++    USHORT  us_version;     // Major and minor version of color function entry
++    USHORT  us_entries;     // Number of color function table entries in the request.
++    USHORT  us_start;       // Supplied entries start at this index
++    USHORT  us_swap;        // Set to 0 if no color table swap is required.
++                            // Set to 1 if a color table swap should be performed.
++} FVD_Set_Color_Func_Request;
++
++typedef struct {
++    USHORT  value;          // Exponential value. Only bit 7:0 is used.
++} FVD_Exp_Table_Entry;
++
++typedef struct {
++    USHORT  us_version;     // Major and minor version of color function entry
++    USHORT  us_entries;     // Number of table entries in the request.
++    USHORT  us_start;       // Supplied entries start at this index
++    USHORT  us_swap;        // Set to 0 if no table swap is required.
++                            // Set to 1 if a table swap should be performed.
++} FVD_Set_Exp_Table_Request;
++
++typedef struct {
++    USHORT  inp_lo;         // Defines first input pixel level where segment is valid.
++    USHORT  inp_hi;         // Defines last input pixel level where segment is valid.
++    USHORT  out_lo;         // Output value corresponding to input low limit
++    USHORT  out_hi;         // Output value corresponding to input high limit
++} FVD_STC_Table_Entry;
++
++typedef struct {
++    USHORT  us_version;     // Major and minor version of STC table entry
++    USHORT  us_entries;     // Number of STC table entries in the request.
++    USHORT  us_start;       // Supplied entries start at this index
++    USHORT  us_swap;        // Set to 0 if no STC table swap is required.
++                            // Set to 1 if a STC table swap should be performed.
++} FVD_Set_STC_Table_Request;
++
++typedef struct {
++    ULONG   ul_version;
++    ULONG   ul_type;
++    ULONG   ul_flags;
++    ULONG   ul_offset;
++    ULONG   ul_size;
++    void*   pBuffer;
++    UCHAR   uc_fraction;
++    UCHAR   uc_reserved[3];
++    ULONG   ul_reserved[3];
++} FVD_Map_Header;
++
++//
++// FPGA map types (used by IOCTL_FVD_SET_MAP and IOCTL_FVD_GET_MAP)
++//
++#define FVD_MAP_COARSE_OFFSET           0
++#define FVD_MAP_COMBINED_OFFSET         1
++#define FVD_MAP_SHUTTER_OFFSET          2
++#define FVD_MAP_GAIN_REPLACEMENT        3
++#define FVD_BUFFER_DIRECT               4
++#define FVD_MAP_IMAGE_TAG               5
++#define FVD_MAP_LENS_CORRECTION			6
++#define FVD_MAP_BIAS_COL                7
++//
++// Map header flags
++//
++#define FVD_MAP_SWAP                            0x00000001L
++#define FVD_MAP_PHYSICAL                        0x00000002L // pBuffer points to physical memory
++
++// structure used by IOCTL_FVD_SET_LUT and IOCTL_FVD_GET_LUT
++typedef struct {
++    ULONG   ul_version;
++    ULONG   ul_type;
++    ULONG   ul_flags;
++    ULONG   ul_offset;
++    ULONG   ul_size;
++    void*   pBuffer;
++    ULONG   ul_reserved[4];
++} FVD_LUT_Header;
++
++//
++// FPGA LUT types (used by IOCTL_FVD_SET_LUT and IOCTL_FVD_GET_LUT)
++//
++#define FVD_LUT_BUFFER_INACTIVE				0
++#define FVD_LUT_BUFFER_ACTIVE				1
++#define FVD_LUT_BUFFER_DIRECT               2
++
++//
++// LUT header flags
++//
++#define FVD_LUT_SWAP                            0x00000001L // swap LUT after update (IOCTL_FVD_SET_LUT)
++#define FVD_LUT_PHYSICAL                        0x00000002L // pBuffer points to physical memory
++
++// structure used by IOCTL_FVD_UPDATE_OVERLAY and IOCTL_FVD_UPDATE_OVERLAY_RGB
++typedef struct {
++    ULONG   top;
++    ULONG   left;
++    ULONG   right;
++    ULONG   bottom;
++    void*   pFrameBuffer;
++} FVD_UpdOvl_Request;
++
++//
++// Histogram request structure (used by IOCTL_FVD_GET_HISTOGRAM)
++//
++typedef struct {
++    USHORT  us_binsize;
++    USHORT  us_offset;
++    USHORT  us_flags;
++    USHORT  us_spare; // Not used. Set to 0
++    USHORT  us_minx;
++    USHORT  us_miny;
++    USHORT  us_maxx;
++    USHORT  us_maxy;
++} FVD_Get_Histogram_Request;
++
++#define FVD_HISTO_USE_WINDOW    0x0001
++#define FVD_HISTO_NO_GEN        0x0002
++
++//
++// Frame sum structure (used by IOCTL_FVD_GET_FRAME_SUM)
++//
++typedef struct {
++    ULONG   ul_LSB;  // Frame sum bit 31:0
++    ULONG   ul_MSB;  // Frame sum bit 34:32
++} FVD_Frame_Sum;
++
++
++
++//
++// Set Lepton Attribute Request structure (used by IOCTL_FVD_SET_PARAM)
++//
++typedef struct {
++    USHORT  usCommandId;        // Lepton ASIC command id
++    USHORT  usSize;             // Data buffer size (in 16-bit words), 32bytes max
++    USHORT* pBuffer;            // Data buffer (16 bit aligned)
++    BOOL    bCalibMode;         // Set to true to execute in calib mode
++} FVD_Lepton_Attr_Request;
++
++
++//
++// Set Parameter Request structure (used by IOCTL_FVD_SET_PARAM)
++//
++typedef struct {
++    ULONG   ul_param_type;          // FPGA parameter code
++    ULONG   ul_param_value;
++} FVD_Set_Param_Request;
++
++//
++// FPGA parameter codes (used by IOCTL_FVD_GET_PARAM and IOCTL_FVD_SET_PARAM)
++//
++#define FVD_PARAM_FPGA_VERSION                          0   // Read only
++#define FVD_PARAM_HISTOGRAM_OFFSET                      2   // Read/write
++#define FVD_PARAM_GLOBAL_OFFSET_M                       3   // Read/write
++#define FVD_PARAM_GLOBAL_OFFSET_L                       4   // Read/write
++#define FVD_PARAM_GLOBAL_GAIN                           5   // Read/write
++#define FVD_PARAM_EDGE_ENHANCEMENT                      6   // Read/write
++#define FVD_PARAM_FRAME_SUM                             7   // Read only
++#define FVD_PARAM_FRAME_COUNTER                         8   // Read only
++#define FVD_PARAM_ERROR_STATUS_0                        9   // Read only
++#define FVD_PARAM_ERROR_STATUS_1                        10  // Read only
++#define FVD_PARAM_ERROR_STATUS_2                        11  // Read only
++#define FVD_PARAM_ERROR_STATUS_3                        12  // Read only
++#define FVD_PARAM_INTERRUPT_MASK_0                      13  // Read/write
++#define FVD_PARAM_INTERRUPT_MASK_1                      14  // Read/write
++#define FVD_PARAM_INTERRUPT_MASK_2                      15  // Read/write
++#define FVD_PARAM_INTERRUPT_MASK_3                      16  // Read/write
++#define FVD_PARAM_PALETTE_TABLE_SIZE                    17  // Read only
++#define FVD_PARAM_COLOR_FUNC_TABLE_SIZE                 18  // Read only
++#define FVD_PARAM_EXPONENTIAL_TABLE_SIZE                19  // Read only
++#define FVD_PARAM_HISTOGRAM_TABLE_SIZE                  20  // Read only
++#define FVD_PARAM_ERROR_COUNT                           21  // Read only
++#define FVD_PARAM_FRAME_WIDTH                           22  // Frame buffer width in pixels (read only)
++#define FVD_PARAM_FRAME_HEIGHT                          23  // Frame buffer height in rows (read only)
++#define FVD_PARAM_PIXEL_SIZE                            24  // Pixel size in bytes (read only)
++#define FVD_PARAM_IMAGE_WIDTH                           25  // Active image width in pixels (read only)
++#define FVD_PARAM_IMAGE_HEIGHT                          26  // Active image height in rows (read only)
++#define FVD_PARAM_HIST_PIX_RANGE_LO                     27  // Lowest pixel value found in histogram area (read only)
++#define FVD_PARAM_HIST_PIX_RANGE_HI                     28  // Highest pixel value found in histogram area (read only)
++#define FVD_PARAM_FPGA_HEADER_SIZE                      29  // Size (in bytes) of FPGA header data
++#define FVD_PARAM_TEMP_FILTER_LEVEL                     30  // Temporal filter level (alpha)
++#define FVD_PARAM_TEMP_FILTER_THRESHOLD                 31  // Temporal filter threshold (beta)
++#define FVD_PARAM_NOISE_GENERATOR_LEVEL                 32  // Noise generator level
++#define FVD_PARAM_UNDERBRIGHT                           33  // Constant subtracted from Y component to generate a less intense pixel
++#define FVD_PARAM_OVERBRIGHT                            34  // Constant added to Y component to generate a brighter pixel
++#define FVD_PARAM_SEQUENCE_FREQUENCY                    35  // R/W 
++#define FVD_PARAM_SEQUENCE_COUNT                        36  // R/W 
++#define FVD_PARAM_SEQUENCE_MAXCOUNT                     37  // R/W 
++#define FVD_PARAM_SEQUENCE_WRAPAROUND                   38  // R/W 
++#define FVD_PARAM_SEQUENCE_DIRECTION                    39  // R/W 
++#define FVD_PARAM_COL_FILTER_THRESHOLD                  40  // Spatial column filter threshold
++#define FVD_PARAM_DDE_BASE_RANGE                        41  // DDE base range
++#define FVD_PARAM_DDE_DETAIL_RANGE                      42  // DDE detail range
++#define FVD_PARAM_DDE_DISTR_LIMIT                       43  // DDE distribution limit
++#define FVD_PARAM_FOCUS_POS                             44  // Focus position on certain systems
++#define FVD_PARAM_SDRAM_WRITE_VERIFY                    50  // Verify SDRAM write operations
++#define FVD_PARAM_SDRAM_WRITE_OK_CNT                    51  // SDRAM write OK counter
++#define FVD_PARAM_SDRAM_WRITE_ERR_CNT1                  52  // SDRAM write Single Error counter
++#define FVD_PARAM_SDRAM_WRITE_ERR_CNT2                  53  // SDRAM write Double Error counter
++#define FVD_PARAM_TEMP_ROW_FILTER_LEVEL                 55  // Temporal row filter level
++#define FVD_PARAM_TEMP_ROW_FILTER_THRESHOLD             56  // Temporal row filter threshold
++#define FVD_PARAM_TEMP_ROW_FILTER_CLIPLIMIT             57  // Temporal row filter clip limit
++#define FVD_PARAM_BIT_ENABLE                            58  // BIT enable 
++#define FVD_PARAM_BIT_STATUS                            59  // BIT status
++#define FVD_PARAM_DISPLAY_KEY                           60  // Display key
++#define FVD_PARAM_FUSION_THRESHOLD_LOW                  61  // Image fusion threshold low 
++#define FVD_PARAM_FUSION_THRESHOLD_HIGH                 62  // Image fusion threshold high
++#define FVD_PARAM_FUSION_TOP_LINE                       63  // Image fusion area: Top line 
++#define FVD_PARAM_FUSION_BOTTOM_LINE                    64  // Image fusion area: Bottom line
++#define FVD_PARAM_FUSION_LEFT_PIXEL                     65  // Image fusion area: Left pixel
++#define FVD_PARAM_FUSION_RIGHT_PIXEL                    66  // Image fusion area: Right pixel
++#define FVD_PARAM_FUSION_ACTIVE                         67  // Image fusion active (BOOL)
++#define FVD_PARAM_FUSION_THRESHOLDS                     68  // Image fusion thresholds active (BOOL)
++#define FVD_PARAM_FUSION_BLENDING                       69  // Image fusion blending active (BOOL)
++#define FVD_PARAM_FUSION_PIP                            70  // Image fusion: picture-in-picture active (BOOL)
++#define FVD_PARAM_FUSION_VISUALBW                       71  // Image fusion: visual image B/W (BOOL)
++#define FVD_PARAM_COL_FILTER_THRESHOLD_PIX              73  // Spatial column filter threshold pix
++#define FVD_PARAM_IO_CTRL_PORT_1                        74  // External I/O ctrl port 1
++#define FVD_PARAM_IO_CTRL_PORT_2    	                75  // External I/O ctrl port 2
++#define FVD_PARAM_IO_CTRL_PORT_3    	                76  // External I/O ctrl port 3
++#define FVD_PARAM_IO_CTRL_PORT_4    	                77  // External I/O ctrl port 4
++#define FVD_PARAM_SYNCH_DELAY			                78  // External source synchronization delay
++#define FVD_PARAM_SPR_FILTER_SPAT_THRESHOLD             79  // Supernova Pixel Replacement filter spatial threshold
++#define FVD_PARAM_SPR_FILTER_COUNTER                    80  // Supernova Pixel Replacement filter counter
++#define FVD_PARAM_SPR_FILTER_TEMP_THRESHOLD             81  // Supernova Pixel Replacement filter temporal threshold
++#define FVD_PARAM_LASER_DETECT_TOP_LINE                 82  // Laser detection area: Top line 
++#define FVD_PARAM_LASER_DETECT_BOTTOM_LINE              83  // Laser detection area: Bottom line
++#define FVD_PARAM_LASER_DETECT_LEFT_PIXEL               84  // Laser detection area: Left pixel
++#define FVD_PARAM_LASER_DETECT_RIGHT_PIXEL              85  // Laser detection area: Right pixel
++#define FVD_PARAM_LASER_DETECT_POS_X                    86  // Laser X position
++#define FVD_PARAM_LASER_DETECT_POS_Y                    87  // Laser Y position
++#define FVD_PARAM_LASER_DETECT_QUALITY                  88  // Laser detection quality
++#define FVD_PARAM_VCAM_TORCH                            89  // Visual camera lamp
++#define FVD_PARAM_SHUTTER_ENABLE                        90
++#define FVD_PARAM_IRDM_TEC_ENABLE                       91
++#define FVD_PARAM_IRDM_I2C_ENABLE                       92
++#define FVD_PARAM_IRDM_DC_DC_ENABLE                     93
++#define FVD_PARAM_BLIND_BOL_TEMP_FILTERING_ENABLE       94
++#define FVD_PARAM_BLIND_BOL_COL_FILTER_ENABLE           95
++#define FVD_PARAM_EDGE_ENHANCEMENT_FILTER_ENABLE        96
++#define FVD_PARAM_FPA_FLOW_ENABLE                       97   
++#define FVD_PARAM_FPA_ENABLE                            98
++#define FVD_PARAM_IR_FLOW_ENABLE                        99
++#define FVD_PARAM_IR_TEST_PATTERN                      100
++#define FVD_PARAM_COARSE_MAP_ENABLE                    101
++#define FVD_PARAM_COARSE_MAP_BUFFER                    102
++#define FVD_PARAM_PIXEL_REPLACEMENT_ENABLE             103
++#define FVD_PARAM_GAIN_MAP_ENABLE                      104
++#define FVD_PARAM_GAIN_MAP_BUFFER                      105
++#define FVD_PARAM_COMBINED_OFFSET_MAP_ENABLE           106
++#define FVD_PARAM_COMBINED_OFFSET_MAP_BUFFER           107
++#define FVD_PARAM_TEMP_ROW_FILTER_ENABLE               108
++#define FVD_PARAM_COL_FILTER_ENABLE                    109
++#define FVD_PARAM_BILATERAL_FILTER_ENABLE              110
++#define FVD_PARAM_TEMP_FILTER_ENABLE                   111
++#define FVD_PARAM_SPR_PIXEL_REPLACEMENT_ENABLE         112
++#define FVD_PARAM_NOISE_GENERATOR_ENABLE               113
++#define FVD_PARAM_IMAGE_FLIP_UPDOWN                    114
++#define FVD_PARAM_IMAGE_FLIP_LEFTRIGHT                 115
++#define FVD_PARAM_IMAGE_ROTATION                       116                          
++#define FVD_PARAM_SCENE_BASED_NUC_ENABLE               117
++#define FVD_PARAM_IR_IMAGE_STABILIZATION_ENABLE        118
++#define FVD_PARAM_GAS_DETECTION_ENABLE                 119
++#define FVD_PARAM_VISUAL_FLOW_ENABLE                   120
++#define FVD_PARAM_VCAM_ENABLE                          121
++#define FVD_PARAM_LASER_POINT_DETECT_ENABLE            122
++#define FVD_PARAM_LASER_LINE_DETECT_ENABLE             123
++#define FVD_PARAM_VISUAL_IMAGE_FLIP_UPDOWN             124
++#define FVD_PARAM_VISUAL_IMAGE_FLIP_LEFTRIGHT          125
++#define FVD_PARAM_VISUAL_TEST_PATTERN                  126
++#define FVD_PARAM_VISUAL_IMAGE_STABILIZATION_ENABLE    127
++#define FVD_PARAM_IMAGE_FLOW_ENABLE                    128
++#define FVD_PARAM_DDE_ENABLE                           129
++#define FVD_PARAM_IMAGE_DISPLAY_SOURCE                 130  // 0: IR, 1: Visual, 2: Diff
++#define FVD_PARAM_OVERLAY_ENABLE                       131
++#define FVD_PARAM_SCALE_ENABLE                         132
++#define FVD_PARAM_VISUAL_SCALE_ENABLE                  133
++#define FVD_PARAM_DISPLAY_FLOW_ENABLE                  134
++#define FVD_PARAM_DISPLAY_SELECT                       135
++#define FVD_PARAM_RECALL_ENABLE                        136
++#define FVD_PARAM_ANALOG_VIDEO_ENABLE                  137
++#define FVD_PARAM_ANALOG_VIDEO_MODE                    138  // 0: NTSC, 1: PAL
++#define FVD_PARAM_MPEG_ENABLE                          139
++#define FVD_PARAM_FIREWIRE_ENABLE                      140
++#define FVD_PARAM_QCI_ENABLE                           141
++#define FVD_PARAM_HDMI_ENABLE                          142
++#define FVD_PARAM_GIGE_TAG_ENABLE                      143
++#define FVD_PARAM_GIGE_IMAGE_TAG_MAP                   144
++#define FVD_PARAM_FRAME_BLANK_MASK_ENABLE              145
++#define FVD_PARAM_EXECUTE_MASK_ENABLE                  146
++#define FVD_PARAM_MEAN_RAW_MONITOR_ENABLE              147
++#define FVD_PARAM_RGB_TO_YCRCB_CONV_ENABLE             148
++#define FVD_PARAM_LUT_ENABLE                           149
++#define FVD_PARAM_LUT_BUFFER                           150
++#define FVD_PARAM_IRQ_AFTER_COMPL_ENABLE               151
++#define FVD_PARAM_FRAMEGRAB_FLASH_ENABLE               152
++#define FVD_PARAM_LASER_DETECT_WEIGHT_Y                153
++#define FVD_PARAM_LASER_DETECT_WEIGHT_CR               154
++#define FVD_PARAM_QCI_SOURCE                           155  // 0: Composite with overlay 
++                                                            // 1: Composite without overlay 
++                                                            // 2: Filtered 16-bit IR data
++                                                            // 3: Filtered 16-bit IR difference data
++#define FVD_PARAM_QCI_SIZE                             156  // 0: 80 x 60 (not supported)
++                                                            // 1: 160 x 120 (not supported)
++                                                            // 2: 320 x 240
++                                                            // 3: 640 x 480
++                                                            // 4: 800 x 480
++#define FVD_PARAM_QCI_CODE                             157  // 0: Raw/transparent data
++                                                            // 1: YCrCb 4:4:4 (not supported)
++                                                            // 2: YCrCb 4:2:2
++                                                            // 3: YCrCb 4:2:0 (not supported)
++                                                            // 4: RGB565 (not supported)
++#define FVD_PARAM_QCI_RATE                             158  // This value has different meaning in Linux vs WinCE.
++                                                            // In WinCE it means:
++                                                            // 0: 60 Hz  (not supported)
++                                                            // 1: 30 Hz
++                                                            // 2: 15 Hz
++                                                            // 3: 7.5 Hz
++                                                            // 4: 3.75 Hz
++                                                            // For Linux, look at impl. for which value is valid!
++                                                            //
++#define FVD_PARAM_QCI_TOP_LINE                         159  // QCI ROI: Top line 
++#define FVD_PARAM_QCI_BOTTOM_LINE                      160  // QCI ROI: Bottom line
++#define FVD_PARAM_QCI_LEFT_PIXEL                       161  // QCI ROI: Left pixel
++#define FVD_PARAM_QCI_RIGHT_PIXEL                      162  // QCI ROI: Right pixel
++#define FVD_PARAM_HDMI_SOURCE                          163  // HDMI Control: 0=Composite with overlay
++#define FVD_PARAM_HDMI_SIZE                            164  // HDMI Control: 0=640x480, 1=800x480
++#define FVD_PARAM_HDMI_CODE                            165  // HDMI Control: 4=RGB565
++#define FVD_PARAM_BLOCK_STATUS                         166  // Read only
++#define FVD_PARAM_BLOCK_SELECT                         167  // Select FPGA internal status block
++#define FVD_PARAM_DIFF_IMAGE_DELTA                     168
++#define FVD_PARAM_GAS_DETECT_LOWPASS_THRESHOLD         169
++#define FVD_PARAM_GAS_DETECT_EDGE_THRESHOLD            170
++#define FVD_PARAM_HIGHTEMP_FILTER_POS                  171  // The position value for the hightemp filter motor.
++#define FVD_PARAM_HIGHTEMP_FILTER_MOTOR                172  // Turn the filter motor on or off
++#define FVD_PARAM_GAS_DETECT_DYNRANGE                  173
++#define FVD_PARAM_SPAT_ROW_FILTER_ENABLE               174    // Spatial row filter enable
++#define FVD_PARAM_SPAT_ROW_FILTER_THRESHOLD            175    // Spatial row filter threshold
++#define FVD_PARAM_SPAT_ROW_FILTER_THRESHOLD_PIX        176    // Spatial row filter threshold pix
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_ENABLE         177 // Spatial offset pixel filter enable
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_THRESHOLD_PIX  178 // Spatial offset pixel filter threshold pix
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_THRESHOLD_AREA 179 // Spatial offset pixel filter threshold area
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_COUNTER        180 // Spatial offset pixel filter counter
++#define FVD_PARAM_SHUTTER_INTIME1                      181
++#define FVD_PARAM_SHUTTER_INTIME2                      182
++#define FVD_PARAM_SHUTTER_INTIME3                      183
++#define FVD_PARAM_SHUTTER_OUTTIME1                     184
++#define FVD_PARAM_SHUTTER_OUTTIME2                     185
++#define FVD_PARAM_SHUTTER_OUTTIME3                     186
++#define FVD_PARAM_APERTURE_ENABLE                      187
++#define FVD_PARAM_APERTURE_INTIME1                     188
++#define FVD_PARAM_APERTURE_INTIME2                     189
++#define FVD_PARAM_APERTURE_INTIME3                     190
++#define FVD_PARAM_APERTURE_OUTTIME1                    191
++#define FVD_PARAM_APERTURE_OUTTIME2                    192
++#define FVD_PARAM_APERTURE_OUTTIME3                    193
++#define FVD_PARAM_FOCUS_STATUS                         194  // Focus: Status
++#define FVD_PARAM_FOCUS_DIRECTION                      195  // Focus: Direction
++#define FVD_PARAM_FOCUS_TOP_LINE                       196  // Focus: Area: Top line 
++#define FVD_PARAM_FOCUS_BOTTOM_LINE                    197  // Focus: Area: Bottom line
++#define FVD_PARAM_FOCUS_LEFT_PIXEL                     198  // Focus: Area: Left pixel
++#define FVD_PARAM_FOCUS_RIGHT_PIXEL                    199  // Focus: Area: Right pixel
++#define FVD_PARAM_FOCUS_MODE                           200  // Focus: Mode (normal/continous)
++#define FVD_PARAM_FOCUS_TRIG_AUTO                      201  // Focus: Trig autofocus cycle
++#define FVD_PARAM_FOCUS_SET_EQV_POSITION               202  // Focus: Set eqv position [du]
++#define FVD_PARAM_FOCUS_EQV_POSITION                   203  // Focus: Current eqv position [du] (read only)
++#define FVD_PARAM_FOCUS_SET_ABS_POSITION               204  // Focus: Set abs position [du]
++#define FVD_PARAM_FOCUS_ABS_POSITION                   205  // Focus: Current abs position [du] (read only)
++#define FVD_PARAM_FOCUS_SET_DISTANCE                   206  // Focus: Set distance [mm] (Continous mode)
++#define FVD_PARAM_FOCUS_DISTANCE                       207  // Focus: Current distance [mm] (read only)
++#define FVD_PARAM_FOCUS_NEAR                           208  // Focus: Near focus [mm]
++#define FVD_PARAM_FOCUS_ALPHA_LENS                     209  // Focus: Scale factor [du/mm]
++#define FVD_PARAM_FOCUS_C2                             210  // Focus: Constant C2
++#define FVD_PARAM_FOCUS_C3                             211  // Focus: Constant C3
++#define FVD_PARAM_FOCUS_CT                             212  // Focus: Constant CT
++#define FVD_PARAM_FOCUS_TEMP_T0                        213  // Focus: Constant T0 [K]
++#define FVD_PARAM_FOCUS_TEMP_T                         214  // Focus: Lens temperature [K]
++#define FVD_PARAM_FOCUS_LENS_MIN                       215  // Focus: Min position [du] (read only)
++#define FVD_PARAM_FOCUS_LENS_MAX                       216  // Focus: Max position [du] (read only)
++#define FVD_PARAM_FOCUS_LENS_MIN_MECH                  217  // Focus: Min mechanical position [du]
++#define FVD_PARAM_FOCUS_LENS_MAX_MECH                  218  // Focus: Max mechanical position [du]
++#define FVD_PARAM_FOCUS_DELTA_POSITION                 219  // Focus: Delta position (C2/z)
++#define FVD_PARAM_FOCUS_INFINITY_OFFSET                220  // Focus: Infinity offset
++#define FVD_PARAM_FOCUS_MANUAL_SCALE                   221  // Focus: Manual scale for focus wheel
++#define FVD_PARAM_FOCUS_MOTOR_CLOCK_ENABLE             222  // Focus: Motor clock enable
++#define FVD_PARAM_FOCUS_MOTOR_ACCELERATION             223  // Focus: Motor acceleration
++#define FVD_PARAM_FOCUS_MOTOR_DEACCELERATION           224  // Focus: Motor deacceleration
++#define FVD_PARAM_FOCUS_MOTOR_MAX_FREQUENCY            225  // Focus: Motor max frequency
++#define FVD_PARAM_GIGE_SOURCE                          226  // 0: Filtered 16 IR data minimum delay
++                                                            // 1: Filtered 8 bit monochrome IR data (YCrCb4:0:0) 
++                                                            // 2: Filtered 16-bit IR data (With STC or not)
++#define FVD_PARAM_GIGE_SIZE                            227  // 0: 80 x 60 (not supported)
++                                                            // 1: 160 x 120 (not supported)
++                                                            // 2: 320 x 240
++                                                            // 3: 640 x 480
++                                                            // 4: 800 x 480 (not supported)
++#define FVD_PARAM_GIGE_CODE                            228  // 0: Raw/transparent data
++                                                            // 1: YCrCb 4:0:0
++#define FVD_PARAM_GIGE_RATE                            229  // 0: 50/60 Hz
++                                                            // 1: 25/30 Hz
++                                                            // 2: 12.5/15 Hz
++                                                            // 3: 6.75/7.5 Hz
++                                                            // 4: 3.375/3.75 Hz
++#define FVD_PARAM_FOCUS_DEPENDENCE_ENABLE              230  // Enable recalc of gain map based on focus
++#define FVD_PARAM_DETECTOR_POS_COL                     231  // Center col when recalcing gain map
++#define FVD_PARAM_DETECTOR_POS_ROW                     232  // Center row when recalcing gain map
++#define FVD_PARAM_GAINMAP_ALPHA1                       233  // Parameter 1 for recalc of gain map
++#define FVD_PARAM_GAINMAP_ALPHA2                       234  // Parameter 2 for recalc of gain map
++#define FVD_PARAM_GAINMAP_ALPHA3                       235  // Parameter 3 for recalc of gain map
++#define FVD_PARAM_GAINMAP_ALPHA4                       236  // Parameter 4 for recalc of gain map
++#define FVD_PARAM_GAINMAP_ALPHA5                       237  // Parameter 5 for recalc of gain map
++#define FVD_PARAM_GAINMAP_ALPHA6                       238  // Parameter 6 for recalc of gain map
++#define FVD_PARAM_GAINMAP_ALPHA7                       239  // Parameter 7 for recalc of gain map
++#define FVD_PARAM_CSI2_SOURCE                          240  // CSI2 image source  
++#define FVD_PARAM_CSI2_SIZE                            241  // CSI2 image size
++#define FVD_PARAM_CSI2_CODE                            242  // CSI2 pixel format
++#define FVD_PARAM_CSI2_RATE                            243  // CSI2 frame rate
++
++#define FVD_PARAM_FOCUS_MOTOR_RELEASE_INIT             244  // Focus: Release init state
++#define FVD_PARAM_STC_ENABLE                           245  // STC - SIGNAL2TEMP translation table enable
++#define FVD_PARAM_STC_TABLE_SIZE                       246  // Read only
++#define FVD_PARAM_VCAM_CHANNEL                         247  // Visual camera channel
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_APR_ENABLE     248 // Spatial offset pixel filter using dead pixel map enable (Active pixel replacement, APR)
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_THRESHOLD      249 // Spatial offset pixel filter threshold
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_THRESHOLD_DIFF 250 // Spatial offset pixel filter threshold diff
++#define FVD_PARAM_CSI2_ENABLE                          251
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_ALT_THRESHOLD      252
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_ALT_THRESHOLD_AREA 253
++#define FVD_PARAM_SPAT_OFFSET_PIXEL_FILTER_ALT_THRESHOLD_DIFF 254
++#define FVD_PARAM_VIC_LEFTPANX                         255
++#define FVD_PARAM_VIC_LEFTPANY                         256
++#define FVD_PARAM_VIC_LEFTWIDTH                        257
++#define FVD_PARAM_VIC_LEFTHEIGHT                       258
++#define FVD_PARAM_VIC_RIGHTPANX                        259
++#define FVD_PARAM_VIC_RIGHTPANY                        260
++#define FVD_PARAM_VIC_ROTPANX                          261
++#define FVD_PARAM_VIC_ROTPANY                          262
++#define FVD_PARAM_VIC_ROTCOLSTEPSIZEX                  263
++#define FVD_PARAM_VIC_ROTCOLSTEPSIZEY                  264
++#define FVD_PARAM_VIC_ROTROWSTEPSIZEX                  265
++#define FVD_PARAM_VIC_ROTROWSTEPSIZEY                  266
++#define FVD_PARAM_VIC_PEAKQUALITY                      267
++#define FVD_PARAM_VIC_IRC0X                            268
++#define FVD_PARAM_VIC_IRC0Y                            269
++#define FVD_PARAM_VIC_IRC1X                            270
++#define FVD_PARAM_VIC_IRC1Y                            271
++#define FVD_PARAM_VIC_FCMEANCOMP                       272
++#define FVD_PARAM_VIC_FCFOCUSCOMP                      273
++#define FVD_PARAM_VIC_FCLISTINDEX                      274
++#define FVD_PARAM_FPA_FLOW_VIC_ENABLE                  275
++#define FVD_PARAM_SHUTTER_ENABLE_FX                    276
++#define FVD_PARAM_YLCO_FOCUS_HWINIT                    277
++#define FVD_PARAM_FUSION_HIGHCONTRAST                  278   // Image fusion: high contrast fusion active (BOOL)
++#define FVD_PARAM_FUSION_CLEARBITS                     279
++#define FVD_PARAM_SHUTTER_DOUBLE_TIME                  280   // (Liston) Interpret shutter time as twice as long. I.e. value 50=>100ms shutter time will be used.
++#define FVD_PARAM_VIC_FOCLENGTH                        281
++#define FVD_PARAM_FUSION_HCF_ALPHA                     282
++#define FVD_PARAM_FOCUS_LASER_AF_C0X                   283
++#define FVD_PARAM_FOCUS_LASER_AF_C0Y                   284
++#define FVD_PARAM_FOCUS_LASER_AF_C1X                   285
++#define FVD_PARAM_FOCUS_LASER_AF_C1Y                   286
++#define FVD_PARAM_FOCUS_SET_RAW_POSITION               287
++#define FVD_PARAM_FOCUS_MOTOR_SPEED                    288
++#define FVD_PARAM_FOCUS_MOTOR_PWM_MIN                  289
++#define FVD_PARAM_FOCUS_MOTOR_PWM_MAX                  290
++#define FVD_PARAM_FOCUS_MOTOR_PWM_PERIOD               291
++#define FVD_PARAM_FOCUS_MOTOR_AF_MECH_PLAY_DIST        292
++#define FVD_PARAM_FOCUS_MOTOR_AF_FINE_STEP_DIST        293
++#define FVD_PARAM_FOCUS_MOTOR_AF_TIMEOUT               294
++#define FVD_PARAM_FOCUS_MOTOR_AF_FINE_STEP             295
++#define FVD_PARAM_IMAGE_FLOW_IR_ENABLE                 296
++#define FVD_PARAM_IMAGE_FLOW_VISUAL_ENABLE             297
++#define FVD_PARAM_LENS_CORRECTION_ENABLE			   298
++#define FVD_PARAM_COLORKEY_ENABLE			           299
++#define FVD_PARAM_APR_3x3_ENABLE                       300
++#define FVD_PARAM_APR_3x3_THRESHOLD_MAX                301
++#define FVD_PARAM_APR_3x3_THRESHOLD_INIT               302
++#define FVD_PARAM_APR_3x3_LAMBDA                       303
++#define FVD_PARAM_APR_3x3_KILL_NUMBER                  304
++#define FVD_PARAM_APR_3x3_REPLACED_PIXELS              305
++#define FVD_PARAM_LIVENUC_FILTER_ENABLE                306   // Live NUC (Low Noise Filter, SNF...)
++#define FVD_PARAM_LIVENUC_LEVEL                        307
++#define FVD_PARAM_LIVENUC_LAMBDA                       308
++#define FVD_PARAM_LIVENUC_LIMME                        309
++#define FVD_PARAM_FUSION_BLENDING_ALPHA                310
++#define FVD_PARAM_FUSION_CONTOUR_ENABLE                311
++#define FVD_PARAM_SLC_ENABLE                           312
++#define FVD_PARAM_FLASH_ENABLE                         313
++#define FVD_PARAM_DDE2_FILTER_ENABLE                   314
++#define FVD_PARAM_DDE2_SIGMA_R                         315
++#define FVD_PARAM_DDE2_ALPHA                           316
++#define FVD_PARAM_IR_FRAMEGRAB_DELAY                   317
++#define FVD_PARAM_VIS_FRAMEGRAB_DELAY                  318
++#define FVD_PARAM_VIS_FLOW_DELAY                       319
++#define FVD_PARAM_IRFLOW_RATE                          320  // 0: Illegal value
++                                                            // 1: 60 Hz
++                                                            // 2: 30 Hz
++                                                            // 3: 20 Hz
++                                                            // 4: 15 Hz
++                                                            // 5: 8.9 Hz
++                                                            // 6: 7.5  Hz
++                                                            // 7: 3.75 Hz
++#define FVD_PARAM_FRAME_DELAY_ENABLE                   321
++#define FVD_PARAM_FPA_MASTER_CLK                       322
++#define FVD_PARAM_FPAFLOW_RATE                         323
++#define FVD_PARAM_ROCO_FOCUS_HWINIT                    324
++#define FVD_PARAM_HSI_CABLESTATE                       325
++#define FVD_PARAM_VIC_PEAKWIDTH                        326
++#define FVD_PARAM_VIC_FCTOPLINE                        327
++#define FVD_PARAM_VIC_FCBOTTOMLINE                     328
++#define FVD_PARAM_VIC_FCLEFTPIX                        329
++#define FVD_PARAM_VIC_FCRIGHTPIX                       330
++#define FVD_PARAM_VIC_DISTOPLINELIM                    331
++#define FVD_PARAM_VIC_DISBOTTOMLINELIM                 332
++#define FVD_PARAM_VIC_DISLEFTPIXLIM                    333
++#define FVD_PARAM_VIC_DISRIGHTPIXLIM                   334
++#define FVD_PARAM_VIC_LINELENGTH                       335
++#define FVD_PARAM_VIC_COLLENGTH                        336
++#define FVD_PARAM_VIC_VISVISPARALLAX                   337
++#define FVD_PARAM_VIC_IRVISPARALLAXX                   338
++#define FVD_PARAM_VIC_IRVISPARALLAXY                   339
++#define FVD_PARAM_VIC_VISRIGHTORIGOCOORDX              340
++#define FVD_PARAM_VIC_VISRIGHTORIGOCOORDY              341
++#define FVD_PARAM_VIC_HALFIRPROJX                      342
++#define FVD_PARAM_VIC_HALFIRPROJY                      343
++#define FVD_PARAM_VIC_VISDMX                           344
++#define FVD_PARAM_VIC_VISDMY                           345
++#define FVD_PARAM_VIC_DISTCALCLOW                      346
++#define FVD_PARAM_VIC_DISTCALCHIGH                     347
++#define FVD_PARAM_VIC_VISTOIRDM                        348
++#define FVD_PARAM_VIC_FCFOCUSCOMPHFD                   349
++#define FVD_PARAM_APR_3x3_THRESHOLD_AREA               350
++#define FVD_PARAM_FOCUS_MOTOR_CRAWL_SPEED              351
++#define FVD_PARAM_FOCUS_MOTOR_SLOW_SPEED               352
++#define FVD_PARAM_FOCUS_MOTOR_FAST_SPEED               353
++#define FVD_PARAM_FOCUS_MOTOR_MAX_SPEED                354
++#define FVD_PARAM_FOCUS_MOTOR_ACCEL_SPEED              355
++#define FVD_PARAM_FOCUS_MOTOR_POS_HYSTERESIS           356
++#define FVD_PARAM_FOCUS_MOTOR_MANUAL_GEAR_NUM          357
++#define FVD_PARAM_FOCUS_MOTOR_MANUAL_GEAR_DEN          358
++#define FVD_PARAM_LCF_FRAC_BITS                        359
++#define FVD_PARAM_FOCUS_HALLSENSOR                     360
++#define FVD_PARAM_FFC_PROGRESS                         361
++#define FVD_PARAM_FFC_DESIRED_STATUS                   362
++#define FVD_PARAM_FRAME_MEAN                           363
++#define FVD_PARAM_FOCUS_MOTOR_FRAME_DELAY              364
++#define FVD_PARAM_FOCUS_MOTOR_FAST_SWEEP_WIDTH         365
++#define FVD_PARAM_FOCUS_MOTOR_SLOW_SWEEP_WIDTH         366
++
++//
++// FPGA_PARAM values for certain codes
++//
++
++// for FVD_PARAM_DISPLAY_SELECT... (BalthazarP, GICO)
++#define FVD_DISPLAY_VF   0
++#define FVD_DISPLAY_LCD  1
++
++// Possibly add other codes if supported by future HW
++
++//
++// DDE total range. All pixels will end up in this range after the DDE block
++//
++#define FVD_DDE_TOTAL_RANGE    0x00FF
++
++//
++// Diff total range. All pixels will end up in this range after the DDE block
++//
++#define FVD_DIFF_TOTAL_RANGE   0x00FF
++
++//
++// Focus modes
++//
++#define FVD_FOCUS_NORMAL                0x01
++#define FVD_FOCUS_CONTINOUS             0x02
++#define FVD_FOCUS_FPGA_LASER_CONTINOUS  0x03
++#define FVD_FOCUS_MAN_MODE_DISABLE      0x04
++#define FVD_FOCUS_MAN_MODE_ENABLE       0x05
++
++//
++// Focus direction
++//
++#define FVD_FOCUS_STOP        0x0
++#define FVD_FOCUS_NEAR        0x1
++#define FVD_FOCUS_FAR         0x2
++
++//
++// Unity of the fixed-point alpha value used in the High-Contrast and
++// Blending fusion modes.
++//
++#define FVD_ALPHA_RESOLUTION            0x100
++
++// structure used by IOCTL_FVD_GRAB and IOCTL_FVD_GRAB_STC
++typedef struct {
++    ULONG   ul_type;
++    ULONG   ul_size;
++    void*   pBuffer;
++} FVD_Grab_Request;
++
++//
++// Frame grab request codes (used by IOCTL_FVD_GRAB)
++//
++#define FVD_GRAB                        0
++#define FVD_GRAB_AND_FREEZE             1
++
++// Extended frame grabbing
++// structure used by IOCTL_FVD_GRAB_EX
++
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_irsize;      // size in bytes of pIRBuffer
++    ULONG   ul_visize;      // size in bytes of pVisualBuffer
++    void*   pIRBuffer;      // IR image buffer
++    void*   pVisualBuffer;  // visual camera image buffer
++} FVD_Grab_Ex_Request;
++
++// structure used by IOCTL_FVD_GRAB_EX if ul_flags & FVD_GRABEX_USE_AREAS
++
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_irsize;      // size in bytes of pIRBuffer
++    ULONG   ul_visize;      // size in bytes of pVisualBuffer
++    void*   pIRBuffer;      // IR image buffer
++    void*   pVisualBuffer;  // visual camera image buffer
++
++    USHORT  usNoOfAreas;    // number of areas in array
++    struct grabAreaT {
++        USHORT usXstart;    // must be multiple of 16
++        USHORT usYstart;
++        USHORT usXlength;   // must be multiple of 16
++        USHORT usYlength;
++    } * pAreaDefs;          // pointer to array of areas
++} FVD_Grab_Ex_Area_Request;
++
++// structure used by IOCTL_FVD_GRAB_EX if ul_flags & FVD_GRABEX_VISUAL_JPG
++
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_irsize;      // size in bytes of pIRBuffer
++    ULONG   ul_visize;      // size in bytes of pVisualBuffer
++    void*   pIRBuffer;      // IR image buffer
++    void*   pVisualBuffer;  // visual camera image buffer
++
++    ULONG   ul_actvissize;  // actual size of visual data (out)
++    ULONG   ul_thumbfactor; // rescale thumbnail image by this factor (lengthwise)
++    ULONG   ul_thumbsize;   // size in bytes of pVisualThumb
++    void*   pVisualThumb;   // visual camera image thumbnail
++} FVD_Grab_Ex_Visual_JPG;
++
++#define FVD_GRABEX_FREEZE       0x00000001      // freeze image flow after grab
++#define FVD_GRABEX_IR           0x00000002      // grab IR image
++#define FVD_GRABEX_VISUAL       0x00000004      // grab visual image
++#define FVD_GRABEX_USE_FLASH    0x00000008      // only valid if FVD_GRABEX_VISUAL is also set
++#define FVD_GRABEX_PHYS_BUF     0x00000010      // both buffer pointers are physical addresses
++#define FVD_GRABEX_USE_AREAS    0x00000020      // expect FVD_Grab_Ex_Area_Request struct
++#define FVD_GRABEX_READFROZEN   0x00000040      // do not grab, read last frozen image
++#define FVD_GRABEX_READGRABBED  0x00000080      // do not grab, read last grabbed image
++#define FVD_GRABEX_DIFF         0x00000100      // grab diff image
++#define FVD_GRABEX_VISUAL_JPG   0x00000200      // grab visual jpg image, expect FVD_Grab_Ex_Visual_JPG struct
++#define FVD_GRABEX_USE_SHUTTER  0x00000400      // use "shutter" image (only valid if FVD_GRABEX_FREEZE is set)
++#define FVD_GRABEX_FREEZE_SYNC  0x00000800      // synch color pal and table (only valid if FVD_GRABEX_FREEZE is set)
++#define FVD_GRABEX_FUSION       0x00001000      // grab fusion image
++
++
++#define FVD_GRABEX_READOLD_BITS (FVD_GRABEX_READFROZEN | FVD_GRABEX_READGRABBED)
++
++// Frame grab for autofocus / median calculation
++// structure used by IOCTL_FVD_GRAB_CALC
++// NOTE!!! Only one area can be used!!!
++// The constructon is kept for compability reasons.
++typedef struct {
++    ULONG   ulFlags;        // Input
++    USHORT  usNoOfAreas;    // Input (Must be 1)
++    struct areaDefT {
++        USHORT usXstart;    // Input, must be multiple of 16
++        USHORT usYstart;    // Input
++        USHORT usXlength;   // Input, must be multiple of 16
++        USHORT usYlength;   // Input
++        ULONG  ulResult;    // Output (SquareSum, Median or Gradient LSB)
++        ULONG  ulResult2;   // Output (2nd derivate, LSB)
++        ULONG  ulResultMSB; // Output (Gradient MSB)
++        ULONG  ulResult2MSB;// Output (2nd derivate, MSB)
++        ULONG  ulResult3;   // Output (Col Gradient, LSB)
++        ULONG  ulResult3MSB;// Output (Col Gradient, MSB)
++    } * pAreaDefs;          // Pointer to array of areas
++} FVD_Grab_Calc_Request;
++
++#define FVD_GRABCALC_SQUARE_SUM 0x00000001  // Average square sum of pixels calculated
++#define FVD_GRABCALC_MEDIAN     0x00000002  // Median value of pixels calculated
++#define FVD_GRABCALC_TRIG_FOCUS 0x00000004  // Trigger pin to focus motor activated at IRQ
++#define FVD_GRABCALC_GRADIENT   0x00000008  // Gradient and 2nd derivate calculated
++
++//
++// Frame recall request structure (used by IOCTL_FVD_RECALL)
++//
++
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_size;
++    void*   pBuffer;
++} FVD_Recall_Request;
++
++#define FVD_SHOW_BUFFER     0x00000001L // Show contents of recall buffer
++#define FVD_SHOW_GRABBED    0x00000010L // Show contents of grab buffer (used instead of FVD_SHOW_BUFFER w/pBuffer = NULL)
++#define FVD_RECALL_VISUAL   0x00000002L // pBuffer contains visual image data
++#define FVD_RECALL_FUSION   0x00000004L // Show IR & visual buffers as fusioned image
++                                        // One of them should be previously recalled without FVD_SHOW_BUFFER
++#define FVD_RECALL_DIFF     0x00000008L // pBuffer contains diff image data
++#define FVD_RECALL_SYNCH_COLOR_FUNC 0x00001000L // Synch switch of palette and color table etc. at FVD_SHOW_XXX
++
++//
++// Sequence frame read/write structure (used by IOCTL_FVD_SEQUENCE)
++//
++
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_size;
++    ULONG   ul_index;
++    wchar_t sz_frameevent[20];  // Frame event name
++    wchar_t sz_endevent[20];    // End event name
++    void*   pBuffer;
++} FVD_Sequence_Request;
++
++#define FVD_SEQUENCE_FRAME_READ     0x00000001L
++#define FVD_SEQUENCE_FRAME_WRITE    0x00000002L
++#define FVD_SEQUENCE_STOP           0x00000004L
++#define FVD_SEQUENCE_REC_START      0x00000008L
++#define FVD_SEQUENCE_PLAY_START     0x00000010L
++#define FVD_SEQUENCE_PAUSE          0x00000020L
++
++//
++// MPEG Frame recall request structure (used by IOCTL_FVD_RECALL_MPEG)
++//
++
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_width;       // source number of samples per line
++    ULONG   ul_height;      // source number of lines
++    void*   pY;             // pointer to Y plane
++    void*   pCb;            // pointer to Cb plane
++    void*   pCr;            // pointer to Cr plane
++    ULONG   ul_ystep;       // line stride Y-plane
++    ULONG   ul_cbstep;      // line stride Cb plane
++    ULONG   ul_crstep;      // line stride Cr plane
++} FVD_MPEG_Recall_Request;
++
++// Use flag bits 1-0 for destination buffer type
++// Use flag bits 3-2 for source format
++// Use flag bits 5-4 for destination format
++#define FVD_MPEG_DSTBUF_OVERLAY         0       // destination is overlay buffer
++#define FVD_MPEG_DSTBUF_FRAME           1       // destination is visual frame buffer
++#define FVD_MPEG_DSTBUF_TN              2       // destination is visual thumbnail buffer
++#define FVD_MPEG_SRCFMT_411             0       // source format indicator
++#define FVD_MPEG_DSTFMT_444             0       // destination format indicator
++#define FVD_MPEG_DSTFMT_422             1       // destination format indicator
++
++// Image flow control request codes (used by IOCTL_FVD_IMAGE_FLOW_CONTROL)
++//
++//
++// 4 LSB bits used for request code - codes 4-15 not used
++// FVD_USE_VISUAL_SOURCE flag can be used together with FVD_START*
++// to initiate a visual camera flow
++// FVD_USE_FUSION_SOURCE flag can be used together with FVD_START*
++// to initiate an IR/visual fusioned camera flow
++//
++#define FVD_START                               0
++#define FVD_START_AND_SYNCH_COLOR_FUNC          1
++#define FVD_STOP                                2
++#define FVD_STOP_AND_SYNCH_COLOR_FUNC           3
++// one of these flags can be used together with start request code
++#define FVD_USE_VISUAL_SOURCE          0x00000010
++#define FVD_USE_FUSION_SOURCE          0x00000020
++#define FVD_USE_DIFF_SOURCE            0x00000040
++
++// structure used by IOCTL_FVD_ERROR_SIGNAL
++typedef struct {
++    wchar_t sz_event[20];
++    ULONG   ul_action;
++} FVD_Error_Signal_Request;
++
++#define FVD_ERROR_ILLEGAL_VALUE          1
++#define FVD_ERROR_ADDR_OOR               2       // Access to address is out of range
++#define FVD_ERROR_ILLEGAL_REG            3       // Access to reserved register
++#define FVD_ERROR_REG_WRITE              4       // Write access to read-only register
++#define FVD_ERROR_HIST_CTRL              5
++
++#define FVD_TEC_TEMP_UPPDATED            6   // For use by TecLog
++
++#define FVD_ERROR_CF_OOR                 9
++#define FVD_ERROR_CF_OVERFLOW           10
++#define FVD_ERROR_QCI_OVERFLOW          11
++#define FVD_ERROR_QCI_UNDERFLOW         12
++#define FVD_ERROR_QCI_BNE               13      // QCI Buffer Not Empty
++#define FVD_ERROR_ZOOM_OVERFLOW         14
++
++#define FVD_ERROR_OFFSET                17
++#define FVD_ERROR_COARSE                18
++#define FVD_ERROR_TIF                   19
++#define FVD_ERROR_SAVE_TIF              20
++#define FVD_ERROR_HOST                  21
++#define FVD_ERROR_SAVE_HOST             22
++#define FVD_ERROR_GAIN                  23
++#define FVD_ERROR_PIXREP                24
++#define FVD_ERROR_BUFPIX                25
++#define FVD_ERROR_SAVEBUFPIX            26
++#define FVD_ERROR_PIXSUM                27
++#define FVD_ERROR_SAVEPIXSUM            28
++#define FVD_ERROR_FRAMEGRAB             29
++#define FVD_ERROR_SAVEFRAMEGRAB         30
++#define FVD_ERROR_PING                  32
++
++#define FVD_ERROR_FVI_FRAME             41
++#define FVD_ERROR_FVI_FPAINBUF          42
++#define FVD_ERROR_FVI_FPAINBUF_OF       43
++#define FVD_ERROR_FVI_IRDM_COMM         44
++#define FVD_ERROR_FVI_IRDM_STAT0        45
++#define FVD_ERROR_FVI_IRDM_STAT1        46
++#define FVD_ERROR_FVI_IRDM_STAT2        47
++#define FVD_ERROR_FVI_IRDM_STAT3        48
++
++#define FVD_ERROR_STATUS               50
++
++
++// structure used by IOCTL_FVD_GET_ERROR
++typedef struct {
++    ULONG           ul_version;
++    SYSTEMTIME      timestamp;
++    ULONG           ul_error_code;
++    USHORT          us_error_severity;
++    USHORT          us_flags;
++    USHORT          us_module;   //fpga status block
++    USHORT          us_sub_module;
++    ULONG           ul_error_data;  //fpga status bits
++
++} FVD_Error_Report;
++
++// All fpga blocks
++#define FOREACH_fpga_block(NAME) \
++    NAME("SCALE","IR digital zoom") \
++    NAME("ICT", "Image Color Transformation and fusion. 16 bit IR to 24 bit YCbCr and mix IR and Visual images") \
++    NAME("COMP_LS", "Composite image flow Line start generation") \
++    NAME("VSCALE","Visual digital zoom") \
++    NAME("NOT USED","") \
++    NAME("NOT USED","") \
++    NAME("NOT USED","") \
++    NAME("NOT USED","") \
++    NAME("CSI","Camera Serial Interface. CPU image interface") \
++    NAME("FVI","FPA Video Interface. Communicates with detector board") \
++    NAME("NOT USED","") \
++    NAME("GEX","Generic Execute. Platform execute handling") \
++    NAME("NOT USED","") \
++    NAME("TPG","Test Pattern Generator for IR.") \
++    NAME("GAO","Gain And Offset. Pixel based gain and offset and global gain applied") \
++    NAME("DPR","Dead Pixel Replacement. Substitute bad dead pixels with good pixels") \
++    NAME("NOC","New Offset map Calculation. Calculation of new offset map for IR data") \
++    NAME("HIST","Histogram generation") \
++    NAME("CALC","Calculations on IR flow") \
++    NAME("FOCUS","Focus aritmethics. Calculates summed IR frame gradients for columns and rows") \
++    NAME("TIF","Temporal IIR Filter") \
++    NAME("SCF","Spatial Column Filter") \
++    NAME("SRF","Spatial Row Filter") \
++    NAME("LCF","Lens Correction Filter. Rotation and dewarping") \
++    NAME("NG","Noise Generator. Adds noise to IR image") \
++    NAME("LBF","Line Buffer and FLIP. Make each line 320 pixels and flips left to right") \
++    NAME("NOT USED","") \
++    NAME("SNF","Spatial NUC Filter. Temporal filter creating a NUC map") \
++    NAME("NOT USED","") \
++    NAME("MCA","External Memory Control and Arbitration. HOST buffer") \
++    NAME("MCA","External Memory Control and Arbitration. GAIN read buffer, OFFSET read buffer") \
++    NAME("MCA","External Memory Control and Arbitration. COARSE read buffer, SNF read buffer") \
++    NAME("MCA","External Memory Control and Arbitration. IR read buffer, Visual read buffer") \
++    NAME("MCA","External Memory Control and Arbitration. TIF read buffer, NOC read buffer") \
++    NAME("MCA","External Memory Control and Arbitration. TIF write buffer, NOC write buffer") \
++    NAME("MCA","External Memory Control and Arbitration. IR write buffer, Visual write buffer") \
++    NAME("MCA","External Memory Control and Arbitration. SNF write buffer") \
++    NAME("PIC","Processor Interface and Control. Handles registers and interrupts") \
++    NAME("SAC","Shutter and Apperture Control") \
++    NAME("VCI","Visual Camera Interface") \
++    NAME("MCA","External Memory Control and Arbitration. HOST Arbitration") \
++
++// All fpga block register bits  
++#define FOREACH_fpga_block_register(NAME) \
++    NAME(0,0,"SCALE_PingError") \
++    NAME(0,1,"PB_PingError") \
++    NAME(0,2,"PFC_CalcNotFinishedErr") \
++    NAME(0,3,"EQU_BufferNotEmptyErr") \
++    NAME(0,4,"EQU_LineBufPointerErr") \
++    NAME(0,5,"EQU_CalcNotStartedErr") \
++    NAME(0,6,"EQU_LineStartErr") \
++    NAME(0,7,"EQU_HoldTimerErr") \
++    NAME(0,8,"EQU_PixLoopErr") \
++    NAME(0,9,"EQU_LeftBorderWrErr") \
++    NAME(0,10,"EQU_MiddlePixWrErr") \
++\
++    NAME(1,0,"ICT_PingError") \
++    NAME(1,1,"PB_OVL_PingError") \
++    NAME(1,2,"PB_OUT_PingError") \
++    NAME(1,3,"PB_IR_PingError") \
++    NAME(1,4,"PB_VIS_PingError") \
++    NAME(1,5,"CTRL_YCalcErr") \
++    NAME(1,6,"IF_NotFinished") \
++    NAME(1,7,"IF_IllegalValue") \
++    NAME(1,8,"IF_IrUnderflow") \
++    NAME(1,9,"IF_VisUnderflow") \
++    NAME(1,10,"CTRL_IrOverflow") \
++    NAME(1,11,"CTRL_VisOverflow") \
++    NAME(1,12,"OL_FifoNotEmpty") \
++    NAME(1,13,"OL_FifoUnderflow") \
++    NAME(1,14,"OL_FifoOverflow") \
++    NAME(1,15,"OL_IctOutOfSync") \
++\
++    NAME(2,0,"ErrFrameNotDone") \
++    NAME(2,1,"ErrPing") \
++\
++    NAME(3,0,"VSCALE_PingError") \
++    NAME(3,1,"PB_PingError") \
++    NAME(3,2,"PFC_CalcNotFinishedErr") \
++    NAME(3,3,"EQU_BufferNotEmptyErr") \
++    NAME(3,4,"EQU_LineBufPointerErr") \
++    NAME(3,5,"EQU_CalcNotStartedErr") \
++    NAME(3,6,"EQU_LineStartErr") \
++    NAME(3,7,"EQU_HoldTimerErr") \
++    NAME(3,8,"EQU_PixLoopErr") \
++    NAME(3,9,"EQU_LeftBorderWrErr") \
++    NAME(3,10,"EQU_MiddlePixWrErr") \
++\
++    NAME(8,0,"PB_YCrCbOverlayPingError") \
++    NAME(8,1,"PB_YCrCbPingError") \
++    NAME(8,2,"PB_DiffPingError") \
++    NAME(8,3,"PB_IrPingError") \
++    NAME(8,4,"CSI_PingError") \
++    NAME(8,5,"CTRL_FifoNotEmpty") \
++    NAME(8,6,"CTRL_FifoOverflow") \
++    NAME(8,7,"OUT_FifoUnderflow") \
++    NAME(8,8,"OUT_WrongFrameSize") \
++\
++    NAME(9,0,"PB_PingError") \
++    NAME(9,1,"FVI_SPI_PingSpiCtrl") \
++    NAME(9,2,"FVI_SB_PingSendDataFsm") \
++    NAME(9,3,"FVI_SB_PingRecDataFsm") \
++    NAME(9,4,"FVI_CTRL_PingMainFsm") \
++    NAME(9,5,"CTRL_ErrTimeout") \
++    NAME(9,6,"BUF_Underflow") \
++    NAME(9,7,"BUF_Overflow") \
++    NAME(9,8,"BUF_BufNotEmpty") \
++    NAME(9,9,"BUF_IncompleteLine") \
++\
++    NAME(11,0,"FgIrNotFinished") \
++    NAME(11,1,"FgVisNotFinished") \
++\
++    NAME(13,0,"PB_PingErrorOUT") \
++    NAME(13,1,"PB_PingErrorIN") \
++    NAME(13,2,"TPG_PingError") \
++\
++    NAME(14,0,"PB_PingErrorOUT") \
++    NAME(14,1,"PB_PingErrorIN") \
++    NAME(14,2,"GAO_PingError") \
++    NAME(14,3,"ErrSatPosD1") \
++    NAME(14,4,"ErrSatNegD1") \
++\
++    NAME(15,0,"PB_PingErrorOUT") \
++    NAME(15,1,"PB_PingErrorIN") \
++    NAME(15,2,"DPR_PingError") \
++    NAME(15,3,"DH_BufferErr") \
++\
++    NAME(16,0,"PBIN_PingError") \
++    NAME(16,1,"NOC_PingError") \
++    NAME(16,2,"BreakReq") \
++\
++    NAME(17,0,"PBIN_PingError") \
++    NAME(17,1,"HIST_PingError") \
++\
++    NAME(18,0,"PB_PingError") \
++    NAME(18,1,"CALC_PingError") \
++    NAME(18,2,"AreaSumOverflow") \
++\
++    NAME(19,0,"PB_PingError") \
++    NAME(19,1,"FOCUS_PingError") \
++    NAME(19,2,"TopLine    > BottomLine") \
++    NAME(19,3,"LeftPix    > RightPix") \
++    NAME(19,4,"BottomLine > I_FrameConf.ColLength-1") \
++    NAME(19,5,"RightPix   > I_FrameConf.LineLength-1") \
++\
++    NAME(20,0,"PB_PingAckOUT") \
++    NAME(20,1,"PB_PingAckIN") \
++    NAME(20,2,"TIF_PingAck") \
++    NAME(20,3,"TIF_ROW_FifoErr") \
++    NAME(20,4,"TIF_ROW_FifoFull AND RowFiltEn") \
++    NAME(20,5,"FrameConf.LineLength > g_LineLength") \
++\
++    NAME(21,0,"PB_PingAckIN") \
++    NAME(21,1,"PB_PingAckOUT") \
++    NAME(21,2,"SCF_PingAck") \
++    NAME(21,3,"PixUnderflow") \
++    NAME(21,4,"PixOverflow") \
++    NAME(21,5,"SyncErr") \
++    NAME(21,6,"DivErr") \
++\
++    NAME(22,0,"PB_PingAckIN") \
++    NAME(22,1,"PB_PingAckOUT") \
++    NAME(22,2,"SRF_PingAck") \
++    NAME(22,3,"PixUnderflow") \
++    NAME(22,4,"PixOverflow") \
++    NAME(22,5,"Err_NoLastFramePix") \
++    NAME(22,6,"Err_InSuffData") \
++    NAME(22,7,"Err_FrameTampered") \
++\
++    NAME(23,0,"POS_ErrFrameNotDone") \
++    NAME(23,1,"POS_DIV_Overflow") \
++    NAME(23,2,"DELTA_ErrFrameNotDone") \
++    NAME(23,3,"DELTA_ErrFifoUnderflow") \
++    NAME(23,4,"DELTA_DIV_Overflow") \
++    NAME(23,5,"WP_ErrFrameNotDone") \
++    NAME(23,6,"WP_PingAck") \
++    NAME(23,7,"PB_PingAckOUT") \
++    NAME(23,8,"PB_PingAckIN") \
++    NAME(23,9,"POS_PingAck") \
++    NAME(23,10,"tmp_DELTA_PingAck") \
++\
++    NAME(23,0,"UnevenHostBurst") \
++    NAME(23,1,"HostOverflow") \
++    NAME(23,2,"HostUnderflow") \
++    NAME(23,3,"SaveHostOverflow") \
++    NAME(23,4,"SaveHostUnderflow") \
++\
++    NAME(29,0,"UnevenHostBurst") \
++    NAME(29,1,"HostOverflow") \
++    NAME(29,2,"HostUnderflow") \
++    NAME(29,3,"SaveHostOverflow") \
++    NAME(29,4,"SaveHostUnderflow") \
++\
++    NAME(30,0,"BufferUnderflow (Gain read)") \
++    NAME(30,1,"BufferUnderflow (Offset read)") \
++    NAME(30,2,"BufferOverflow (Gain read)") \
++    NAME(30,3,"BufferOverflow (Offset read)") \
++    NAME(30,4,"BufferNotEmpty (Gain read)") \
++    NAME(30,5,"BufferNotEmpty (Offset read)") \
++\
++    NAME(31,0,"BufferUnderflow (Coarse read)") \
++    NAME(31,1,"BufferUnderflow (Not used)") \
++    NAME(31,2,"BufferOverflow (Coarse read)") \
++    NAME(31,3,"BufferOverflow (Not used)") \
++    NAME(31,4,"BufferNotEmpty (Coarse read)") \
++    NAME(31,5,"BufferNotEmpty (Not used)") \
++\
++    NAME(32,0,"BufferUnderflow (IR read)") \
++    NAME(32,1,"BufferUnderflow (Visual read)") \
++    NAME(32,2,"BufferOverflow (IR read)") \
++    NAME(32,3,"BufferOverflow (Visual read)") \
++    NAME(32,4,"BufferNotEmpty (IR read)") \
++    NAME(32,5,"BufferNotEmpty (Visual read)") \
++\
++    NAME(33,0,"BufferUnderflow (TIF read)") \
++    NAME(33,1,"BufferUnderflow (NOC read)") \
++    NAME(33,2,"BufferOverflow (TIF read)") \
++    NAME(33,3,"BufferOverflow (NOC read)") \
++    NAME(33,4,"BufferNotEmpty (TIF read)") \
++    NAME(33,5,"BufferNotEmpty (NOC read)") \
++\
++    NAME(34,0,"BufferUnderflow (TIF write)") \
++    NAME(34,1,"BufferUnderflow (NOC write)") \
++    NAME(34,2,"BufferOverflow (TIF write)") \
++    NAME(34,3,"BufferOverflow (NOC write)") \
++    NAME(34,4,"BufferNotEmpty (TIF write)") \
++    NAME(34,5,"BufferNotEmpty (NOC write)") \
++    NAME(34,6,"BufferNotFinished (TIF write)") \
++    NAME(34,7,"BufferNotFinished (NOC write)") \
++    NAME(34,8,"ClkPerPixErr (TIF write)") \
++    NAME(34,9,"ClkPerPixErr (NOC write)") \
++    NAME(34,10,"BurstAccDuringFs (TIF write)") \
++    NAME(34,11,"BurstAccDuringFs (NOC write)") \
++\
++    NAME(35,0,"BufferUnderflow (IR write)") \
++    NAME(35,1,"BufferUnderflow (Visual write)") \
++    NAME(35,2,"BufferOverflow (IR write)") \
++    NAME(35,3,"BufferOverflow (Visual write)") \
++    NAME(35,4,"BufferNotEmpty (IR write)") \
++    NAME(35,5,"BufferNotEmpty (Visual write)") \
++    NAME(35,6,"BufferNotFinished (IR write)") \
++    NAME(35,7,"BufferNotFinished (Visual write)") \
++    NAME(35,8,"ClkPerPixErr (IR write)") \
++    NAME(35,9,"ClkPerPixErr (Visual write)") \
++    NAME(35,10,"BurstAccDuringFs (IR write)") \
++    NAME(35,11,"BurstAccDuringFs (Visual write)") \
++\
++    NAME(36,0,"MA_HostAddrErr") \
++\
++    NAME(37,0,"HI_AccErr") \
++\
++    NAME(38,0,"Shutter timeout error") \
++\
++    NAME(39,0,"ErrorFIFOUnderrun") \
++    NAME(39,1,"ErrorFIFOOverrun") \
++    NAME(39,2,"New frame while active") \
++    NAME(39,3,"End frame while not active") \
++    NAME(39,4,"Not enabled") \
++
++
++//macro to put above information in an array
++#define FPGA_BLOCK_ARRAY(A,B) A, B,
++#define FPGA_BLOCK_REGISTER_ARRAY(A,B,C) A, (1<<B), C,
++
++typedef struct Fpga_block
++{	
++    const char* name;          //short name of fpga status block
++    const char* description;   //description of fpga status block
++}Fpga_block;
++
++
++typedef struct Fpga_block_registers
++{	
++    USHORT  block;         //fpga block  this description is valid for
++    USHORT  bit;           //fpga bit  this description is valid for
++    const char* description;   //desciption of a status bit for a fpga status block
++}Fpga_block_registers;
++
++
++
++/*****Implementation details*******
++Memory will be allocated and initialized, in an array structure, 
++containing fpga status descriptions,  by using following code:
++ 
++Fpga_block fpga[] = 
++{
++ FOREACH_fpga_block(FPGA_BLOCK_ARRAY)
++};
++Fpga_block contains an array with fpga status blocks names, 
++where the array index is the fpga block number
++NAME("SHORTNAME","DESCRIPTION") \
++
++
++Fpga_block_registers fpga_registers[] = 
++{
++ FOREACH_fpga_block_register(FPGA_BLOCK_REGISTER_ARRAY)
++};
++fpga_registers contains an array with description of every individual bit in an fpga status block
++NAME(BLOCK,BIT,"DESCRIPTION") \
++
++For more informatin look at Astra FPGA ICD, and implementation example in fvd.exe
++
++*/
++
++#define FVD_GET_ERROR_MORE 0x0001
++//
++// FPGA parameter codes (used by IOCTL_FVD_GET_PARAM)
++//
++#define FVD_SEVERITY_INFORMATIONAL              0
++#define FVD_SEVERITY_WARNING                    1
++#define FVD_SEVERITY_ERROR                      2
++#define FVD_SEVERITY_FATAL                      3
++
++// structure used by IOCTL_FVD_SET_IRDM_PARAM
++typedef struct {
++    ULONG   ul_param_type;
++    ULONG   ul_param_value;
++} FVD_IRDM_Set_Param_Request;
++
++#define FVD_IRDM_VERSION             0  // Read only
++#define FVD_IRDM_STATUS              1  // Read only
++#define FVD_IRDM_INTERRUPT_MASK      2
++#define FVD_IRDM_FPA_TEMP            3  // Read only
++#define FVD_IRDM_INTEGRATION_TIME    4  // Integration time (raw value)
++#define FVD_IRDM_DB_RDAC             5  // SB: Detector BIAS Resistor DAC
++#define FVD_IRDM_DB_ODAC             6  // SB: Detector BIAS Offset DAC
++#define FVD_IRDM_OTR                 7  // SB: ODAC Temperature Range
++#define FVD_IRDM_TEMP_CONTROL        8  // SB: Int time for FPA tempsensor
++#define FVD_IRDM_FPA_BIAS            9  // SB: Vload
++#define FVD_IRDM_FPA_FIRST_LINE     10  // First active line
++#define FVD_IRDM_FPA_LAST_LINE      11  // Last active line
++#define FVD_IRDM_FPA_FIRST_PIXEL    12  // First active pixel
++#define FVD_IRDM_FPA_LAST_PIXEL     13  // Last active pixel
++#define FVD_IRDM_TEC_STABLE         14  // TEC stable, read only
++#define FVD_IRDM_TEC_CONTROL        15  // TEC control, read only
++#define FVD_IRDM_TEC_KP             16  // TEC param P
++#define FVD_IRDM_TEC_KI             17  // TEC param I
++#define FVD_IRDM_TEC_KD             18  // TEC param D
++#define FVD_IRDM_GFID               19  // ULIS: Biasing (former VFID)
++#define FVD_IRDM_VSK                20  // ULIS: Biasing (former Vebasage)
++#define FVD_IRDM_CALIBRE            21  // ULIS: Trans-Impedance amplifier
++#define FVD_IRDM_SAMPLE_PHASE       22  // A/D sample clock phase
++#define FVD_IRDM_FLIP_X             23  // ULIS: Flip X, 1 = Right to left FPA readout
++#define FVD_IRDM_FLIP_Y             24  // ULIS: Flip Y, 1 = Up to down FPA readout
++#define FVD_IRDM_TEC_TEMP_TARGET    25  // TEC temp target
++#define FVD_IRDM_TEC_DIFF           26  // TEC diff
++#define FVD_IRDM_FPA_TEMP_AMP       27  // Fpa temp amp
++#define FVD_IRDM_TEC_KP_START       28  // TEC param P start value
++#define FVD_IRDM_TEC_KI_START       29  // TEC param I start value
++#define FVD_IRDM_TEC_KD_START       30  // TEC param D start value
++#define FVD_IRDM_SB_RA              31  // SB320: RA parameter
++#define FVD_IRDM_SB_RCA             32  // SB320: RCA parameter
++#define FVD_IRDM_SB_RM              33  // SB320: RM parameter
++#define FVD_IRDM_SB_ORA             34  // SB320: ORA parameter
++#define FVD_IRDM_SB_BLINDOA         35  // SB320: Blind OA parameter (aka Coarse Map Default)
++#define FVD_IRDM_SB_BLIND_AVERAGE   36  // SB320: Blind bolometer average
++#define FVD_IRDM_SB_COL_FILTER_INIT 37  // SB320: Blind bolometer column filter init
++#define FVD_IRDM_FPA_WINDOW_ENABLE  38  // Use first/last active pixel/line defined window
++#define FVD_IRDM_SB_GC              39  // SB0209: Gain state (GC) parameter
++#define FVD_IRDM_SB_PW              40  // SB0209: Power control (PW) parameter
++#define FVD_IRDM_SB_I               41  // SB0209: Master current (I) parameter
++#define FVD_IRDM_SB_DE              42  // SB0209: Bias (DE) parameter
++#define FVD_IRDM_SB_CLKCTRL         43  // SB0209: FpaClkCtrl parameter
++#define FVD_IRDM_SB_INT_TIME_FINE   44  // SB0209: Fine integration time (column)
++#define FVD_IRDM_BLIND_BOL_ITIME_ADJ 45 // ULIS:   Blind bolometer integration time adjust
++#define FVD_IRDM_FPA_TEMP_SELECT    46  // ULIS:   Select FPA tmperature sensor
++#define FVD_IRDM_SB_INV             47  // SB0901: Row readout Direction
++#define FVD_IRDM_SB_BLOOP           48  // SB0901: Number of Bilnd rows
++#define FVD_IRDM_SB_RLOOP           49  // SB0901: Number of integrator reset rows
++#define FVD_IRDM_SB_BR_AR           50  // SB0901: Reset ARRST (start of DB Antiramp)
++#define FVD_IRDM_SB_BS_RS           51  // SB0901: Set Row Enable Start
++#define FVD_IRDM_SB_BR_END          52  // SB0901: Reset SH (End of integration)
++#define FVD_IRDM_SB_BR_AMP          53  // SB0901: Reset AMPREST (Start of integration)
++#define FVD_IRDM_SB_BS_LT           54  // SB0901: Set Line Time End
++#define FVD_IRDM_SB_ODSTART         55  // SB0901: ODAC Anti-Ramp Start
++#define FVD_IRDM_SB_ODRS            56  // SB0901: ODAC Anti-Ramp step Size
++#define FVD_IRDM_SB_ODLB            57  // SB0901: ODAC level B: Level when RFRST=0 (Active)
++#define FVD_IRDM_SB_ODLA            58  // SB0901: ODAC level A: Level when RFRST=1
++#define FVD_IRDM_SB_BIR             59  // SB0901: Anti-Ramp Input Buffer Power
++#define FVD_IRDM_SB_BOR             60  // SB0901: Anti-Ramp Output Buffer Power Adj.
++#define FVD_IRDM_SB_RBA             61  // SB0901: Anti-Ramp Resistor Adjust (1/x behaviour)
++#define FVD_IRDM_SB_RPA             62  // SB0901: Anti-Ramp Resistor Adjust (Linear behaviour)
++#define FVD_IRDM_SB_SCARE           63  // SB0901: Switch Capacitor to Anti-Ramp Enable
++#define FVD_IRDM_SB_DBARE           64  // SB0901: Detector Bias to Anti-Ramp Enable
++#define FVD_IRDM_SB_SCE             65  // SB0901: Switch Capacitor Enable
++#define FVD_IRDM_SB_ARE             66  // SB0901: Anti-Ramp Enable 
++#define FVD_IRDM_SB_BBE             67  // SB0901: Buffered Bias Enable
++#define FVD_IRDM_SB_DBE             68  // SB0901: Detector Bias Enable
++#define FVD_IRDM_SB_RMPG            69  // SB0901: Ramp Voltage Range Adjsut
++#define FVD_IRDM_SB_IRA             70  // SB0901: Integrator Reference Voltage Adj.
++#define FVD_IRDM_SB_CLA             71  // SB0901: Integrator Buffer Clamp Adjust
++#define FVD_IRDM_FPA_TEMP_UPSCALED  72  // ULIS/SB320: TFPA with 2 decimals (still as integer)
++#define FVD_IRDM_SB_OE              73  // SB0209: "skimming" enable OE bit
++#define FVD_IRDM_SB_TRD             74  // SB1101: VPD Trimming bits
++#define FVD_IRDM_SB_TRA             75  // SB1101: VPOS Trimming bits
++#define FVD_IRDM_SB_GTEMP           76  // SB1101: Temp Sensor Gain Adjust
++#define FVD_IRDM_SB_ATEMP           77  // SB1101: Temp Sensor Input Range Adjust
++#define FVD_IRDM_SB_ILA				78  // SB1101: Logic current limit adjust
++#define FVD_IRDM_SB_IAA				79  // SB1101: Integrator master current adjust
++#define FVD_IRDM_SB_LDB				80  // SB1101: Load and active detector bias adjust
++#define FVD_IRDM_SB_IMA				81  // SB1101: Channel master current adjust
++#define FVD_IRDM_SB_RCB				82  // SB1101: Global resistance coarse adjust  - Blind
++#define FVD_IRDM_SB_RAB				83  // SB1101: Global resistance adjust			- Blind
++#define FVD_IRDM_SERIAL             84  // SB1101: Serial number of detector
++#define FVD_IRDM_GOC                85  // ULIS (PICO1024E): GOC bias
++#define FVD_IRDM_SB_IBA             86  // SB1407: Bias Buffer Current Adjust
++#define FVD_IRDM_SB_RFG             87  // SB1407: Reduce Fixed Gain Adjust
++#define FVD_IRDM_SB_GA              88  // SB1407: Gain Assist Adjust
++#define FVD_IRDM_SB_ST_AMP          89  // SB1407: Adjust time when amplification start
++#define FVD_IRDM_SB_NO_AMP          90  // SB1407: Never amplitud the signal
++#define FVD_IRDM_SB_ST_LPF          91  // SB1407: Adjust time when low pass filter starts
++#define FVD_IRDM_SB_NO_LPF          92  // SB1407: Never turns on low pass filter
++#define FVD_IRDM_SB_END_LPF         93  // SB1407: Adjust time when low pass filter starts
++#define FVD_IRDM_SB_PER_LPF         94  // SB1407: Adjust the bandwidth of the low pass filter
++#define FVD_IRDM_SB_OPEN_EN         95  // SB1407: Adjust timing of bolometer row transitions
++#define FVD_IRDM_SB_RBC             96  // SB1407: Row select/Bshort/Comen Delay
++#define FVD_IRDM_CBE                97  // SB1407: Connects CMOS Test bias to bias buffer
++#define FVD_IRDM_TPE                98  // SB1407: Connects VTESTREF pas to Bias Buffer
++#define FVD_IRDM_CTI                99  // SB1407: Enables Column Test Input to every column
++#define FVD_IRDM_ADIN1_EN          100  // SB1407: Allows external ADIN1 to be sent to on-chip ADC
++#define FVD_IRDM_ADIN2_EN          101  // SB1407: Allows external ADIN2 to be sent to on-chip ADC
++#define FVD_IRDM_ALL_ADIN1         102  // SB1407: Uses ADIN1 pas as the external input to both ADC
++#define FVD_IRDM_DEFAULT_COARSEMAP 103  // SB1407: Default values for coarsemap & BiasCMap. See ICD reg 40.
++#define FVD_IRDM_FRAME_RATE        104  // I3 DB640: Frame rate
++#define FVD_IRDM_VSKIM             105  // I3 DB640: Vskim level set
++#define FVD_IRDM_VBLIND_LOW        106  // I3 DB640: Vblind low level set
++#define FVD_IRDM_VBLIND_HIGH       107  // I3 DB640: Vblind high level set
++#define FVD_IRDM_VBOLO_LOW         108  // I3 DB640: Vbolo low level set
++#define FVD_IRDM_VBOLO_HIGH        109  // I3 DB640: Vbolo high level set
++#define FVD_IRDM_VCDS              110  // I3 DB640: Vcds level set
++#define FVD_IRDM_INT_CAP           111  // I3 DB640: Int .cap
++#define FVD_IRDM_BLIND_REPAIR_ODD  112  // I3 DB640: Blind Repair (Odd Row)
++#define FVD_IRDM_BLIND_REPAIR_EVEN 113  // I3 DB640: Blind Repair (Even Row)
++#define FVD_IRDM_BOARD_EXECUTE     114  // I3 DB640: Board Execute
++
++// Structure used by IOCTL_FVD_ALLOC_PHYS_BUFFER and IOCTL_FVD_FREE_PHYS_BUFFER
++typedef struct {
++    PVOID   pPhysAddr;  // ALLOC - output, FREE - Not used
++    PVOID   pUnused;    // Not used any more
++    PVOID   pDelAddr;   // ALLOC - output, FREE - Input
++    ULONG   ulLength;   // ALLOC - input,  FREE - Not used
++} FVD_Phys_Buffer_Request;
++
++//
++// FPGA support flags (used by IOCTL_FVD_GET_SUPPORT)
++//
++// Bit 0 - 31 are shared with BtzI (old platform)
++//
++// These are register 0x24-0x25
++#define FVD_SUPPORT_HISTOGRAM             0x00000001  // Histogram
++#define FVD_SUPPORT_VISUAL_FLOW           0x00000002  // Visual flow handling
++#define FVD_SUPPORT_TEC_CONTROL           0x00000004  // TEC control
++#define FVD_SUPPORT_ANALOG_VIDEO          0x00000008  // Analog Video Interface and MPEG
++#define FVD_SUPPORT_RGB_TO_YCRCB          0x00000010  // RGB to YCrCb conversion
++#define FVD_SUPPORT_FIREWIRE              0x00000020  // FireWire
++#define FVD_SUPPORT_ZOOM                  0x00000040  // Digital Zoom
++#define FVD_SUPPORT_BURST_RECORDING       0x00000080  // Burst recording/playback
++#define FVD_SUPPORT_NOISE_GENERATOR       0x00000100  // Noise generator
++#define FVD_SUPPORT_TEMPORAL_FILTER       0x00000200  // Temporal IIR filter
++#define FVD_SUPPORT_BILATERAL_FILTER      0x00000400  // Spatial FIR filter
++#define FVD_SUPPORT_SPATIAL_COL_FILTER    0x00000800  // Spatial Column filter 
++#define FVD_SUPPORT_DDE_FILTER            0x00001000  // DDE filter (DRC)
++#define FVD_SUPPORT_VARIANCE_CALC         0x00002000  // Variance calculation for autofocus
++#define FVD_SUPPORT_IMAGE_ROTATION        0x00004000  // Image rotation
++#define FVD_SUPPORT_VISUAL_ZOOM           0x00008000  // Visual zoom
++#define FVD_SUPPORT_IMAGE_FUSION          0x00010000  // Image fusion
++#define FVD_SUPPORT_TEMPORAL_ROW_FILTER   0x00020000  // Temporal row filter
++#define FVD_SUPPORT_GRADIENT_SDEV_CALC    0x00040000  // Gradient and 2nd derivate for autofocus
++#define FVD_SUPPORT_HISTOGRAM_AREA        0x00080000  // Adjustable histogram area
++#define FVD_SUPPORT_SPR_FILTER            0x00100000  // Supernova Pixel Replacement filter
++#define FVD_SUPPORT_COLUMN_GRADIENT_CALC  0x00200000  // Column gradient for autofocus
++#define FVD_SUPPORT_ARCHIVE_RESAMPLE      0x00400000  // Resampling of visual archive images
++#define FVD_SUPPORT_LASER_DETECT          0x00800000  // Laser detection
++#define FVD_SUPPORT_SPATIAL_ROW_FILTER    0x01000000  // Spatial row filter
++#define FVD_SUPPORT_SPATIAL_OFFSET_FILTER 0x02000000  // Spatial offset pixel filter
++#define FVD_SUPPORT_COMP_BURST            0x04000000  // Compressed burst recording
++#define FVD_SUPPORT_WINDOWING             0x08000000  // Windowing
++#define FVD_SUPPORT_AUTOFOCUS             0x10000000  // Autofocus
++#define FVD_SUPPORT_FOCUS_DEPENDENCE      0x20000000  // Gain map focus dependence 
++#define FVD_SUPPORT_DUAL_VISUAL           0x40000000  // Dual visual distance measurement
++#define FVD_SUPPORT_PIP                   0x80000000  // Picture in picture
++
++//
++// Incompatible Sidewinder (AHCO) support flags
++//
++#define FVD_SUPPORT_AHCO_GIGE             0x00000002  // Pleora Gigabit Ethernet
++#define FVD_SUPPORT_AHCO_IR_FLOW          0x00000004  // FPA/IR flow handling
++#define FVD_SUPPORT_AHCO_SIG2TEMP         0x00000020  // Signal to temp conversion
++#define FVD_SUPPORT_AHCO_VAR_FRAME_RATE   0x00000080  // Variable frame rate
++#define FVD_SUPPORT_AHCO_EXT_IO_CTRL      0x00000100  // External I/O control
++#define FVD_SUPPORT_AHCO_TRIG_EXT_IO      0x00008000  // Trig on external I/O
++#define FVD_SUPPORT_AHCO_PROG_SYNC_DELAY  0x00010000  // Programmable delay after sync
++#define FVD_SUPPORT_AHCO_DOWNSAMPLING     0x00020000  // Downsampling of image
++
++//
++// New BtzII definitions from bit 32 - 159
++// 
++
++//
++// Bit 32 - 63 defined here as FVD_SUPPORT2_xxx
++//
++#define FVD_SUPPORT2_GIGE                 0x00000001  // Pleora Gigabit Ethernet
++#define FVD_SUPPORT2_IR_FLOW              0x00000002  // FPA/IR flow handling
++#define FVD_SUPPORT2_SIG2TEMP             0x00000004  // Signal to temp conversion
++#define FVD_SUPPORT2_VAR_FRAME_RATE       0x00000008  // Variable frame rate
++#define FVD_SUPPORT2_EXT_IO_CTRL          0x00000010  // External I/O control
++#define FVD_SUPPORT2_TRIG_EXT_IO          0x00000020  // Trig on external I/O
++#define FVD_SUPPORT2_PROG_SYNC_DELAY      0x00000040  // Programmable delay after sync
++#define FVD_SUPPORT2_DOWNSAMPLING         0x00000080  // Downsampling of image
++#define FVD_SUPPORT2_DIFF_MAP             0x00000100  // Difference maps
++#define FVD_SUPPORT2_GAS_FILTER           0x00000200  // Gas detection filter 
++#define FVD_SUPPORT2_HDMI                 0x00000400  // HDMI digital video output (640x480)
++#define FVD_SUPPORT2_HDMI_800             0x00000800  // HDMI (800x600)
++#define FVD_SUPPORT2_HDMI_1280            0x00001000  // HDMI (1280x800??)
++#define FVD_SUPPORT2_HDMI_RESERV          0x00002000  // HDMI reserved
++#define FVD_SUPPORT2_ATOMIC_CPSVC         0x00004000  // Atomic updates; Color+Pal+Scale+Vscale+Compimgctrl
++#define FVD_SUPPORT2_VISUAL_ROTZOOMPAN    0x00008000  // Visual rotation/zoom/pan
++#define FVD_SUPPORT2_APR                  0x00010000  // Spatial offset pixel filter using dead pixel map (Active pixel replacement, APR)
++#define FVD_SUPPORT2_HCF                  0x00020000  // High contrast fusion
++#define FVD_SUPPORT2_GFD                  0x00040000  // Gainmap focus dependence enhanced
++#define FVD_SUPPORT2_VIC                  0x00080000  // Visual image correlation
++#define FVD_SUPPORT2_FPGA_LASER_AF        0x00100000
++#define FVD_SUPPORT2_ACCELEROMETER        0x00200000
++#define FVD_SUPPORT2_LCF				  0x00400000  // Lens correction filter
++#define FVD_SUPPORT2_DOWNSAMPLING_WH	  0x00800000  // Downsampling of IR image with width and height
++#define FVD_SUPPORT2_JPEGLS               0x01000000  // Compressed IR using JPEGLS
++#define FVD_SUPPORT2_LIVENUC_SPATIAL_FILTER   0x02000000  // LiveNUC Filter (SNF filter).
++#define FVD_SUPPORT2_APR_3X3              0x04000000  // Active pixel replacement 3x3
++#define FVD_SUPPORT2_BLENDING             0x08000000  // Blending
++#define FVD_SUPPORT2_PANORAMA             0x10000000  // Panorama
++#define FVD_SUPPORT2_FUSION_CONTOUR       0x20000000  // Fusion Contour
++#define FVD_SUPPORT2_STRAY_LIGHT          0x40000000  // SLC: Stray Light Compensation
++#define FVD_SUPPORT2_FLASH                0x80000000  // FPGA controlled flash
++
++
++// Structure used by IOCTL_FVD_SET_ZOOM and IOCTL_FVD_SET_VISUAL_ZOOM
++typedef struct {
++	union {
++		float fFactor;
++		struct {
++		    WORD fFactorN;
++		    WORD fFactorD;
++		};
++	};
++    INT32 slPanX;
++    INT32 slPanY;
++} FVD_Set_Zoom_Request;
++
++// Structure used by IOCTL_FVD_SET_VISUAL_ZOOM_EX
++typedef struct {
++    ULONG ul_flags;
++	union {
++		float fFactor;
++		struct {
++		    WORD fFactorN;
++		    WORD fFactorD;
++		};
++	};
++    INT32 slPanX;
++    INT32 slPanY;
++	union {
++		float fRotate;
++		struct {
++		    WORD fRotateN;
++		    WORD fRotateD;
++		};
++	};
++} FVD_Set_Zoom_Ex_Request;
++
++// Structure used by IOCTL_FVD_SET_FUSION_CONTOUR
++typedef struct {
++    USHORT usPadValue;
++    USHORT fusionAlignPadX;
++    USHORT fusionAlignPadY;
++
++    USHORT alignmentPanX;
++    USHORT alignmentPanY;
++
++    USHORT alignmentPadX;
++    USHORT alignmentPadY;
++} FVD_Set_Fusion_Contour_Request;
++
++
++// Structure used by IOCTL_FVD_SET_SLC_PARAM (first generation)
++typedef struct
++{
++    WORD j0;                // Fixed point (unsigned) QI=15, QF=0
++    WORD j1;                // Fixed point (unsigned) QI=8, QF=8
++    WORD filtCorrAmount;    // Fixed point (unsigned) QI=1, QF=4
++    WORD globalCorrAmount;  // Fixed point (unsigned) QI=1, QF=4
++    WORD distCorrSlope;     // Fixed point (signed) QI=3, QF=12
++    WORD distCorrOffset;    // Fixed point (signed) QI=11, QF=5
++} FVD_SLC_Data;
++
++// Structure used by IOCTL_FVD_SET_SLC_PARAM_2 (Second generation)
++typedef struct
++{
++    WORD countData;
++    float* pData;
++} FVD_SLC_Data_v2;
++
++// Structure used by IOCTL_FVD_GET_LENS_TEMPSENSORS
++typedef struct
++{
++    ULONG id;
++    ULONG temperatur;
++} FVD_Lens_Tempsensor;
++
++typedef struct
++{
++    ULONG deviceAddr;
++
++    // These are use when we want to read/write a register
++    ULONG reg;
++    ULONG regValue;
++
++    // These are used when doing read/write of data chunks.
++    ULONG dataLen;    // If datalen is '0', we assume we want to read/write registry.
++    BYTE data[255];
++} FVD_Lens_I2C;
++
++
++// Parameter used by IOCTL_FVD_GET_LAST_GRAB_TIME
++#define FVD_GET_LAST_GRAB_TIME           0
++#define FVD_GET_LAST_BURST_FRAME_TIME    1
++
++// Structure used by IOCTL_FVD_GET_VISUAL_SIZE
++typedef struct {
++    INT32 slStdWidth;      // size of standard, "draft" visual
++    INT32 slStdHeight;
++    INT32 slBigWidth;      // size of full visual image
++    INT32 slBigHeight;
++    INT32 slThumbWidth;    // size of optional thumbnail visual image
++    INT32 slThumbHeight;
++    INT32 slVisJPGBufSize; // returns buffer size needed to use FVD_GRABEX_VISUAL_JPG
++} FVD_Visual_Size;
++
++// Structure used by IOCTL_FVD_GET_FPGAVERSION
++typedef struct {
++    ULONG ulDetectorType;
++    ULONG ulFPGAType;
++    ULONG ulFPGAMajor;
++    ULONG ulFPGAMinor;
++    ULONG ulFPGATest;
++    ULONG reserved1;
++    ULONG reserved2;
++    ULONG reserved3;
++} FVD_FPGA_Version;
++
++typedef struct {
++    INT32 reserved[1];
++} FVD_Power;
++
++// Parameter used by IOCTL_FVD_JPEGLS
++// bits 0..7 defines the control word for the JPEGLSE block (0x7D)
++#define FVD_JPEGLS_ENABLE               0x100
++#define FVD_JPEGLS_CLEAR                0x200
++
++#define FVD_JPEGLS_ACTION_NONE          0   // No action taken
++#define FVD_JPEGLS_ACTION_REGISTER      1   // Register client message queue to receive buffer messages
++#define FVD_JPEGLS_ACTION_DEREGISTER    2   // De-register client message queue
++#define FVD_JPEGLS_ACTION_ENABLE        3   // Start encoder
++#define FVD_JPEGLS_ACTION_DISABLE       4   // Stop encoder
++#define FVD_JPEGLS_ACTION_CLEAR         5   // Clear encoder
++#define FVD_JPEGLS_ACTION_DEQUEUE       6   // Dequeue frame
++
++/* // Structure used by IOCTL_FVD_JPEGLS */
++/* typedef struct { */
++/*     ULONG   ul_flags; */
++/*     ULONG   ul_action; */
++/*     ULONG   ul_handle; // Handle to identify client. Handle is returned when client is registered. */
++/*     HANDLE  hMsgQueue; // Handle to message queue */
++/* } FVD_JPEGLS_Data; */
++
++// Jpegls in WinCe and Linux are implemented differently.
++// This means this struct is different between Linux and WinCE, so separate the struct.
++#ifdef UNDER_CE
++    typedef struct {
++        ULONG bufno;
++        ULONG size;
++        ULONG bufaddr; // Address to JPEG-LS buffer
++    } JPEGLS_MSGQUEUE_BUFFER;
++#else
++    // linux version, which contains time
++    typedef struct {
++        ULONG bufno;
++        ULONG size;
++        ULONG bufaddr; // Address to JPEG-LS buffer
++        struct timeval time;
++    } JPEGLS_MSGQUEUE_BUFFER;
++#endif
++
++// Type of HSI request (High Speed Interface)
++#define FVD_HSI_READ_MSG   1   // Read incoming request
++#define FVD_HSI_WRITE_RSP  2   // Write request response
++#define FVD_HSI_WRITE_META 3   // Write HSI meta data
++#define FVD_HSI_INIT       4   // Init HSI
++
++// Structure used by IOCTL_FVD_HSI_REQUEST
++typedef struct {
++    ULONG   ul_type;
++    ULONG   ul_flags;
++    ULONG   ul_offset;
++    ULONG   ul_size;
++    void*   pBuffer;
++} FVD_HSI_Request;
++
++// Action parameter used by IOCTL_FVD_IRBUF
++#define FVD_IRBUF_ACTION_NONE          0   // No action taken
++#define FVD_IRBUF_ACTION_REGISTER      1   // Register client message queue to receive buffer messages
++#define FVD_IRBUF_ACTION_DEREGISTER    2   // De-register client message queue
++#define FVD_IRBUF_ACTION_ENABLE        3   // Start live grabber
++#define FVD_IRBUF_ACTION_DISABLE       4   // Stop live grabber
++#define FVD_IRBUF_ACTION_CLEAR         5   // Clear liev grabber
++#define FVD_IRBUF_ACTION_DEQUEUE       6   // Dequeue frame
++
++typedef struct {
++    ULONG bufno;
++    ULONG size;
++    ULONG bufaddr; // Address to live IR buffer
++    ULONG linestamp;
++    ULONG triginfo;
++    ULONG frameCount;
++    struct timeval time;
++} IRBUF_FRAME_INFO;
++
++// Structure used by IOCTL_FVD_IRBUF
++typedef struct {
++    ULONG   ul_flags;
++    ULONG   ul_action;
++    ULONG   ul_handle; // Handle to identify client. Handle is returned when client is registered.
++} FVD_Irbuf_Data;
++
++// Global variables
++
++// Define the method codes for how buffers are passed for I/O
++//
++//#define METHOD_BUFFERED                 0
++//#define METHOD_IN_DIRECT                1
++//#define METHOD_OUT_DIRECT               2
++//#define METHOD_NEITHER                  3
++
++// IOCTL codes.
++#define FVD_SERVICE                  0x8000
++
++// Quickie fix to avoid lots of new preproc defines
++#if defined(_WIN32) && !(defined(UNDER_CE)) && !(defined(BTZCAMSIM))
++#define BTZCAMSIM
++#endif
++
++#ifdef UNDER_CE
++#define IOCTL_W(code,type)   CTL_CODE(FVD_SERVICE, code, METHOD_BUFFERED, FILE_ANY_ACCESS)
++#define IOCTL_R(code,type)   CTL_CODE(FVD_SERVICE, code, METHOD_BUFFERED, FILE_ANY_ACCESS)
++#define IOCTL_WR(code,type)  CTL_CODE(FVD_SERVICE, code, METHOD_BUFFERED, FILE_ANY_ACCESS)
++#define IOCTL_NWR(code)      CTL_CODE(FVD_SERVICE, code, METHOD_BUFFERED, FILE_ANY_ACCESS)
++#elif defined (BTZCAMSIM) || defined(ROSEBUD)
++#define IOCTL_W(code,type)   (FVD_SERVICE + code)
++#define IOCTL_R(code,type)   (FVD_SERVICE + code)
++#define IOCTL_WR(code,type)  (FVD_SERVICE + code)
++#define IOCTL_NWR(code)      (FVD_SERVICE + code)
++#else
++#define IOCTL_W(code,type)   _IOW('f', code, type)
++#define IOCTL_R(code,type)   _IOR('f', code, type)
++#define IOCTL_WR(code,type)  _IOWR('f', code, type)
++#define IOCTL_NWR(code)      _IO('f', code)
++#endif
++
++#define IOCTL_FVD_GET_VERSION               IOCTL_R(1, DWORD)
++#define IOCTL_FVD_SET_PALETTE               IOCTL_W(2, FVD_Set_Palette_Request)     // More data!
++#define IOCTL_FVD_SET_COLOR_FUNC            IOCTL_W(3, FVD_Set_Color_Func_Request)  // More data!
++#define IOCTL_FVD_SET_EXPONENTIAL_TABLE     IOCTL_W(4, FVD_Set_Exp_Table_Request)   // More data!
++#define IOCTL_FVD_SET_MAP                   IOCTL_W(5, FVD_Map_Header)
++#define IOCTL_FVD_GET_MAP                   IOCTL_W(6, FVD_Map_Header)
++#define IOCTL_FVD_EXECUTE                   IOCTL_W(7, FVD_Execute)
++#define IOCTL_FVD_GET_HISTOGRAM             IOCTL_W(8, FVD_Get_Histogram_Request)   // More data!
++#define IOCTL_FVD_GET_PARAM                 IOCTL_WR(9, DWORD)
++#define IOCTL_FVD_SET_PARAM                 IOCTL_W(10, FVD_Set_Param_Request)
++#define IOCTL_FVD_GRAB                      IOCTL_W(11, FVD_Grab_Request)
++#define IOCTL_FVD_RECALL                    IOCTL_W(12, FVD_Recall_Request)
++#define IOCTL_FVD_IMAGE_FLOW_CONTROL        IOCTL_W(13, DWORD)
++#define IOCTL_FVD_ERROR_SIGNAL              IOCTL_R(14, FVD_Error_Signal_Request)
++#define IOCTL_FVD_GET_ERROR                 IOCTL_R(15, FVD_Error_Report)
++#define IOCTL_FVD_GET_FPGADATA              IOCTL_NWR(16)    	// Special variable size handling
++// FVD_SERVICE,17 reserved, see FVD_DEPRECIATED_OK below...
++#define IOCTL_FVD_UPDATE_OVERLAY            IOCTL_W(18, FVD_UpdOvl_Request)
++#define IOCTL_FVD_GET_FRAME_SUM             IOCTL_R(19, FVD_Frame_Sum)
++#define IOCTL_FVD_GRAB_EX                   IOCTL_W(20, FVD_Grab_Ex_Request)
++#define IOCTL_FVD_RECALL_MPEG               IOCTL_W(21, FVD_MPEG_Recall_Request)
++#define IOCTL_FVD_GRAB_CALC                 IOCTL_WR(22, FVD_Grab_Calc_Request)
++#define IOCTL_FVD_SEQUENCE                  IOCTL_R(23, FVD_Sequence_Request)
++#define IOCTL_FVD_GET_FPGAVERSION           IOCTL_R(24, FVD_FPGA_Version)
++#define IOCTL_FVD_SEQUENCE_COMP             IOCTL_WR(25, NotUsedAnyMore)
++#define IOCTL_FVD_GET_VERSION_EX            IOCTL_WR(26, SWrevstruct)
++#define IOCTL_FVD_ENABLE_BOARD_EXECUTE_IRQ  IOCTL_R(27, DWORD)
++
++#define IOCTL_FVD_GET_IRDM_PARAM            IOCTL_WR(50, DWORD)
++#define IOCTL_FVD_SET_IRDM_PARAM            IOCTL_W(51, FVD_IRDM_Set_Param_Request)
++#define IOCTL_FVD_TECLOG                    IOCTL_WR(52, NotUsedAnyMore)
++#define IOCTL_FVD_ALLOC_PHYS_BUFFER         IOCTL_R(53, FVD_Phys_Buffer_Request)
++#define IOCTL_FVD_FREE_PHYS_BUFFER          IOCTL_W(54, FVD_Phys_Buffer_Request)
++#define IOCTL_FVD_GET_SUPPORT               IOCTL_R(55, DWORD[2])
++#define IOCTL_FVD_UPDATE_OVERLAY_RGB        IOCTL_W(56, FVD_UpdOvl_Request)
++#define IOCTL_FVD_SET_ZOOM                  IOCTL_W(57, FVD_Set_Zoom_Request)
++#define IOCTL_FVD_GET_LAST_GRAB_TIME        IOCTL_R(58, ULONGLONG)
++#define IOCTL_FVD_GET_VISUAL_SIZE           IOCTL_R(59, FVD_Visual_Size)
++#define IOCTL_FVD_SET_VISUAL_ZOOM           IOCTL_W(61, FVD_Set_Zoom_Request)
++#define IOCTL_FVD_SET_LUT                   IOCTL_W(62, NotUsedAnyMore)
++#define IOCTL_FVD_GET_LUT                   IOCTL_R(63, NotUsedAnyMore)
++// The following code, _GRAB_STC, is used in A3xx/WINCE500 only. It is used by RTP
++#define IOCTL_FVD_GRAB_STC                  IOCTL_R(64, NotUsedAnyMore)
++#define IOCTL_FVD_SET_VISUAL_ZOOM_EX        IOCTL_W(65, FVD_Set_Zoom_Ex_Request)
++// The following code, _SET_STC_TABLE, is used by A6xx/WINCE600
++#define IOCTL_FVD_SET_STC_TABLE             IOCTL_W(66, FVD_STC_Table_Entry)        // More data!
++// Handling of accelerometer in PT
++#define IOCTL_FVD_SET_ACCEL_OFFSET          IOCTL_W(67, FVD_Accel_Data)
++#define IOCTL_FVD_GET_ACCEL_DATA            IOCTL_W(68, FVD_Accel_Data)
++// Control of JPEG-LS encoding
++#define IOCTL_FVD_JPEGLS                    IOCTL_WR(69, FVD_JPEGLS_Data)           // Read value is DWORD
++// Panorama
++#define IOCTL_FVD_PANORAMA_START            IOCTL_WR(70, FVD_Pan_start_t)
++#define IOCTL_FVD_PANORAMA_ABORT            IOCTL_NWR(71)
++#define IOCTL_FVD_PANORAMA_CLEANUP          IOCTL_W(72, FVD_Pan_start_t)
++#define IOCTL_FVD_PANORAMA_FETCH_STATUS     IOCTL_R(73, FVD_Pan_status_t)
++#define IOCTL_FVD_PANORAMA_READ_DATA        IOCTL_WR(74, FVD_Pan_read_t)
++#define IOCTL_FVD_LEPTON_ATTR               IOCTL_W(75, FVD_Lepton_Attr_Request)
++#define IOCTL_FVD_SET_FUSION_CONTOUR        IOCTL_W(76, FVD_Set_Fusion_Contour_Request)
++// NOTE: Below are the first gen. of SLC. Which is used in K2 and Nettan. New camera used 'gen2
++#define IOCTL_FVD_SET_SLC_PARAM             IOCTL_W(77, FVD_SLC_Data)
++#define IOCTL_FVD_GET_LENS_TEMPSENSORS      IOCTL_W(78, FVD_Lens_Tempsensor)
++#define IOCTL_FVD_WRITE_LENS_I2C            IOCTL_W(79, FVD_Lens_I2C)
++#define IOCTL_FVD_READ_LENS_I2C             IOCTL_W(80, FVD_Lens_I2C)
++// Control of HSI interface
++#define IOCTL_FVD_HSI_REQUEST               IOCTL_WR(81, FVD_HSI_Request)
++// Lattice (mipi converter) version
++#define IOCTL_FVD_GET_LATTICE_FPGAVERSION   IOCTL_WR(82, FVD_FPGA_Version)
++#define IOCTL_FVD_POWER_OFF		            IOCTL_W(83, FVD_Power)
++#define IOCTL_FVD_POWER_ON		            IOCTL_W(84, FVD_Power)
++// Detector fpga version (alifa in evander).
++#define IOCTL_FVD_GET_DETECTOR_FPGAVERSION  IOCTL_W(85, FVD_FPGA_Version)
++// SLC (gen 2) which is used in newer cameras (Evander, Lennox).
++#define IOCTL_FVD_SET_SLC_PARAM_2           IOCTL_R(86, FVD_SLC_Data)
++// Control of IR live buffers
++#define IOCTL_FVD_IRBUF                     IOCTL_WR(87, FVD_Irbuf_Data)
++
++#if FVD_DEPRECIATED_OK
++
++// Selected modes that are still supported and used in existing OS image 
++// binaries, typically mpeg driver, display drivers, firewire DCAM driver 
++// (depreciated in recompiled drivers)
++
++#define depr_FVD_MODE_DISPLAY_ENABLED                    0x00020000  //   P E
++#define depr_FVD_MODE_OVERLAY_ENABLED                    0x00040000  //   P E
++#define depr_FVD_MODE_MPEG_ENABLED                       0x00100000  //   P E
++#define depr_FVD_MODE_PAL_FMT_ENABLED                    0x00200000  //   P E
++#define depr_FVD_MODE_FIREWIRE_ENABLED                   0x00400000  //   P
++
++// Depreciated IOCTL_FVD_GET_PARAM and IOCTL_FVD_SET_PARAM codes
++
++#define depr_FVD_PARAM_FPGA_MODE                             1   // Read only
++
++#define depr_IOCTL_FVD_SET_MODE                  CTL_CODE(FVD_SERVICE,17,METHOD_BUFFERED,FILE_ANY_ACCESS)
++
++// Set or clear FPGA running mode flags (used by IOCTL_FVD_SET_MODE)
++
++typedef struct {
++        ULONG   ul_set;
++        ULONG   ul_clear;
++} depr_FVD_Set_Mode_Request;
++
++
++#endif
++
++// Struct for getting data from accelerometer.
++typedef struct {
++    SHORT X;
++    SHORT Y;
++    SHORT Z;
++} FVD_Accel_Data;
++
++
++typedef enum {PAN_AUTO, 
++                PAN_LEFT_TO_RIGHT, 
++                PAN_RIGHT_TO_LEFT,
++                PAN_UP,
++                PAN_DOWN,
++                PAN_TIMEOUT,
++                PAN_BAD_MOVE} panMove_t;
++
++/* // Struct for  */
++/* typedef struct { */
++/*     USHORT usFrames; // Number of full frames the panorama should constist of (2-15) */
++/*     USHORT usCrop;   // 'Horizontaltal' cropping size (in procent) */
++/*     //panMove_t direction; */
++/*     USHORT usTimeOut; */
++/*     HANDLE hEndEvent; */
++/* } FVD_Pan_start_t; */
++
++typedef struct {
++    panMove_t direction;
++    LONG lHeight;
++    LONG lWidth;
++    LONG lRemainingSlices;
++    LONG lHorizMove;
++    LONG lVertMove;
++} FVD_Pan_status_t;
++
++typedef struct {
++    panMove_t direction;
++    BYTE* pBufStart;       // Position in memory where we should start writing
++    LONG offset;           // offset from start, where we start reading data.
++    LONG lines;
++
++    LONG sliceSize;        // Length of one slice (in bytes!! Not pixels)
++    LONG imageLineLength;  // Length of one scan line (in bytes!! Not pixels)
++} FVD_Pan_read_t;
++
++typedef struct {
++    DWORD item;  // 'handle' to our irq-queue.
++} FVD_Pan_cleanup_t;
++
++
++/*
++ * Represents the different result codes the camera can return. 
++ */
++typedef enum LepResult
++    {
++        LEP_OK                            = 0,     /* Camera ok */
++        LEP_COMM_OK                       = LEP_OK,/* Camera comm ok (same as LEP_OK) */
++
++        LEP_ERROR                         = -1,    /* Camera general error */
++        LEP_NOT_READY                     = -2,    /* Camera not ready error */
++        LEP_RANGE_ERROR                   = -3,    /* Camera range error */
++        LEP_CHECKSUM_ERROR                = -4,    /* Camera checksum error */
++        LEP_BAD_ARG_POINTER_ERROR         = -5,    /* Camera bad argument error */
++        LEP_DATA_SIZE_ERROR               = -6,    /* Camera byte count error */
++        LEP_UNDEFINED_FUNCTION_ERROR      = -7,    /* Camera undefined function error */
++
++        /* I2C Errors */
++        LEP_ERROR_I2C_BUS_NOT_READY       = -20,   /* I2C Bus Error - Bus Not Available */
++        LEP_ERROR_I2C_BUFFER_OVERFLOW     = -22,   /* I2C Bus Error - Buffer Overflow */
++        LEP_ERROR_I2C_ARBITRATION_LOST    = -23,   /* I2C Bus Error - Bus Arbitration Lost */
++        LEP_ERROR_I2C_BUS_ERROR           = -24,   /* I2C Bus Error - General Bus Error */
++        LEP_ERROR_I2C_NACK_RECEIVED       = -25,   /* I2C Bus Error - NACK Received */
++        LEP_ERROR_I2C_FAIL                = -26,   /* I2C Bus Error - General Failure */
++
++        /* Comm Errors */
++        LEP_COMM_PORT_NOT_OPEN            = -101,  /* Comm port not open */
++        LEP_COMM_INVALID_PORT_ERROR       = -102,  /* Comm port no such port error */
++        LEP_COMM_RANGE_ERROR              = -103,  /* Comm port range error */
++        LEP_ERROR_CREATING_COMM           = -104,  /* Error creating comm */
++        LEP_ERROR_STARTING_COMM           = -105,  /* Error starting comm */
++        LEP_ERROR_CLOSING_COMM            = -106,  /* Error closing comm */
++        LEP_COMM_CHECKSUM_ERROR           = -107,  /* Comm checksum error */
++        LEP_COMM_NO_DEV                   = -108,  /* No comm device */
++        LEP_TIMEOUT_ERROR                 = -109,  /* Comm timeout error */
++        LEP_COMM_ERROR_WRITING_COMM       = -110,  /* Error writing comm */
++        LEP_COMM_ERROR_READING_COMM       = -111,  /* Error reading comm */
++        LEP_COMM_COUNT_ERROR              = -112,  /* Comm byte count error */
++
++        /* Other Errors */
++        LEP_OPERATION_CANCELED            = -126,  /* Camera operation canceled */
++        LEP_UNDEFINED_ERROR_CODE          = -127   /* Undefined error */
++
++    } LEP_RESULT;
++
++
++
++// DeviceIoControl wrapper for CE/Linux/BTZCAMSIM crosscompatibility
++
++// Win CE
++//
++#ifdef UNDER_CE
++
++#define FVDDRVNAME L"FVD1:"
++
++#define FVDControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret) DeviceIoControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret, NULL)
++#define FVDActivate(path) ActivateDevice(path, 0L)
++#define FVDDeactivate(hnd)  DeactivateDevice(hnd)
++#define FVDCreateHandle(path) CreateFile(path, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
++#define FVDCloseHandle(hnd) CloseHandle(hnd)
++
++// BTZCAMSIM (NT, Linux, iOS, OSX)
++//
++#elif defined(BTZCAMSIM)
++
++#define FVDDRVNAME L"FVD" // doesn't matter
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++BOOL FvdEmulIoCtl(DHANDLE dev, DWORD func, LPVOID inbuf, DWORD sz, LPVOID outbuf, DWORD outbufsz, LPDWORD bytesret);
++DHANDLE FvdEmulActivate(LPCWSTR path);
++BOOL FvdEmulDeactivate(DHANDLE hnd);
++DHANDLE FvdEmulCreateHandle(LPCWSTR path);
++BOOL FvdEmulCloseHandle(DHANDLE hnd);
++
++struct FVD_EMUL_T
++{
++    DWORD func;
++    LPVOID inbuf;
++    DWORD sz;
++    LPVOID outbuf;
++    DWORD outbufsz;
++};
++
++#ifdef __cplusplus
++};
++#endif
++
++#define FVDControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret) FvdEmulIoCtl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret)
++#define FVDActivate(path) FvdEmulActivate(path)
++#define FVDDeactivate(hnd) FvdEmulDeactivate(hnd)
++#define FVDCreateHandle(path) FvdEmulCreateHandle(path)
++#define FVDCloseHandle(hnd) FvdEmulCloseHandle(hnd)
++
++// Rosebud device
++#elif defined(ROSEBUD)
++#define FVDDRVNAME L"FVD" // doesn't matter
++
++#define FVDControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret) RB_FvdEmulIoCtl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret)
++#define FVDActivate(path) RB_FvdEmulActivate(path)
++#define FVDDeactivate(hnd) RB_FvdEmulDeactivate(hnd)
++#define FVDCreateHandle(path) RB_FvdEmulCreateHandle(path)
++#define FVDCloseHandle(hnd) RB_FvdEmulCloseHandle(hnd)
++
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++BOOL RB_FvdEmulIoCtl(DHANDLE dev, DWORD func, LPVOID inbuf, DWORD sz, LPVOID outbuf, DWORD outbufsz, LPDWORD bytesret);
++DHANDLE RB_FvdEmulActivate(LPCWSTR path);
++BOOL RB_FvdEmulDeactivate(DHANDLE hnd);
++DHANDLE RB_FvdEmulCreateHandle(LPCWSTR path);
++BOOL RB_FvdEmulCloseHandle(DHANDLE hnd);
++
++struct FVD_EMUL_T
++{
++    DWORD func;
++    LPVOID inbuf;
++    DWORD sz;
++    LPVOID outbuf;
++    DWORD outbufsz;
++};
++
++#ifdef __cplusplus
++};
++#endif
++
++// Linux device
++//
++#else
++
++#define FVDDRVNAME "/dev/fvd0"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++DHANDLE FActivateDriver(void);
++BOOL    FDeactivateDriver(void);
++DHANDLE FvdFakeOpenDriver(const char *name, 
++		    DWORD dwDesiredAccess,
++		    DWORD dwShareMode,
++		    void* res,
++		    DWORD dwCreationDisposition,
++		    DWORD dwFlagsAndAttributes,
++		    void* res2);
++BOOL FvdFakeControl(DHANDLE hDev,
++		DWORD dwIoControlCode, 
++		LPVOID lpInBuffer, 
++		DWORD nInBufSize,
++		LPVOID lpOutBuffer,
++		DWORD nOutBufSize,
++		LPDWORD lpBytesReturned);
++
++#ifdef __cplusplus
++};
++#endif
++
++#define FVDActivate(path) FActivateDriver()
++#define FVDDeactivate(hnd) FDeactivateDriver()
++#define FVDCreateHandle(path) FvdFakeOpenDriver(path, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
++#define FVDCloseHandle(f) {}
++#define FVDControl(a, b, c, d, e, f, g) FvdFakeControl(a, b, c, d, e, f, g)
++
++#endif /* UNDER_CE */
++
++#endif /* __FVD_H__ */
+diff --git a/testcases/flir/syscalls/ioctl/include/fvdkernel.h b/testcases/flir/syscalls/ioctl/include/fvdkernel.h
+new file mode 100644
+index 000000000..8fbc3f53f
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/include/fvdkernel.h
+@@ -0,0 +1,41 @@
++/***********************************************************************
++ *                                                                     
++ * Project: Balthazar
++ * $Date$
++ * $Author$
++ *
++ * $Id$
++ *
++ * Description of file:
++ *   Small kernel FVD driver part for Linux
++ *
++ * Last check-in changelist:
++ * $Change$
++ *
++ * Copyright: FLIR Systems AB
++ ***********************************************************************/
++
++#ifndef __FVDK_H__
++#define __FVDK_H__
++
++// Definitions
++
++// IOCTL codes.
++
++#define IOCTL_FVDK_W(code,type)   _IOW('c', code, type)
++#define IOCTL_FVDK_R(code,type)   _IOR('c', code, type)
++#define IOCTL_FVDK_WR(code,type)  _IOWR('c', code, type)
++#define IOCTL_FVDK_NWR(code)      _IO('c', code)
++
++#define IOCTL_FVDK_GET_VERSION        	IOCTL_FVDK_R(1, ULONG)
++#define IOCTL_FVDK_POWER_UP             IOCTL_FVDK_NWR(2)
++#define IOCTL_FVDK_POWER_DOWN           IOCTL_FVDK_NWR(3)
++#define IOCTL_FVDK_POWER_UP_FPA         IOCTL_FVDK_NWR(4)
++#define IOCTL_FVDK_POWER_DOWN_FPA       IOCTL_FVDK_NWR(5)
++#define IOCTL_FVDK_GET_FPGA_GENERIC     IOCTL_FVDK_R(6, GENERIC_FPGA_T)
++#define IOCTL_FVDK_GET_FPGA_DATA        IOCTL_FVDK_R(7, BXAB_FPGA_T)
++#define IOCTL_FVDK_GET_FPGA_BUF         IOCTL_FVDK_W(8, SDRAM_BUF_T)
++#define IOCTL_FVDK_CREATE_BLOB          IOCTL_FVDK_W(9, ULONG)
++#define IOCTL_FVDK_LOCK		        IOCTL_FVDK_W(10, ULONG)
++
++#endif /* __FVD_H__ */
+diff --git a/testcases/flir/syscalls/ioctl/include/rovfdev.h b/testcases/flir/syscalls/ioctl/include/rovfdev.h
+new file mode 100644
+index 000000000..98d6cfe4e
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/include/rovfdev.h
+@@ -0,0 +1,18 @@
++#ifndef ROVFDEV_H
++#define ROVFDEV_H
++
++#define VF_BACKLIGHT_OFF  0
++#define VF_BACKLIGHT_MIN  1
++#define VF_BACKLIGHT_MEDIUM 2
++#define VF_BACKLIGHT_FULL 3
++
++#define IOCTL_W(code,type)   _IOW('c', code, type)
++#define IOCTL_R(code,type)   _IOR('c', code, type)
++#define IOCTL_WR(code,type)  _IOWR('c', code, type)
++#define IOCTL_NWR(code)      _IO('c', code)
++
++#define IOCTL_ROVF_BACKLIGHT_SET        	IOCTL_W(1, ULONG)
++#define IOCTL_ROVF_BACKLIGHT_GET        	IOCTL_R(2, ULONG)
++#define IOCTL_ROVF_BACKLIGHT_TOGGLE        	IOCTL_W(3, ULONG)
++
++#endif
+diff --git a/testcases/flir/syscalls/ioctl/include/vcam.h b/testcases/flir/syscalls/ioctl/include/vcam.h
+new file mode 100644
+index 000000000..affe03348
+--- /dev/null
++++ b/testcases/flir/syscalls/ioctl/include/vcam.h
+@@ -0,0 +1,199 @@
++/***********************************************************************
++ *                                                                     
++ * Project: Balthazar
++ * $Date$
++ * $Author$
++ *
++ * $Id$
++ *
++ * Description of file:
++ *   Visual Camera Driver Interface
++ *
++ * Last check-in changelist:
++ * $Change$
++ *
++ * Copyright: FLIR Systems AB
++ ***********************************************************************/
++
++#ifndef __VCAM_H__
++#define __VCAM_H__
++
++// Definitions
++
++typedef struct _VCAMIOCTLTEST
++{
++    BOOL    bTestMode;      // TRUE = Test mode, FALSE = normal image
++} VCAMIOCTLTEST, *PVCAMIOCTLTEST;
++
++typedef struct _VCAMIOCTLFOV
++{
++    int    fov;      // Vcam FOV
++} VCAMIOCTLFOV, *PVCAMIOCTLFOV;
++
++
++typedef struct _VCAMIOCTLFLASH
++{
++    BOOL    bTorchOn;      // TRUE = Torch is ON
++    BOOL    bFlashOn;      // TRUE = Flash activated one frame
++} VCAMIOCTLFLASH, *PVCAMIOCTLFLASH;
++
++typedef struct _VCAMIOCTLACTIVE
++{
++    BOOL    bActive;       // TRUE = Visual camera is ON
++} VCAMIOCTLACTIVE, *PVCAMIOCTLACTIVE;
++
++
++typedef enum {
++	UNKNOWN = 0,
++	MCB882P,
++    MT9M111,
++    MT9T111,
++    MT9P111,        // PT    camera - 5Mpix
++    OV7740,         // Astra camera
++    OV5640          // Rocky camera - 5Mpix
++} VCAM_CamModel;
++
++typedef struct _VCAMIOCTLCAMMODEL
++{
++    VCAM_CamModel    eCamModel;			//
++} VCAMIOCTLCAMMODEL, *PVCAMIOCTLCAMMODEL;
++
++
++typedef enum {
++		VCAM_UNDEFINED = 0,
++		VCAM_RESET,
++		VCAM_DRAFT,
++		VCAM_STILL
++} VCAM_Cam_Mode;
++
++typedef struct _VCAMIOCTLCAMMODE
++{
++    VCAM_Cam_Mode    eCamMode;			//
++} VCAMIOCTLCAMMODE, *PVCAMIOCTLCAMMODE;
++
++typedef enum {
++		VCAM_SMALL_YCbCr,
++		VCAM_LARGE_YCbCr,
++		VCAM_SMALL_JPEG,
++		VCAM_LARGE_JPEG,
++} VCAM_StillMode;
++
++typedef struct _VCAMIOCTLSTILLMODE
++{
++    VCAM_StillMode    eStillMode;		//
++} VCAMIOCTLSTILLMODE, *PVCAMIOCTLSTILLMODE;
++
++
++typedef struct _VCAMIOCTLFOCUS
++{
++    BOOL	bAutoFocus;		// TRUE if auto focus requested
++	int		lensPos;		// focus position for manual (non-autofocus) focus
++} VCAMIOCTLFOCUS, *PVCAMIOCTLFOCUS;
++
++// Public defines:
++
++// IOCTL codes.
++#define CAM_SERVICE						0x8100
++
++// Quickie fix to avoid lots of new preproc defines
++#if defined(_WIN32) && !(defined(UNDER_CE)) && !(defined(BTZCAMSIM))
++#define BTZCAMSIM
++#endif
++
++#ifdef UNDER_CE
++#define VCAM_IOCTL_W(code,type) 	CTL_CODE(CAM_SERVICE, code, METHOD_BUFFERED, FILE_WRITE_ACCESS)
++#define VCAM_IOCTL_R_W(code,type) 	CTL_CODE(CAM_SERVICE, code, METHOD_BUFFERED, FILE_WRITE_ACCESS)
++#define VCAM_IOCTL_R(code,type) 	CTL_CODE(CAM_SERVICE, code, METHOD_BUFFERED, FILE_READ_ACCESS)
++#define VCAM_IOCTL_N(code)      	CTL_CODE(CAM_SERVICE, code, METHOD_BUFFERED, FILE_WRITE_ACCESS)
++#else
++#define VCAM_IOCTL_W(code,type) 	_IOW('v', code, type)
++#define VCAM_IOCTL_R_W(code,type) 	_IOR('v', code, type)
++#define VCAM_IOCTL_R(code,type) 	_IOR('v', code, type)
++#define VCAM_IOCTL_N(code)    		_IO('v', code)
++#endif
++
++#define IOCTL_CAM_GET_TEST  	    VCAM_IOCTL_R(1, VCAMIOCTLTEST)
++#define IOCTL_CAM_SET_TEST	        VCAM_IOCTL_W(2, VCAMIOCTLTEST)
++
++#define IOCTL_CAM_GET_FLASH 	    VCAM_IOCTL_R(3, VCAMIOCTLFLASH)
++#define IOCTL_CAM_SET_FLASH         VCAM_IOCTL_W(4, VCAMIOCTLFLASH)
++
++#define IOCTL_CAM_GET_ACTIVE 	    VCAM_IOCTL_R(5, VCAMIOCTLACTIVE)
++#define IOCTL_CAM_SET_ACTIVE        VCAM_IOCTL_W(6, VCAMIOCTLACTIVE)
++
++#define IOCTL_CAM_GET_CAM_MODEL		VCAM_IOCTL_R_W(7, VCAMIOCTLCAMMODEL)
++
++#define IOCTL_CAM_INIT				VCAM_IOCTL_N(8)
++
++#define IOCTL_CAM_SET_CAMMODE		VCAM_IOCTL_W(9, VCAMIOCTLCAMMODE)
++#define IOCTL_CAM_GET_CAMMODE		VCAM_IOCTL_R_W(10, VCAMIOCTLCAMMODE)
++
++#define IOCTL_CAM_GRAB_STILL		VCAM_IOCTL_N(11)
++
++#define IOCTL_CAM_SET_FOCUS			VCAM_IOCTL_W(12, VCAMIOCTLFOCUS)
++#define IOCTL_CAM_GET_FOCUS			VCAM_IOCTL_W(13, VCAMIOCTLFOCUS)
++
++#define IOCTL_CAM_SET_2ND_ACTIVE    VCAM_IOCTL_W(14, VCAMIOCTLACTIVE)
++
++#define IOCTL_CAM_GET_FOV           VCAM_IOCTL_R(15, VCAMIOCTLFOV)
++#define IOCTL_CAM_SET_FOV           VCAM_IOCTL_W(16, VCAMIOCTLFOV)
++
++#define IOCTL_CAM_SUSPEND           VCAM_IOCTL_N(17)
++#define IOCTL_CAM_RESUME            VCAM_IOCTL_N(18)
++
++#define VCAM_MT9P111_ARTICLE 197979
++#define VCAM_MCB882_ARTICLE  197294
++
++// Win CE
++//
++#ifdef UNDER_CE
++
++#define VCAMDRVNAME L"CAM1:"
++#define VCAMControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret) DeviceIoControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret, NULL)
++#define VCAMCreateHandle(path) CreateFile(path, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
++#define VCAMCloseHandle(hnd) CloseHandle(hnd)
++
++// BTZCAMSIM (NT, Linux, iOS, OSX) - Not fully supported
++//
++#elif defined(BTZCAMSIM)
++
++#define VCAMControl(dev, func, inbuf, sz, outbuf, outbufsz, bytesret) 1
++#define VCAMCreateHandle(path) (DHANDLE) 1
++#define VCAMCloseHandle(hnd)
++
++// Linux device
++//
++#else
++
++#define VCAMDRVNAME "/dev/vcam0"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++DHANDLE FOpenDriver(const char *name,
++		    DWORD dwDesiredAccess,
++		    DWORD dwShareMode,
++		    void* res,
++		    DWORD dwCreationDisposition,
++		    DWORD dwFlagsAndAttributes,
++		    void* res2);
++BOOL DEVControl(DHANDLE hDev,
++		DWORD dwIoControlCode,
++		LPVOID lpInBuffer,
++		DWORD nInBufSize,
++		LPVOID lpOutBuffer,
++		DWORD nOutBufSize,
++		LPDWORD lpBytesReturned);
++
++#ifdef __cplusplus
++};
++#endif
++
++#define VCAMCreateHandle(path) FOpenDriver(path, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
++#define VCAMCloseHandle(f) close((f))
++#define VCAMControl(a, b, c, d, e, f, g) DEVControl(a, b, c, d, e, f, g)
++
++#endif /* UNDER_CE */
++
++#endif /* __VCAM_H__ */
+-- 
+2.30.1
+

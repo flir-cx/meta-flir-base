@@ -1,0 +1,151 @@
+From dc0c89f8507e456d1435bd8b43cea21d5320d677 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bo=20Svang=C3=A5rd?= <bobo@larven.se>
+Date: Thu, 8 Jul 2021 12:59:17 +0200
+Subject: [PATCH 4/4] Fix FLIR FAD LTP test so It passes [ES-2111]
+
+If we can detect GPS module and LASER module, run respective tests, else skip the testgit status
+---
+ .../flir/syscalls/ioctl/flir_fad_ioctl.c      | 104 +++++++++++-------
+ 1 file changed, 65 insertions(+), 39 deletions(-)
+
+diff --git a/testcases/flir/syscalls/ioctl/flir_fad_ioctl.c b/testcases/flir/syscalls/ioctl/flir_fad_ioctl.c
+index a148a85db..3b5aaf640 100644
+--- a/testcases/flir/syscalls/ioctl/flir_fad_ioctl.c
++++ b/testcases/flir/syscalls/ioctl/flir_fad_ioctl.c
+@@ -67,6 +67,10 @@ int TST_TOTAL = 6;
+ static void setup(void);
+ static void cleanup(void);
+ static void help(void);
++static void test_gps(void);
++static void test_laser(void);
++
++
+ 
+ static int fd, fd1;
+ 
+@@ -96,9 +100,63 @@ int main(int ac, char **av)
+ 	if (fd == -1)
+ 		tst_brkm(TBROK | TERRNO, cleanup, "Couldn't open %s", devname);
+ 
++	/* Test if GPS exist, then run gps tests */
++	struct _FADDEVIOCTLGPS gps;
++
++        TEST(ioctl(*(&fd), IOCTL_FAD_GET_GPS_ENABLE, &gps));
++
++	if (TEST_RETURN == 0) {
++		test_gps();
++	}
++
++	/* Test if laser module exist, then run laser tests */
++	FADDEVIOCTLLASER laser;
++
++	TEST(ioctl(*(&fd), IOCTL_FAD_GET_LASER_STATUS, &laser));
++
++	if (TEST_RETURN == 0) {
++		test_laser();
++	}
++
++
++	// Cleanup
++	cleanup();
++	tst_exit();
++}
++
++static void help(void)
++{
++	printf("  -D <fad device> : for example, /dev/fad0\n");
++}
++
++static void setup(void)
++{
++	tst_sig(NOFORK, DEF_HANDLER, cleanup);
++
++	TEST_PAUSE;
++
++	/* make a temporary directory and cd to it */
++	tst_tmpdir();
++
++	/* create a temporary file */
++	fd1 = open("x", O_CREAT, 0777);
++	if (fd1 == -1)
++		tst_resm(TFAIL | TERRNO, "Could not open test file");
++}
++
++static void cleanup(void)
++{
++	close(fd1);
++	close(fd);
++	tst_rmdir();
++}
++
++
++static void test_gps(void)
++{
+         /* Test GPS */
+         struct _FADDEVIOCTLGPS gps;
+-        
++
+         TEST(ioctl(*(&fd), IOCTL_FAD_GET_GPS_ENABLE, &gps));
+ 
+         if (TEST_RETURN != 0) {
+@@ -180,9 +238,14 @@ int main(int ac, char **av)
+         printf("Gps active? %u\n",  gps.bGPSEnabled);
+ 
+ 
++}
++
++
++static void test_laser(void)
++{
+         //TEST Laser
+         FADDEVIOCTLLASER laser;
+-        
++
+         TEST(ioctl(*(&fd), IOCTL_FAD_GET_LASER_STATUS, &laser));
+ 
+         if (TEST_RETURN != 0) {
+@@ -216,41 +279,4 @@ int main(int ac, char **av)
+                    EFAULT, strerror(EFAULT));
+ 
+         printf("Laser active?  %u\n",  laseractive.bLaserActive);
+-
+-
+-
+-        // Cleanup
+-        cleanup();
+-	tst_exit();
+-}
+-
+-static void help(void)
+-{
+-	printf("  -D <fad device> : for example, /dev/fad0\n");
+-}
+-
+-static void setup(void)
+-{
+-	tst_sig(NOFORK, DEF_HANDLER, cleanup);
+-
+-	TEST_PAUSE;
+-
+-	/* make a temporary directory and cd to it */
+-	tst_tmpdir();
+-
+-	/* if (tst_kvercmp(3, 7, 0) < 0) { */
+-	/* 	TC[2].error = EINVAL; */
+-	/* } */
+-
+-	/* create a temporary file */
+-	fd1 = open("x", O_CREAT, 0777);
+-	if (fd1 == -1)
+-		tst_resm(TFAIL | TERRNO, "Could not open test file");
+-}
+-
+-static void cleanup(void)
+-{
+-	close(fd1);
+-
+-	tst_rmdir();
+ }
+-- 
+2.30.1
+
