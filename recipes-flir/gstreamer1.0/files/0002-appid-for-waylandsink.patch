@@ -1,0 +1,13 @@
+diff --git a/ext/wayland/wlwindow.c b/ext/wayland/wlwindow.c
+index a5fadffb0..a469f16d3 100644
+--- a/ext/wayland/wlwindow.c
++++ b/ext/wayland/wlwindow.c
+@@ -507,6 +507,8 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
+ 
+     gst_wl_window_ensure_fullscreen (window, fullscreen);
+ 
++    xdg_toplevel_set_app_id(window->xdg_toplevel, "waylandsink");
++
+     /* Finally, commit the xdg_surface state as toplevel */
+     window->configured = FALSE;
+     wl_surface_commit (window->video_surface);
