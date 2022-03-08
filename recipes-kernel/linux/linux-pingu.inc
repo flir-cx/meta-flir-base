@@ -22,7 +22,13 @@ EXTRA_OEMAKE += "KCFLAGS=-Werror"
 EXTRA_OEMAKE += "KCFLAGS=-Wno-unused-function"
 
 KERNEL_EXTRA_ARGS += "LOADADDR=${UBOOT_ENTRYPOINT}"
-                
+
+# To enable building a rootfs without a kernel-image on, we have to remove
+# the rdepend from kernel-base.
+# Images that need a kernel-image have to add it explicitly.
+
+RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
+
 # We do our own configuration of the kernel to be able to use configuration
 # fragments (.cfg files). Partially inspired by similar functionality in
 # linux-imx, but based on recommendations in kernel.bbclass.
