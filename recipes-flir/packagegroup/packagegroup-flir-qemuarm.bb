@@ -17,6 +17,7 @@ RDEPENDS_${PN}-packages = "\
     php \
     php-cgi \
     php-cli \
+    php-opcache \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init ', '', d)} \
 "
