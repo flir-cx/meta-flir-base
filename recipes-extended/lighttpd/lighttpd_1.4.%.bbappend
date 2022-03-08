@@ -1,7 +1,5 @@
 RDEPENDS_${PN} += "bash"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
-
 FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
 
 SRC_URI += " \
