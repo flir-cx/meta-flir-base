@@ -6,8 +6,7 @@ After=network-online.target
 Type=simple
 ExecStart=/usr/bin/skylab-streamserver \
 				       --verbosity=3 \
-				       --frames-bind-endpoint=tcp://*:5550 \
-				       --cmd-bind-endpoint=tcp://*:5552
+				       --frames-bind-endpoint=tcp://*:5550
 Restart=on-failure
 
 [Install]
