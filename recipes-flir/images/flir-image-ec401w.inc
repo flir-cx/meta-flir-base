@@ -56,6 +56,7 @@ IMAGE_INSTALL = " \
     pubsftp \
     python \
     qca-tools \
+    rng-tools \
     rpmsg-bifrost \
     screen \
     screen-service \
