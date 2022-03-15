@@ -1,7 +1,6 @@
 SUMMARY = "FLIR Systems VCAM Driver"
 DESCRIPTION = "FLIR Systems VCAM Driver"
 AUTHOR = "Patrik Lindergren <patrik.lindergren@flir.se>"
-HOMEPAGE = "http://www.example.org/xcv/"
 SECTION = "flir/drivers"
 PRIORITY = "optional"
 LICENSE = "GPLv2"
@@ -9,25 +8,13 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-only;md5=801f80980d171d
 DEPENDS = "flirsdk"
 PR = "r1"
 PV = "0.${SRCPV}"
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
-
-# FLIRSE_DRV_MIRROR and FLIRSE_DRV_PROTOCOL used below are defined in 
-# <yocto-root>/build_<machine>/conf/local.conf
-# You may edit that file to switch between se-arn-dev5 gitolite and 
-# git-se (bitbucket git)
-# local.conf is originally built using <yocto-root>/setup-environment
-
-# For smooth migration, we locally define FLIRSE_ vars for recipe to work
-# as before while local.conf is not updated
-# FLIRSE_DRV_MIRROR ?= "git://se-arn-dev5"
-# FLIRSE_DRV_PROTOCOL ?= ";protocol=git"
 
 inherit module
 
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
-SRCREV = "687bcdbced1e45131250065743f4c40baab75873"
+SRCREV = "dccc236e147fa2bd77dca8fe356b42f38f40e771"
 SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-vcam.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 SRC_URI += "file://vcam.conf"
 
