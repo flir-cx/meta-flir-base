@@ -101,6 +101,7 @@ SRC_URI_append = " \
     file://0104-spi-nor-duplicate-JEDEC-id-for-w25q64-and-s25fl064k.patch \
     file://0105-spi-nor-add-JEDEC-id-for-w25q64jw-im.patch \
     file://0106-ES-2138-Add-High-K-conf-to-OV5640.patch \
+    file://0108-ov5640-set-fixed-values-to-reg-when-reading-type.patch \
     file://defconfig"
 
 EXTRA_OEMAKE += "KCFLAGS=-Werror"
