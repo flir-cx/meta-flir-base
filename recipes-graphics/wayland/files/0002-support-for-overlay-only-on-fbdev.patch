@@ -1,0 +1,201 @@
+From 46c1c538f20fc5922732909fd7de409b7086f71e Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Fri, 18 Mar 2022 10:49:48 +0100
+Subject: [PATCH] [BC-20] Support for overlay-only on fbdev w Weston
+
+Adds support for the option "filtered-outputs" to weston.ini. With
+this option enabled along with weston configured with two fbdev
+devices, the second device will only render views in the overlay
+layer.
+
+To use this, add the following to the [core] section of weston.ini...
+
+filtered-outputs=true
+
+...and launch weston with two fbdevs:
+
+/usr/bin/weston [...] --device=/dev/fb0,/dev/fb4
+
+This has only been tested with the same resolution on both fbdevs.
+
+The filtered-outputs option will force Weston to place the outputs on
+top of eachother (ie, clone mode, same x-offset). Weston will render
+normally onto the first output but only render views on the second
+output if they are positioned in the OVERLAY layer.
+
+There is no explicit support for dynamically enabling/disabling this
+behavior.
+
+The implementation takes into account that weston's support for
+overlapping outputs is broken by only considering damage for one
+output. See:
+https://gitlab.freedesktop.org/wayland/weston/-/merge_requests/357
+https://gitlab.freedesktop.org/wayland/weston/-/issues/494
+https://gitlab.freedesktop.org/wayland/weston/-/issues/504
+
+Note that this change is not generic at all. It basically handles a
+very narrow use-case and nothing more. So expect things breaking if
+deviating from it.
+---
+ compositor/main.c                     |  4 ++
+ include/libweston/libweston.h         |  1 +
+ libweston/compositor.c                |  9 +++-
+ libweston/renderer-g2d/g2d-renderer.c | 73 +++++++++++++++++++++++++--
+ 4 files changed, 83 insertions(+), 4 deletions(-)
+
+diff --git a/compositor/main.c b/compositor/main.c
+index cbf06690..2408f04a 100644
+--- a/compositor/main.c
++++ b/compositor/main.c
+@@ -1112,6 +1112,10 @@ weston_compositor_init_config(struct weston_compositor *ec,
+ 	}
+ 	weston_log("Output repaint window is %d ms maximum.\n",
+ 		   ec->repaint_msec);
++        weston_config_section_get_bool(s, "filtered-outputs",
++                                       &ec->filtered_outputs, false);
++        weston_log("Using filtered outputs: %s\n",
++                   ec->filtered_outputs ? "true" : "false");
+ 
+ 	/* weston.ini [libinput] */
+ 	s = weston_config_get_section(config, "libinput", NULL, NULL);
+diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
+index 23a0982e..9834052c 100644
+--- a/include/libweston/libweston.h
++++ b/include/libweston/libweston.h
+@@ -1129,6 +1129,7 @@ struct weston_compositor {
+ 	struct weston_log_scope *timeline;
+ 
+ 	struct content_protection *content_protection;
++	bool filtered_outputs;     /* Only draw a limited set of views on certain outputs */
+ };
+ 
+ struct weston_buffer {
+diff --git a/libweston/compositor.c b/libweston/compositor.c
+index 370b5d23..d92103cd 100644
+--- a/libweston/compositor.c
++++ b/libweston/compositor.c
+@@ -2505,6 +2505,11 @@ output_accumulate_damage(struct weston_output *output)
+ 	struct weston_view *ev;
+ 	pixman_region32_t opaque, clip;
+ 
++        // Overlapping outputs is broken with regards to damage.
++        // When using filtered-outputs, only calculate damage for one output.
++        if (ec->filtered_outputs && output->id > 0)
++            return;
++
+ 	pixman_region32_init(&clip);
+ 
+ 	wl_list_for_each(plane, &ec->plane_list, link) {
+@@ -6387,7 +6392,9 @@ weston_output_enable(struct weston_output *output)
+ 	iterator = container_of(c->output_list.prev,
+ 				struct weston_output, link);
+ 
+-	if (!wl_list_empty(&c->output_list))
++        // Don't advance x if using filtered outputs since we want
++        // overlapping outputs
++	if (!c->filtered_outputs && !wl_list_empty(&c->output_list))
+ 		x = iterator->x + iterator->width;
+ 
+ 	/* Make sure the scale is set up */
+diff --git a/libweston/renderer-g2d/g2d-renderer.c b/libweston/renderer-g2d/g2d-renderer.c
+index cf6ee86d..32ccc421 100644
+--- a/libweston/renderer-g2d/g2d-renderer.c
++++ b/libweston/renderer-g2d/g2d-renderer.c
+@@ -1088,9 +1088,52 @@ draw_view(struct weston_view *ev, struct weston_output *output,
+ 	/* non-opaque region in surface coordinates: */
+ 	pixman_region32_t surface_blend;
+ 
++        /* For filtered_outputs, all outputs other than the first are
++           special in that they only contain the overlay so we need to
++           examine whether to skip rendering or not. */
++        if (ec->filtered_outputs && output->id > 0) {
++
++            /* Apparently, a view with a parent doesn't have layer information
++               so we need to dig out the parent's layer and use that. */
++            struct weston_view *view = ev;
++            if (ev->parent_view != NULL) {
++                view = ev->parent_view;
++            }
++
++            /* For the second output, don't render views below OVERLAY
++               layer or above UI layer where certain symbols may live.
++               Ie, we only want the OVERLAY rendered on the second
++               output. */
++            if (view->layer_link.layer) {
++                enum weston_layer_position pos = view->layer_link.layer->position;
++                if (pos < WESTON_LAYER_POSITION_OVERLAY ||
++                    pos >= WESTON_LAYER_POSITION_UI) {
++                    /*
++                    // Useful for debugging
++                    weston_log("Skipping surface on output %u\n", output->id);
++                    if (ev->surface->resource) {
++                        struct wl_resource *resource = ev->surface->resource;
++                        uint32_t surface_id = 0;
++                        surface_id = wl_resource_get_id(ev->surface->resource);
++                        weston_log("  id %u skipped\n", surface_id);
++                    }
++                    if (NULL != ev->parent_view) {
++                        weston_log("  parent view: %p\n", ev->parent_view);
++                    }
++                    */
++                    return;
++                }
++            }
++        }
++
+ 	pixman_region32_init(&repaint);
+-	pixman_region32_intersect(&repaint,
+-				  &ev->transform.boundingbox, damage);
++
++        /* Ignore damage information for filtered_outputs */
++        if (ec->filtered_outputs && output->id > 0)
++            pixman_region32_copy(&repaint, &ev->transform.boundingbox);
++        else
++            pixman_region32_intersect(&repaint, &ev->transform.boundingbox, damage);
++
+ 	pixman_region32_subtract(&repaint, &repaint, &ev->clip);
+ 
+ 	if (!pixman_region32_not_empty(&repaint))
+@@ -1180,6 +1223,25 @@ output_rotate_damage(struct weston_output *output,
+ 	pixman_region32_copy(&go->buffer_damage[go->current_buffer], output_damage);
+ }
+ 
++static void
++g2d_renderer_clear_output(struct weston_output *output)
++{
++        struct g2d_output_state *go = get_output_state(output);
++        struct weston_compositor *compositor = output->compositor;
++        struct g2d_renderer *gr = get_renderer(compositor);
++        struct g2d_surfaceEx *dstsurface;
++        if (go->nNumBuffers > 1 || go->directBlit) {
++                dstsurface = &go->renderSurf[go->activebuffer];
++        } else {
++                dstsurface = &go->offscreenSurface;
++        }
++
++        struct g2d_surface tmp_surface = dstsurface->base;
++        tmp_surface.clrcolor = 0x00000000;
++        g2d_clear(gr->handle, &tmp_surface);
++}
++
++
+ static void
+ g2d_renderer_repaint_output(struct weston_output *output,
+ 				 pixman_region32_t *output_damage)
+@@ -1197,7 +1259,12 @@ g2d_renderer_repaint_output(struct weston_output *output,
+ 	output_rotate_damage(output, output_damage);
+ 	pixman_region32_union(&total_damage, &buffer_damage, output_damage);
+ 
+-	repaint_views(output, &total_damage);
++        /* There might be another way of doing this than clearing on
++         * every repaint */
++        if (compositor->filtered_outputs && output->id > 0)
++            g2d_renderer_clear_output(output);
++
++        repaint_views(output, &total_damage);
+ 
+ 	pixman_region32_fini(&total_damage);
+ 	pixman_region32_fini(&buffer_damage);
+-- 
+2.25.1
+
