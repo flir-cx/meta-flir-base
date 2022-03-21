@@ -10,6 +10,7 @@ TEST_SUITES = "ping ssh flir_test_valid_platform df connman \
                  bluetooth sysfs standby wi-fi bluetooth mmdc"
 
 IMAGE_INSTALL_append = "\
+    packagegroup-flir-eoco-packages \
     packagegroup-flir-pulseaudio-packages \
 "
 
