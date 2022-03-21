@@ -1,5 +1,5 @@
 PINGU_INHERIT = ""
-PINGU_INHERIT_mx6  = "kernel fsl-kernel-localversion fsl-vivante-kernel-driver-handler"
+PINGU_INHERIT  = "kernel fsl-kernel-localversion fsl-vivante-kernel-driver-handler"
 inherit ${PINGU_INHERIT}
 
 SECTION = "kernel"
@@ -10,7 +10,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 DEPENDS += "lzop-native bc-native"
 
 PROVIDES+=" linux virtual/kernel"
-COMPATIBLE_MACHINE = "evco|ec501|eoco"
+COMPATIBLE_MACHINE = "evco|ec501|eoco|ec201|ec401w|rebb"
 
 S = "${WORKDIR}/git"
 
@@ -22,7 +22,13 @@ EXTRA_OEMAKE += "KCFLAGS=-Werror"
 EXTRA_OEMAKE += "KCFLAGS=-Wno-unused-function"
 
 KERNEL_EXTRA_ARGS += "LOADADDR=${UBOOT_ENTRYPOINT}"
-                
+
+# To enable building a rootfs without a kernel-image on, we have to remove
+# the rdepend from kernel-base.
+# Images that need a kernel-image have to add it explicitly.
+
+RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
+
 # We do our own configuration of the kernel to be able to use configuration
 # fragments (.cfg files). Partially inspired by similar functionality in
 # linux-imx, but based on recommendations in kernel.bbclass.

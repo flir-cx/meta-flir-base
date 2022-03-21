@@ -3,10 +3,19 @@ SECTION = "flir/library"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
 
-SRCREV = "${AUTOREV}"
-PVBASE := "${PV}"
-PV = "${PVBASE}+${SRCPV}"
-SRC_URI  = "git://bitbucketcommercial.flir.com:7999/im7/m4-lepton-application-binary.git;protocol=ssh"
+FLIR_IMX7_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_IMX7_GIT = "git://bitbucketcommercial.flir.com:7999/im7"
+
+FLIR_LEPTON_M4_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_IMX7_GIT}/m4-lepton-application-binary.git", "${FLIR_IMX7_GITHUB_GIT}/m4-lepton-application-binary.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
+
+SRCREV = "6dea0e4f6f541ff4bfd88ee9035aba292999ec2b"
+PV = "0.${SRCPV}"
+PR = "r1"
+
+SRC_URI  = "${FLIR_LEPTON_M4_URI};protocol=${PROTO};nobranch=1"
 
 S="${WORKDIR}/git"
 

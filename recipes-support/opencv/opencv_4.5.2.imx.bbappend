@@ -4,3 +4,4 @@
 # supported by NXP and therefore this may or may not work. Only use
 # opencv_4.5.2.imx for imx6 after considerable testing.
 COMPATIBLE_MACHINE_mx6 = "(mx6)"
+COMPATIBLE_MACHINE_mx7 = "(mx7)"
