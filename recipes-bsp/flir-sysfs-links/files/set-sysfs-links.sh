@@ -13,6 +13,7 @@ leco=2
 beco=3
 roco=4
 ec201=5
+ec401w=6
 
 compat_path=/proc/device-tree/compatible
 lnk_base_dir=/etc/sysfs-links
@@ -28,6 +29,12 @@ tpleds_detect_lnk=$lnk_base_dir/tp-leds/tp-leds
 tpleds_camera_lnk=$lnk_base_dir/tp-leds/tp-camera
 tpleds_gallery_lnk=$lnk_base_dir/tp-leds/tp-gallery
 tpleds_settings_lnk=$lnk_base_dir/tp-leds/tp-settings
+coverleds_folder=$lnk_base_dir/leds
+coverleds_detect_lnk=$lnk_base_dir/leds/leds
+coverleds_led1_lnk=$lnk_base_dir/leds/led-1
+coverleds_led2_lnk=$lnk_base_dir/leds/led-2
+coverleds_led3_lnk=$lnk_base_dir/leds/led-3
+coverleds_ledred_lnk=$lnk_base_dir/cover-leds/led-red
 backlight_lcd_lnk=$lnk_base_dir/backlight_lcd
 torch_lnk=$lnk_base_dir/torch
 flash_lnk=$lnk_base_dir/flash
@@ -38,6 +45,7 @@ find_out_model () {
 	grep -q -- '-beco' $compat_path && return $beco
 	grep -q -- 'digi' $compat_path && return $roco
 	grep -q -- '-ec201' $compat_path && return $ec201
+	grep -q -- '-ec401w' $compat_path && return $ec401w
         return $unknown
 }
 
@@ -67,6 +75,15 @@ set_paths () {
 		torch_path=/sys/class/leds/torch
 		flash_path=/sys/class/leds/flash
 		;;
+	"$ec401w")
+		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
+		battery_path=/sys/class/power_supply/battery
+		pmic_path=/sys/class/power_supply/pf1550-charger
+		coverleds_led1_path=/sys/class/leds/led-1
+		coverleds_led2_path=/sys/class/leds/led-2
+		coverleds_led3_path=/sys/class/leds/led-3
+		coverleds_ledred_path=/sys/class/leds/led-3
+		;;
 	esac
 }
 
@@ -88,12 +105,26 @@ create_links () {
 		mkdir -p $tpleds_folder
 
 	[ ! -a $tpleds_detect_lnk/uevent ] && \
-		rm -f $tpleds_detect_lnk
+		rm -rf $tpleds_detect_lnk
 
+	[ -n "$coverleds_led1_path" ] && \
+		mkdir -p $coverleds_folder
+
+	[ ! -a $coverleds_detect_lnk/uevent ] && \
+		rm -rf $coverleds_detect_lnk
+
+	#sherlock tp-leds
 	create_link "$tpleds_camera_path" "$tpleds_detect_lnk" # Detect link for appcore
 	create_link "$tpleds_camera_path" "$tpleds_camera_lnk"
 	create_link "$tpleds_gallery_path" "$tpleds_gallery_lnk"
 	create_link "$tpleds_settings_path" "$tpleds_settings_lnk"
+
+	#ec401w cover leds
+	create_link "$coverleds_led1_path" "$coverleds_detect_lnk" # Detect link for appcore
+	create_link "$coverleds_led1_path" "$coverleds_led1_lnk"
+	create_link "$coverleds_led2_path" "$coverleds_led2_lnk"
+	create_link "$coverleds_led3_path" "$coverleds_led3_lnk"
+	create_link "$coverleds_ledred_path" "$coverleds_ledred_lnk"
 	
 	create_link "$backlight_lcd_path" "$backlight_lcd_lnk"
 

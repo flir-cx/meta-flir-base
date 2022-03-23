@@ -1,0 +1,2700 @@
+From ab96a3e036d77493244c3989265c40ccad949114 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.com>
+Date: Wed, 23 Mar 2022 10:50:49 +0100
+Subject: [PATCH] Add board support for ec401w
+
+---
+ arch/arm/dts/Makefile                   |   1 +
+ arch/arm/dts/imx7ulp-ec401w.dts         | 175 ++++++++++
+ arch/arm/mach-imx/mx7ulp/Kconfig        |   5 +
+ board/flir/ec401w/Kconfig               |  12 +
+ board/flir/ec401w/Makefile              |  16 +
+ board/flir/ec401w/bootstate.c           | 278 ++++++++++++++++
+ board/flir/ec401w/bootstate.h           |  11 +
+ board/flir/ec401w/chargeapp.c           | 112 +++++++
+ board/flir/ec401w/cmd_recoverytrigger.c | 125 +++++++
+ board/flir/ec401w/cmd_setmac.c          |  78 +++++
+ board/flir/ec401w/ec401w.c              | 122 +++++++
+ board/flir/ec401w/imximage.cfg          | 122 +++++++
+ board/flir/ec401w/lc709203.c            | 152 +++++++++
+ board/flir/ec401w/lc709203.h            |  32 ++
+ board/flir/ec401w/pf1550.c              | 205 ++++++++++++
+ board/flir/ec401w/pf1550.h              | 296 +++++++++++++++++
+ board/flir/ec401w/usbdcd.c              | 215 ++++++++++++
+ board/flir/ec401w/usbdcd.h              |  64 ++++
+ configs/mx7ulp_ec401w_defconfig         |  77 +++++
+ include/configs/ec401w.h                | 414 ++++++++++++++++++++++++
+ 20 files changed, 2512 insertions(+)
+ create mode 100644 arch/arm/dts/imx7ulp-ec401w.dts
+ create mode 100644 board/flir/ec401w/Kconfig
+ create mode 100644 board/flir/ec401w/Makefile
+ create mode 100644 board/flir/ec401w/bootstate.c
+ create mode 100644 board/flir/ec401w/bootstate.h
+ create mode 100644 board/flir/ec401w/chargeapp.c
+ create mode 100644 board/flir/ec401w/cmd_recoverytrigger.c
+ create mode 100644 board/flir/ec401w/cmd_setmac.c
+ create mode 100644 board/flir/ec401w/ec401w.c
+ create mode 100644 board/flir/ec401w/imximage.cfg
+ create mode 100644 board/flir/ec401w/lc709203.c
+ create mode 100644 board/flir/ec401w/lc709203.h
+ create mode 100644 board/flir/ec401w/pf1550.c
+ create mode 100644 board/flir/ec401w/pf1550.h
+ create mode 100644 board/flir/ec401w/usbdcd.c
+ create mode 100644 board/flir/ec401w/usbdcd.h
+ create mode 100644 configs/mx7ulp_ec401w_defconfig
+ create mode 100644 include/configs/ec401w.h
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index e659eafeb3..3bdf490d13 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -458,6 +458,7 @@ dtb-$(CONFIG_MX7) += imx7-colibri.dtb \
+ dtb-$(CONFIG_ARCH_MX7ULP) += imx7ulp-evk.dtb \
+ 	imx7ulp-bblc.dtb \
+ 	imx7ulp-ec201.dtb \
++	imx7ulp-ec401w.dtb \
+ 	imx7ulp-evk-emmc.dtb \
+ 	imx7ulp-evk-qspi.dtb \
+ 	imx7ulp-10x10-arm2.dtb \
+diff --git a/arch/arm/dts/imx7ulp-ec401w.dts b/arch/arm/dts/imx7ulp-ec401w.dts
+new file mode 100644
+index 0000000000..c41799f724
+--- /dev/null
++++ b/arch/arm/dts/imx7ulp-ec401w.dts
+@@ -0,0 +1,175 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/dts-v1/;
++
++#include "imx7ulp.dtsi"
++
++/ {
++	model = "FLIR EC401W Low Cost Platform Board";
++	compatible = "flir,imx7ulp-ec401w", "fsl,imx7ulp", "Generic DT based system";
++
++	chosen {
++		stdout-path = &lpuart4;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x60000000 0x20000000>;
++	};
++
++	regulators {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <0>;
++	};
++};
++
++&iomuxc1 {
++	pinctrl-names = "default";
++
++	pinctrl_usdhc0: usdhc0grp {
++		fsl,pins = <
++			IMX7ULP_PAD_PTD0__PTD0         0x20000     /* USDHC0 RST */
++			IMX7ULP_PAD_PTD1__SDHC0_CMD    0x43
++			IMX7ULP_PAD_PTD2__SDHC0_CLK    0x10042
++			IMX7ULP_PAD_PTD3__SDHC0_D7     0x43
++			IMX7ULP_PAD_PTD4__SDHC0_D6     0x43
++			IMX7ULP_PAD_PTD5__SDHC0_D5     0x43
++			IMX7ULP_PAD_PTD6__SDHC0_D4     0x43
++			IMX7ULP_PAD_PTD7__SDHC0_D3     0x43
++			IMX7ULP_PAD_PTD8__SDHC0_D2     0x43
++			IMX7ULP_PAD_PTD9__SDHC0_D1     0x43
++			IMX7ULP_PAD_PTD10__SDHC0_D0    0x43
++			IMX7ULP_PAD_PTD11__SDHC0_DQS   0x42
++		>;
++	};
++
++	pinctrl_usdhc1: usdhc1grp {
++		fsl,pins = <
++			IMX7ULP_PAD_PTE3__SDHC1_CMD    0x43
++			IMX7ULP_PAD_PTE2__SDHC1_CLK    0x10042
++			IMX7ULP_PAD_PTE1__SDHC1_D0     0x43
++			IMX7ULP_PAD_PTE0__SDHC1_D1     0x43
++			IMX7ULP_PAD_PTE5__SDHC1_D2     0x43
++			IMX7ULP_PAD_PTE4__SDHC1_D3     0x43
++		>;
++	};
++
++	pinctrl_lpi2c5: lpi2c5grp {
++		fsl,pins = <
++			IMX7ULP_PAD_PTC4__LPI2C5_SCL   0x27
++			IMX7ULP_PAD_PTC5__LPI2C5_SDA   0x27
++		>;
++	};
++
++	pinctrl_lpi2c6: lpi2c6grp {
++		fsl,pins = <
++			IMX7ULP_PAD_PTC8__LPI2C6_SCL   0x27
++			IMX7ULP_PAD_PTC9__LPI2C6_SDA   0x27
++		>;
++	};
++
++	pinctrl_lpi2c7: lpi2c7grp {
++		fsl,pins = <
++			IMX7ULP_PAD_PTE12__LPI2C7_SCL   0x27
++			IMX7ULP_PAD_PTE13__LPI2C7_SDA   0x27
++		>;
++	};
++
++	pinctrl_lpuart4: lpuart4grp {
++		fsl,pins = <
++			IMX7ULP_PAD_PTC3__LPUART4_RX   0x3
++			IMX7ULP_PAD_PTC2__LPUART4_TX   0x3
++		>;
++	};
++
++	pinctrl_lpuart6: lpuart6grp {
++		fsl,pins = <
++			IMX7ULP_PAD_PTE10__LPUART6_TX      0x3
++			IMX7ULP_PAD_PTE11__LPUART6_RX      0x3
++			IMX7ULP_PAD_PTE9__LPUART6_RTS_B    0x3
++			IMX7ULP_PAD_PTE8__LPUART6_CTS_B    0x3
++		>;
++	};
++};
++
++/* Touch screen */
++&lpi2c7 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	pinctrl-names = "default",  "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c7>;
++	pinctrl-1 = <&pinctrl_lpi2c7>;
++	status = "okay";
++};
++
++/*  IO expander for keyboard, VCAM, Lepton, Temp sensor 1 and 2, EEPROM */
++&lpi2c6 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c6>;
++	pinctrl-1 = <&pinctrl_lpi2c6>;
++	status = "okay";
++};
++
++/*  PMIC */
++&lpi2c5 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c5>;
++	pinctrl-1 = <&pinctrl_lpi2c5>;
++	status = "okay";
++};
++
++&lpuart4 { /* console */
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpuart4>;
++	pinctrl-1 = <&pinctrl_lpuart4>;
++	status = "okay";
++};
++
++&lpuart6 { /* BT */
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpuart6>;
++	pinctrl-1 = <&pinctrl_lpuart6>;
++	status = "okay";
++};
++
++&usbotg1 {
++	dr_mode = "peripheral";
++	srp-disable;
++	hnp-disable;
++	adp-disable;
++	status = "okay";
++};
++
++/* emmc */
++&usdhc0 {
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_usdhc0>;
++	pinctrl-1 = <&pinctrl_usdhc0>;
++	bus-width = <8>;
++	non-removable;
++	status = "okay";
++};
++
++/* wifi */
++&usdhc1 {
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_usdhc1>;
++	pinctrl-1 = <&pinctrl_usdhc1>;
++	bus-width = <4>;
++	pm-ignore-notify;
++	keep-power-in-suspend;
++	non-removable;
++	wifi-host;
++	status = "okay";
++};
+diff --git a/arch/arm/mach-imx/mx7ulp/Kconfig b/arch/arm/mach-imx/mx7ulp/Kconfig
+index 51f1000bdd..561c5335fc 100644
+--- a/arch/arm/mach-imx/mx7ulp/Kconfig
++++ b/arch/arm/mach-imx/mx7ulp/Kconfig
+@@ -40,11 +40,16 @@ config TARGET_MX7ULP_EC201
+ 	bool "Support FLIR low cost platform board (EC201)"
+ 	select MX7ULP
+ 
++config TARGET_MX7ULP_EC401W
++	bool "Support FLIR low cost platform board (EC401W)"
++	select MX7ULP
++
+ endchoice
+ 
+ source "board/freescale/mx7ulp_arm2/Kconfig"
+ source "board/freescale/mx7ulp_evk/Kconfig"
+ source "board/flir/bblc/Kconfig"
+ source "board/flir/ec201/Kconfig"
++source "board/flir/ec401w/Kconfig"
+ 
+ endif
+diff --git a/board/flir/ec401w/Kconfig b/board/flir/ec401w/Kconfig
+new file mode 100644
+index 0000000000..b6ca6a9232
+--- /dev/null
++++ b/board/flir/ec401w/Kconfig
+@@ -0,0 +1,12 @@
++if TARGET_MX7ULP_EC401W
++
++config SYS_BOARD
++	default "ec401w"
++
++config SYS_VENDOR
++	default "flir"
++
++config SYS_CONFIG_NAME
++	default "ec401w"
++
++endif
+diff --git a/board/flir/ec401w/Makefile b/board/flir/ec401w/Makefile
+new file mode 100644
+index 0000000000..2d8708f541
+--- /dev/null
++++ b/board/flir/ec401w/Makefile
+@@ -0,0 +1,16 @@
++#
++#  Copyright 2018 FLIR
++#
++#  This program is free software; you can redistribute it and/or modify
++#  it under the terms of the GNU General Public License version 2 as
++#  published by the Free Software Foundation.
++#
++
++obj-y  += ec401w.o
++obj-y  += bootstate.o
++obj-y  += chargeapp.o
++obj-y  += pf1550.o
++obj-y  += lc709203.o
++obj-y  += cmd_recoverytrigger.o
++obj-y  += cmd_setmac.o
++obj-y  += usbdcd.o
+diff --git a/board/flir/ec401w/bootstate.c b/board/flir/ec401w/bootstate.c
+new file mode 100644
+index 0000000000..7a7c9862f3
+--- /dev/null
++++ b/board/flir/ec401w/bootstate.c
+@@ -0,0 +1,278 @@
++/*
++ * Copyright (C) 2019 FLIR Systems.
++ *
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of
++ * the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <dm.h>
++#include <i2c.h>
++#include <pf1550.h>
++#include <lc709203.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++enum WAKE_EVENTS
++{
++	USB_CABLE = 0,
++	VBUS_POWER,
++	ONKEY,
++	RESET,
++	ONKEY_LONG_PRESS,
++	INVALID_EVENT,
++};
++
++enum BOOT_STATES
++{
++	INVALID_STATE = 0,
++	NORMAL_BOOT = 1,
++	LOW_BATTERY = 2,
++	NO_BATTERY = 3,
++	USB_CHARGE = 4,
++	NUM_BOOT_STATES = 5,
++};
++
++static struct boot_state
++{
++	u8 wake_event;
++	u8 boot_state;
++	u8 force_boot_state;
++	u16 battery_mV;
++	bool battery;
++	bool usb_cable;
++
++}state = {
++	.wake_event = ONKEY,
++	.boot_state = NORMAL_BOOT,
++	.force_boot_state = 0,
++	.battery_mV = 4000,
++	.usb_cable = false,
++	.battery = false,
++};
++
++#define LOW_BATTERY_mV 3300
++
++//Pmic registers defines
++//Special register in pmic which we can use to force boot state between reboots
++#define FORCE_BOOT_STATE PF1550_CHARG_REG_LED_PWM
++
++static u8 get_force_boot_state(struct udevice *dev)
++{
++	u8 force_boot_state, buf;
++
++	//read hidden state register
++	dm_i2c_read(dev, FORCE_BOOT_STATE, &force_boot_state, 1);
++	buf = 0;
++	dm_i2c_write(dev, FORCE_BOOT_STATE, &buf, 1);
++
++	printf("Force Boot State 0x%x... ", force_boot_state);
++	if(force_boot_state > INVALID_STATE && force_boot_state < NUM_BOOT_STATES){
++
++		switch(force_boot_state)
++		{
++		case NORMAL_BOOT:
++			printf("%s\n", "NORMAL_BOOT");
++			break;
++		case LOW_BATTERY:
++			printf("%s\n", "LOW_BATTERY");
++			break;
++		case NO_BATTERY:
++			printf("%s\n", "NO_BATTERY");
++			break;
++		case USB_CHARGE:
++			printf("%s\n", "USB_CHARGE");
++			break;
++		default:
++			printf("%s\n", "UNKNOWN");
++			break;
++		}
++	}else{
++		printf("%s\n", "NONE");
++		force_boot_state = INVALID_STATE;
++	}
++	return force_boot_state;
++}
++
++static u8 get_wake_event(struct udevice *dev)
++{
++	u8 chg_int, wake_event;
++
++	//We have no way to detect onoff button events from poweroff or reboot.
++	//We use this as the default event
++	wake_event = RESET;
++
++	/* Check if a usb cable inserted interrupt has occured. */
++	dm_i2c_read(dev, PF1550_CHARG_REG_CHG_INT, &chg_int, 1);
++	dm_i2c_write(dev, PF1550_CHARG_REG_CHG_INT, &chg_int, 1);
++
++	printf("USB cable inserted interrupt (CHG_INT 0x%x)... ", chg_int);
++	if(chg_int & CHARG_IRQ_VBUSI ){
++		printf("YES\n");
++		wake_event = USB_CABLE;
++	}else{
++		printf("NO\n");
++	}
++
++	return wake_event;
++}
++
++
++int get_battery_voltage(int *voltage)
++{
++	//Read battery voltage
++	struct udevice *dev;
++	u8 buf[4];
++	int ret;
++
++	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC709203: %d\n", ret);
++		return ret;
++	}
++
++	ret = dm_i2c_read(dev, 0x9, buf, 2);
++	if(!ret)
++		*voltage = *(u16*)buf;
++
++	return ret;
++}
++
++int get_battery_state_of_charge(int *soc)
++{
++	struct udevice *dev;
++	u8 buf[4];
++	int ret;
++
++	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC709203: %d\n", ret);
++		return ret;
++	}
++
++	ret = dm_i2c_read(dev, 0xd, buf, 2);
++	if(!ret)
++		*soc = *(u16*)buf;
++
++	return ret;
++}
++
++int boot_state_init(void)
++{
++	struct udevice *dev;
++	int ret;
++	u8 chg_int_ok, pwrctrl3;
++
++	ret = i2c_get_chip_for_busnum(5, 0x8, 1, &dev);
++	if (ret) {
++		printf("Cannot find pmic: %d\n", ret);
++		return ret;
++	}
++
++	state.force_boot_state = get_force_boot_state(dev);
++	if(state.force_boot_state != INVALID_STATE)
++		return 0;
++
++	state.wake_event = get_wake_event(dev);
++
++	dm_i2c_read(dev, PF1550_PMIC_REG_PWRCTRL3, &pwrctrl3, 1);
++	printf("pwrctrl3=0x%x\n", pwrctrl3);
++
++	/* Check if the usb cable is inserted at all. This checks if
++	the cable was already inserted at the time of boot. In this
++	case cable inserted interrupt would NOT have been
++	received. */
++	dm_i2c_read(dev, PF1550_CHARG_REG_CHG_INT_OK, &chg_int_ok, 1);
++
++	printf("USB cable connected (CHG_INT_OK 0x%x)... ", chg_int_ok);
++	if(chg_int_ok & PF1550_CHG_INT_OK_VBUS_OK ){
++		printf("YES\n");
++		state.usb_cable = true;
++	}else{
++		printf("NO\n");
++	}
++
++	return 0;
++}
++
++static int do_boot_state(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++{
++	if(state.force_boot_state != INVALID_STATE){
++		state.boot_state = state.force_boot_state;
++	}else{
++		switch(state.wake_event)
++		{
++		case USB_CABLE:
++			state.boot_state = USB_CHARGE;
++			break;
++		case RESET:
++		case ONKEY:
++			get_battery_voltage(&state.battery_mV);
++			printf("Battery voltage mV=%d... ",state.battery_mV);
++			if(state.battery_mV < LOW_BATTERY_mV){
++				printf("LOW\n");
++				state.boot_state = LOW_BATTERY;
++			}else{
++				printf("OK\n");
++				state.boot_state = NORMAL_BOOT;
++			}
++			break;
++		default:
++			printf("Invalid boot event: INVALID_EVENT \n");
++			fuelgauge_sleep();
++			power_off();
++			break;
++		}
++	}
++
++	/* State specified from u-boot prompt has priority over
++	   previously set boot_state. */
++	if(argc == 2)
++	{
++		state.boot_state = simple_strtoul(argv[1], NULL, 16);
++		printf("Custom boot state=%d \n",state.boot_state);
++	}
++
++	switch(state.boot_state)
++	{
++	case NORMAL_BOOT:
++		break;
++	case NO_BATTERY:
++		printf("Battery missing\n");
++	case LOW_BATTERY:
++		// Blink red led here
++		fuelgauge_sleep();
++		power_off();
++		break;
++	case USB_CHARGE:
++		printf("Camera: charge state \n");
++		// Show led batt state here
++		run_command("chargeapp",0);
++		break;
++	default:
++		printf("Invalid boot state\n");
++		break;
++	}
++	return 0;
++}
++
++U_BOOT_CMD(
++	bootstate,	2,	0,	do_boot_state,
++	"Process boot state, might power off camera",
++	" {state} \n"
++	"1 - Normal state		-> boot camera into run state\n"
++	"2 - Low battery state		-> power off camera\n"
++	"3 - No battery			-> power off camera\n"
++	"4 - Charge battery		-> boot camera into charge state\n"
++);
++
+diff --git a/board/flir/ec401w/bootstate.h b/board/flir/ec401w/bootstate.h
+new file mode 100644
+index 0000000000..b0286c22c5
+--- /dev/null
++++ b/board/flir/ec401w/bootstate.h
+@@ -0,0 +1,11 @@
++
++#ifndef _BOOTSTATE_H
++#define _BOOTSTATE_H
++
++void set_boot_logo(void);
++
++int boot_state_init(void);
++
++int get_battery_state_of_charge(int *soc);
++
++#endif
+\ No newline at end of file
+diff --git a/board/flir/ec401w/chargeapp.c b/board/flir/ec401w/chargeapp.c
+new file mode 100644
+index 0000000000..06b2ab0138
+--- /dev/null
++++ b/board/flir/ec401w/chargeapp.c
+@@ -0,0 +1,112 @@
++
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/arch/mx7ulp-pins.h>
++#include <asm/arch/iomux.h>
++#include <asm/gpio.h>
++#include <dm.h>
++#include <bootstate.h>
++#include <console.h>
++#include <command.h>
++#include <stdio_dev.h>
++#include <pf1550.h>
++#include <lc709203.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++typedef enum {
++	LEDS_ON,
++	LEDS_OFF
++} leds_state_t;
++
++static leds_state_t leds_state = LEDS_OFF;
++
++void leds_on(void)
++{
++	// turn on leds here
++	leds_state = LEDS_ON;
++	return;
++}
++
++void leds_off(void)
++{
++	// Turn off leds here
++	leds_state = LEDS_OFF;
++	return;
++}
++
++void do_charge_update(int level)
++{
++	// LED blink change
++	return;
++}
++
++
++void test_charge_levels()
++{
++	for(int i=0;i<=100;i++)
++	{
++		do_charge_update(i);
++		mdelay(400);
++	}
++}
++
++static int do_chargeapp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++{
++
++	int exit = 0;
++
++	//Test for display charge level with leds
++	if(argc == 2 && argv[1][0]=='t')
++	{
++		test_charge_levels();
++		return 0;
++	}
++
++	while(!exit)
++	{
++		int soc=0;
++
++		//if we are within allowed thermal range, enable charging, otherwise disable
++		pf1550_thm_ok_toogle_charging();
++
++		//get battery state of charge
++		get_battery_state_of_charge(&soc);
++		//update battery progressbar
++		do_charge_update(soc);
++
++		if(get_onoff_key())
++		{	
++			if(leds_state==LEDS_OFF)
++				leds_on();
++			else //turn on camera if onoff key is pressed
++			{
++				leds_off();
++				// turn off leds
++				reboot();
++			}
++				
++		}
++
++		//poweroff camera if usb-cable is removed
++		if(!get_usb_cable_state()){
++			fuelgauge_sleep();
++			power_off();
++		}
++
++		//exit if ctrlc is pressed
++		if(ctrlc())
++			exit=1;
++
++				
++	}
++	return 0;
++}
++
++U_BOOT_CMD(
++    chargeapp,	2,	0,	do_chargeapp,
++    "do_chargeapp",
++    "do_chargeapp"
++);
+diff --git a/board/flir/ec401w/cmd_recoverytrigger.c b/board/flir/ec401w/cmd_recoverytrigger.c
+new file mode 100644
+index 0000000000..d038bc127a
+--- /dev/null
++++ b/board/flir/ec401w/cmd_recoverytrigger.c
+@@ -0,0 +1,125 @@
++/* * Copyright (C) 2019 FLIR Systems.
++ *
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License as
++ * published by the Free Software Foundation; either version 2 of
++ * the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++/*
++ * Recovery sequence
++ * 
++ *  1. Hold trigger and power button while booting, release when screen lights up.
++ *  2. Press trigger button 5 times
++ *  3. Wait until 2 stars appears on screen
++ *  4. Press trigger button 6 times
++ *  5. Camera goes to recovery.
++ * 
++ */
++
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/arch/mx7ulp-pins.h>
++#include <asm/arch/iomux.h>
++#include <asm/gpio.h>
++#include <command.h>
++#include <stdio_dev.h>
++#include <dm.h>
++#include <i2c.h>
++#include <asm/arch/pcc.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define POLL_TIME 10
++
++#define OK 0
++#define FAIL 1
++
++
++/*
++int seq(int no)
++{
++    if(get_press(2000) == OK)
++    {
++        for(int i=0; i<no-1;i++)
++        {
++            if(get_press(700) != OK)
++               return FAIL;
++        }
++    }
++    else
++        return FAIL;
++
++    return OK;
++}
++*/
++
++/*
++
++int check_recovery_sequence(void)
++{
++    int ret;
++    
++    //wait for 0
++    ret = trigger_wait_until(TRIG_OFF, 3000);
++
++    if(ret == OK)
++    {
++        // sequence 1
++        printf("sequence 1 start \n");
++        
++        if(seq(5) == FAIL)
++            return FAIL;
++
++        if(trigger_wait_until(TRIG_ON, 1000) == OK)
++            return FAIL; // dont press again.
++
++        printf("sequence 1 ok\n");
++
++        // sequence 2
++        printf("sequence 2 start \n");
++        
++        if(seq(6) == FAIL)
++            return FAIL;
++
++        printf("sequence 2 ok\n");
++
++        if(trigger_wait_until(TRIG_ON, 2000) == OK)
++            return FAIL; // dont press again.
++
++    }
++
++    printf("get_recovery_sequence: %d\n", ret);
++    return ret;
++}
++*/
++
++int do_recoverytrigger(void)
++{
++    int res = FAIL;
++
++    printf("Check recovery\n");
++
++    //res = check_recovery_sequence();
++
++    if(res == FAIL)
++    {
++        //print_recovery("                      "); //clear screen
++    }
++    
++    return res;
++}
++
++U_BOOT_CMD(
++    recoverytrigger,	2,	1,	do_recoverytrigger,
++    "do_recoverytrigger",
++    "do_recoverytrigger"
++);
+\ No newline at end of file
+diff --git a/board/flir/ec401w/cmd_setmac.c b/board/flir/ec401w/cmd_setmac.c
+new file mode 100644
+index 0000000000..09c29a2f74
+--- /dev/null
++++ b/board/flir/ec401w/cmd_setmac.c
+@@ -0,0 +1,78 @@
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <command.h>
++#include <stdio_dev.h>
++#include <dm.h>
++#include <i2c.h>
++#include <asm/arch/pcc.h>
++
++int get_board_serial(char *buf)
++{
++    struct udevice *dev;
++    int ret = i2c_get_chip_for_busnum(6, 0x57, 1, &dev); //get eprom
++    if (ret) {
++		printf("Can not find eeprom: %d\n", ret);
++		return ret;
++	}
++
++    ret = dm_i2c_read(dev, 0x4A, buf, 8);
++	buf[8] = '\0';
++
++    return ret;
++}
++
++int setmac_func(bool bt)
++{
++    u8 addr[18];
++	u32 addrI = 0;
++    uint8_t buf[16];
++
++    int res = get_board_serial(buf);
++
++    if(res == 0)
++    {
++        strcpy(addr, "00:40:7f:00:00:00");
++
++        // convert to integer
++        for (int i = 0; buf[i] != '\0'; ++i)
++            addrI = addrI * 10 + buf[i] - '0';
++
++        addrI = addrI << 1; // shift up one to allow for different bt and usb mac address
++        if(bt)
++            addrI++;
++
++        snprintf(buf, 10, "%x", addrI);
++        int len = strlen(buf);
++
++        //address byte 6
++        addr[16] = buf[len-1];
++        addr[15] = buf[len-2];
++        //address byte 5
++        addr[13] = buf[len-3];
++        addr[12] = buf[len-4];
++        //address byte 4
++        addr[10] = buf[len-5];
++    }
++
++    if(res != 0)
++    {
++        strcpy(addr, bt?"00:04:f3:ff:ff:fc":"00:04:f3:ff:ff:fb");
++    }
++
++    env_set(bt?"btaddr":"ethaddr", addr);
++
++    return 0;
++}
++
++int do_setmac(void)
++{
++    setmac_func(false);
++    setmac_func(true);
++}
++
++U_BOOT_CMD(
++    setmac,	2,	1,	do_setmac,
++    "setmac",
++    "setmac"
++);
+\ No newline at end of file
+diff --git a/board/flir/ec401w/ec401w.c b/board/flir/ec401w/ec401w.c
+new file mode 100644
+index 0000000000..10665c80e5
+--- /dev/null
++++ b/board/flir/ec401w/ec401w.c
+@@ -0,0 +1,122 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/arch/mx7ulp-pins.h>
++#include <asm/arch/iomux.h>
++#include <asm/gpio.h>
++#include <fdt_support.h>
++#include <usb.h>
++#include <dm.h>
++#include <i2c.h>
++#include <bootstate.h>
++#include <pf1550.h>
++#include <lc709203.h>
++#include <version.h>
++#include <usbdcd.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define UART_PAD_CTRL	                        (PAD_CTL_PUS_UP)
++#define SNVS_LPCR_BTN_PRESS_TIME_DISABLE	(0x3<<16)
++#define SNVS_LP_LPCR	                        (0x41070038)
++
++void hx8394_init(void);
++
++int dram_init(void)
++{
++	gd->ram_size = PHYS_SDRAM_SIZE;
++
++	return 0;
++}
++
++static iomux_cfg_t const lpuart4_pads[] = {
++	MX7ULP_PAD_PTC3__LPUART4_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
++	MX7ULP_PAD_PTC2__LPUART4_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
++};
++
++static void setup_iomux_uart(void)
++{
++	mx7ulp_iomux_setup_multiple_pads(lpuart4_pads,
++					 ARRAY_SIZE(lpuart4_pads));
++}
++
++#ifdef CONFIG_DM_USB
++static void setup_usb(void)
++{
++}
++
++int board_ehci_usb_phy_mode(struct udevice *dev)
++{
++	return USB_INIT_HOST;
++}
++#endif
++
++int usb_charge_detect(void)
++{
++	int charge_current_mA;
++
++	usbdcd_get_charge_current_mA(&charge_current_mA);
++	printf("USB DCD: Setting charge current to %d\n", charge_current_mA);
++	set_charging_current(charge_current_mA);
++	return 0;
++}
++
++int board_early_init_f(void)
++{
++	setup_iomux_uart();
++
++	return 0;
++}
++
++int board_init(void)
++{
++	/* address of boot parameters */
++	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
++
++#ifdef CONFIG_DM_USB
++	setup_usb();
++#endif
++	init_pf1550_pmic();
++	fuelgauge_init();
++	usb_charge_detect();
++	boot_state_init();
++
++	//Let onoff button long press poweroff the camera
++	pmic_goto_core_off(true);
++	//onoff button longpress disabled for snvs block, this functionality is handled by pmic
++	writel((readl(SNVS_LP_LPCR) | SNVS_LPCR_BTN_PRESS_TIME_DISABLE), SNVS_LP_LPCR);
++
++	return 0;
++}
++
++int board_mmc_get_env_dev(int devno)
++{
++	return devno;
++}
++
++int board_late_init(void)
++{
++
++#ifdef CONFIG_ENV_IS_IN_MMC
++	board_late_mmc_env_init();
++#endif
++
++	return 0;
++}
++
++#if defined(CONFIG_OF_BOARD_SETUP)
++int ft_board_setup(void *blob, bd_t *bd)
++{
++	do_fixup_by_path_string(blob, "/u-boot", "version", U_BOOT_VERSION_STRING);
++
++	return 0;
++}
++#endif
+diff --git a/board/flir/ec401w/imximage.cfg b/board/flir/ec401w/imximage.cfg
+new file mode 100644
+index 0000000000..e69c792293
+--- /dev/null
++++ b/board/flir/ec401w/imximage.cfg
+@@ -0,0 +1,122 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#define __ASSEMBLY__
++#include <config.h>
++
++/* image version */
++
++IMAGE_VERSION 2
++
++/*
++ * Boot Device : one of
++ * spi/sd/nand/onenand, qspi/nor
++ */
++
++BOOT_FROM	sd
++
++
++/*
++ * Device Configuration Data (DCD)
++ *
++ * Each entry must have the format:
++ * Addr-type           Address        Value
++ *
++ * where:
++ *	Addr-type register length (1,2 or 4 bytes)
++ *	Address	  absolute address of the register
++ *	value	  value to be stored in the register
++ */
++DATA 4   0x403f00dc 0x00000000
++DATA 4   0x403e0040 0x01000020
++DATA 4   0x403e0500 0x01000000
++DATA 4   0x403e050c 0x80808080
++DATA 4   0x403e0508 0x00160002
++DATA 4   0x403E0510 0x00000001
++DATA 4   0x403E0514 0x00000014
++DATA 4   0x403e0500 0x00000001
++CHECK_BITS_SET 4 0x403e0500 0x01000000
++DATA 4   0x403e050c 0x8080801B
++CHECK_BITS_SET 4 0x403e050c 0x00000040
++DATA 4   0x403E0030 0x00000001
++DATA 4   0x403e0040 0x11000020
++DATA 4   0x403f00dc 0x42000000
++
++DATA 4   0x40B300AC 0x40000000
++
++DATA 4   0x40AD0128 0x00040000
++DATA 4   0x40AD00F8 0x00000000
++DATA 4   0x40AD00D8 0x00000180
++DATA 4   0x40AD0108 0x00000180
++DATA 4   0x40AD0104 0x00000180
++DATA 4   0x40AD0124 0x00010000
++DATA 4   0x40AD0080 0x0000018C
++DATA 4   0x40AD0084 0x0000018C
++DATA 4   0x40AD0088 0x0000018C
++DATA 4   0x40AD008C 0x0000018C
++
++DATA 4   0x40AD0120 0x00010000
++DATA 4   0x40AD010C 0x00000180
++DATA 4   0x40AD0110 0x00000180
++DATA 4   0x40AD0114 0x00000180
++DATA 4   0x40AD0118 0x00000180
++DATA 4   0x40AD0090 0x00000180
++DATA 4   0x40AD0094 0x00000180
++DATA 4   0x40AD0098 0x00000180
++DATA 4   0x40AD009C 0x00000180
++
++DATA 4   0x40AD00E0 0x00040000
++DATA 4   0x40AD00E4 0x00040000
++
++DATA 4   0x40AB001C 0x00008000
++DATA 4   0x40AB0800 0xA1390003
++DATA 4   0x40AB085C 0x0D3900A0
++DATA 4   0x40AB0890 0x00400000
++
++DATA 4   0x40AB0848 0x383C3238
++DATA 4   0x40AB0850 0x2A2C322E
++DATA 4   0x40AB081C 0x33333333
++DATA 4   0x40AB0820 0x33333333
++DATA 4   0x40AB0824 0x33333333
++DATA 4   0x40AB0828 0x33333333
++
++DATA 4   0x40AB08C0 0x24922492
++DATA 4   0x40AB08B8 0x00000800
++
++DATA 4   0x40AB0004 0x00020052
++DATA 4   0x40AB000C 0x292C42F3
++DATA 4   0x40AB0010 0x00100A22
++DATA 4   0x40AB0038 0x00120556
++DATA 4   0x40AB0014 0x00C700DB
++DATA 4   0x40AB0018 0x00211718
++DATA 4   0x40AB002C 0x0F9F26D2
++DATA 4   0x40AB0030 0x009F0E10
++DATA 4   0x40AB0040 0x0000003F
++DATA 4   0x40AB0000 0xC3190000
++
++DATA 4   0x40AB001C 0x00008010
++DATA 4   0x40AB001C 0x00008018
++DATA 4   0x40AB001C 0x003F8030
++DATA 4   0x40AB001C 0x003F8038
++DATA 4   0x40AB001C 0xFF0A8030
++DATA 4   0x40AB001C 0xFF0A8038
++DATA 4   0x40AB001C 0x04028030
++DATA 4   0x40AB001C 0x04028038
++DATA 4   0x40AB001C 0x83018030
++DATA 4   0x40AB001C 0x83018038
++DATA 4   0x40AB001C 0x01038030
++DATA 4   0x40AB001C 0x01038038
++
++DATA 4   0x40AB083C 0x20000000
++
++DATA 4   0x40AB0020 0x00001800
++DATA 4   0x40AB0800 0xA1310000
++DATA 4   0x40AB0004 0x00020052
++DATA 4   0x40AB0404 0x00011006
++DATA 4   0x40AB001C 0x00000000
++
+diff --git a/board/flir/ec401w/lc709203.c b/board/flir/ec401w/lc709203.c
+new file mode 100644
+index 0000000000..176ae59ceb
+--- /dev/null
++++ b/board/flir/ec401w/lc709203.c
+@@ -0,0 +1,152 @@
++
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <lc709203.h>
++
++static uint8_t crc8(const void* vptr, int len) {
++	const uint8_t *data = vptr;
++	unsigned crc = 0;
++	int i, j;
++
++	for (j = len; j; j--, data++) {
++		crc ^= (*data << 8);
++		for(i = 8; i; i--) {
++			if (crc & 0x8000)
++				crc ^= (0x1070 << 3);
++			crc <<= 1;
++		}
++	}
++
++	return (uint8_t)(crc >> 8);
++}
++
++int fuelgauge_write_reg(uint reg, u8 lb, u8 hb)
++{
++	struct udevice *dev;
++	u8 buf[4];
++	int ret;
++	uint8_t crc;
++
++	ret = i2c_get_chip_for_busnum(FUELGAUGE_I2C_BUS, FUELGAUGE_I2C_ADDR, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC709203: %d\n", ret);
++		return ret;
++	}
++
++	/* Calculate crc */
++	buf[0] = FUELGAUGE_I2C_ADDR << 1;
++	buf[1] = reg;
++	buf[2] = lb;
++	buf[3] = hb;
++	crc = crc8(buf,4);
++
++	buf[0] = lb;
++	buf[1] = hb;
++	buf[2] = crc;
++	dm_i2c_write(dev, reg, buf, 3);
++
++	return 0;
++}
++
++int fuelguage_get_type()
++{
++	u8 buf[4];
++	int ret;
++	struct udevice *dev;
++
++	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC 709203: %d\n", ret);
++		return ret;
++	}
++	
++	ret = dm_i2c_read(dev, IC_VERSION, buf, 2);
++
++	if(ret)
++		return ret;
++
++	return *(u16 *)buf == 0x301;
++}
++
++int fuelgauge_sleep(void)
++{
++	// Only lc709203f should be put to sleep, lc709204f should stay in operational mode
++	if(fuelguage_get_type() == LC709204F)
++		return 0;
++
++	return fuelgauge_write_reg(IC_POWER_MODE_REG, FUELGAUGE_SLEEP_MODE, 0);
++}
++
++int fuelgauge_operational(void)
++{
++	/* First write is to enable i2c communication with the fuelgauge */
++	int ret;
++	ret = fuelgauge_write_reg(IC_POWER_MODE_REG, OPERATIONAL_MODE, 0);
++	if(ret)
++		return ret;
++
++	udelay(1000);
++
++	return fuelgauge_write_reg(IC_POWER_MODE_REG, OPERATIONAL_MODE, 0);
++}
++
++int fuelgauge_thermistor_mode(void)
++{
++	return fuelgauge_write_reg(STATUS_BIT_REG, THERMISTOR_MODE, 0);
++}
++
++int fuelgauge_battery_profile(int param)
++{
++	return fuelgauge_write_reg(CHANGE_OF_THE_PARAMETER_REG, param?BATTERY_PROFILE_ONE:BATTERY_PROFILE_ZERO, 0);
++}
++
++int fuelgauge_init(void)
++{
++	struct udevice *dev;
++	u8 buf[4];
++	int ret;
++	int type;
++
++	ret = i2c_get_chip_for_busnum(5, 0xb, 1, &dev);
++	if (ret) {
++		printf("Cannot find fuelgauge LC 709203: %d\n", ret);
++		return ret;
++	}
++
++	/* Power on fuelgauge from standby */
++	fuelgauge_operational();
++
++	/* Thermistor mode: fuelgauge measures the attached resistor */
++	fuelgauge_thermistor_mode();
++
++	// param should be 1 for lc709203f and 0 for lc709203f
++	type = fuelguage_get_type();
++	printf("found %s\n",type?"LC709203":"LC709204");
++
++	/* Check if battery profile already is selected
++	* Every write to this register will recalibrate the fuelgauge,
++	* which we only want to do once */
++	ret = dm_i2c_read(dev, CHANGE_OF_THE_PARAMETER_REG, buf, 2);
++	if (ret == 0 && *(u16 *)buf != type)
++	{
++		/* Select battery profile */
++		fuelgauge_battery_profile(type);
++	}
++
++	if (ret == 0 && type == LC709204F)
++	{
++		/* Setup as LC709204 */
++		fuelgauge_write_reg(LC709204_APA, 0x002d, 0x002d);	  // set APA value 2d2d
++		fuelgauge_write_reg(LC709204_ChgTermCurr, 0x0003, 0); // set ChgTermCurr (taper current in 0.01C), 0.03C => 54mA with 1800mA battery
++		fuelgauge_write_reg(LC709204_Empty_Volt, 0x0000, 0);  // Empty Cell Voltage. 0 will disable ITE offset update.
++		fuelgauge_write_reg(LC709204_ITE_Offset, 0x0015, 0);  // set ITE Offset, will scale RSOC to reach 0% when 3.2V
++	}
++
++	return 0;
++}
+diff --git a/board/flir/ec401w/lc709203.h b/board/flir/ec401w/lc709203.h
+new file mode 100644
+index 0000000000..f9236f911d
+--- /dev/null
++++ b/board/flir/ec401w/lc709203.h
+@@ -0,0 +1,32 @@
++#include <dm.h>
++#include <i2c.h>
++
++#define FUELGAUGE_I2C_ADDR 0xb
++#define FUELGAUGE_I2C_BUS 5
++#define CHANGE_OF_THE_PARAMETER_REG 0x12
++#define BATTERY_PROFILE_ONE 0x01
++#define BATTERY_PROFILE_ZERO 0x00
++
++#define IC_POWER_MODE_REG 0x15
++#define STATUS_BIT_REG	0x16
++#define IC_VERSION 0x1a
++#define THERMISTOR_MODE 0x1
++#define OPERATIONAL_MODE 0x1
++#define FUELGAUGE_SLEEP_MODE 0x2
++
++#define LC709204_APA 0x0b
++#define LC709204_ChgTermCurr 0x1c
++#define LC709204_Empty_Volt 0x1d
++#define LC709204_ITE_Offset 0x1e
++
++#define LC709203F 1
++#define LC709204F 0
++
++int fuelgauge_init(void);
++
++int fuelgauge_sleep(void);
++int fuelgauge_operational(void);
++
++int fuelgauge_battery_profile_one(void);
++int fuelgauge_thermistor_mode(void);
++int fuelgauge_write_reg(uint reg, u8 lb, u8 hb);
+diff --git a/board/flir/ec401w/pf1550.c b/board/flir/ec401w/pf1550.c
+new file mode 100644
+index 0000000000..0a3f43ee7e
+--- /dev/null
++++ b/board/flir/ec401w/pf1550.c
+@@ -0,0 +1,205 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <i2c.h>
++#include <asm/arch/mx7ulp-pins.h>
++#include <asm/arch/iomux.h>
++#include <asm/gpio.h>
++#include "pf1550.h"
++
++
++
++#define PMIC_WDOG_GPIO	IMX_GPIO_NR(1, 14)
++
++static iomux_cfg_t const pmic_wdog_pad[] = {
++	MX7ULP_PAD_PTA14__PTA14 | MUX_PAD_CTRL(NO_PAD_CTRL),
++};
++
++
++
++int pf1550_write_reg(int reg, u8 val)
++{
++	struct udevice *dev;
++	int ret = i2c_get_chip_for_busnum(5, 0x8, 1, &dev);
++	if (ret) {
++		printf("Can not find pmic: %d\n", ret);
++		return ret;
++	}
++	return dm_i2c_write(dev, reg, &val, 1);
++}
++
++
++int pf1550_read_reg(int reg, u8* val)
++{
++	struct udevice *dev;
++	int ret = i2c_get_chip_for_busnum(5, 0x8, 1, &dev);
++	if (ret) {
++		printf("Can not find pmic: %d\n", ret);
++		return ret;
++	}
++	return dm_i2c_read(dev, reg, val, 1);
++}
++
++
++int get_usb_cable_state(void)
++{
++	u8 chg_int_ok=0;
++	pf1550_read_reg(PF1550_CHARG_REG_VBUS_SNS ,&chg_int_ok);
++
++	if(chg_int_ok & PF1550_VBUS_VALID )
++		return 1;
++
++	return 0;
++}
++
++
++int get_onoff_key(void)
++{
++	u8 onkey_int=0;
++	pf1550_read_reg(PF1550_PMIC_REG_ONKEY_INT_STAT0 ,&onkey_int);
++	pf1550_write_reg(PF1550_PMIC_REG_ONKEY_INT_STAT0, onkey_int);
++
++	if(onkey_int &  ONKEY_IRQ_PUSHI)
++		return 1;
++	return 0;
++}
++
++
++void pmic_goto_core_off(bool enable)
++{
++	struct udevice *dev;
++	u8 buf = enable?2:0;
++	//set go to core off mode
++	pf1550_write_reg(PF1550_PMIC_REG_PWRCTRL3, buf);
++}
++
++
++void power_off(void)
++{
++	printf("Powering off....\n");
++	//set go to core off mode
++	pmic_goto_core_off(true);
++	//set watchdog signal low
++	gpio_direction_output(PMIC_WDOG_GPIO, 0);
++
++	while(1)
++	{
++	}
++}
++
++void reboot(void)
++{
++	printf("Reboot....\n");
++	//set go to core off mode
++	pmic_goto_core_off(false);
++	//set watchdog signal low
++	gpio_direction_output(PMIC_WDOG_GPIO, 0);
++
++	while(1)
++	{
++	}
++}
++
++
++
++
++void init_pf1550_pmic(void)
++{
++	u8 curr_pwr_ctrl0;
++	u8 new_pwr_ctrl0;
++
++	//set Carger operation to charger=off, linear=on
++	pf1550_write_reg(PF1550_CHARG_REG_CHG_OPER, CHARGER_OFF_LINEAR_ON);
++	//set THM_CNFG=NO_THERMISTOR_CONTROL REGTEMP=95C THM_COLD=0C THM_HOT=55C TMP_FB_EN=1
++	pf1550_write_reg(PF1550_CHARG_REG_THM_REG_CNFG, 0xa4);
++	//set JEITA THM_WARM=50C THM_COOL=10C CV_ADJ=60mV CC_ADJ=25%
++	pf1550_write_reg(PF1550_CHARG_REG_THM_ADJ_SETTING, 0x03);
++	//set charger current to 1A PRECHGLB_THRS=2.8V
++	pf1550_write_reg(PF1550_CHARG_REG_CHG_CURR_CNFG, 0x12);
++
++	//set time to press off button before triggering a PMIC reset
++	pf1550_read_reg(PF1550_PMIC_REG_PWRCTRL0, &curr_pwr_ctrl0);
++	new_pwr_ctrl0 = (curr_pwr_ctrl0 & ~PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK) | PF1550_PMIC_REG_PWRCTRL0_TGRESET_4S;
++	pf1550_write_reg(PF1550_PMIC_REG_PWRCTRL0, new_pwr_ctrl0);
++
++	mx7ulp_iomux_setup_multiple_pads(pmic_wdog_pad, ARRAY_SIZE(pmic_wdog_pad));
++	gpio_request(PMIC_WDOG_GPIO, "pmic_wdog");
++}
++
++
++void pf1550_thm_ok_toogle_charging(void)
++{
++	u8 chg_int_ok;
++	static u8 chg_oper = 0;
++	u8 chg_oper_reg;
++	u8 thm_ok;
++	u8 vbus_ok;
++	int res = 0;
++
++	res = pf1550_read_reg(PF1550_CHARG_REG_CHG_INT_OK, &chg_int_ok);
++	if (res)
++		return;
++
++	vbus_ok = chg_int_ok & PF1550_CHG_INT_OK_VBUS_OK;
++	thm_ok = chg_int_ok & PF1550_CHG_INT_OK_THM_OK;
++	vbus_ok >>= PF1550_CHG_INT_OK_VBUS_OK_SHIFT;
++	thm_ok >>= PF1550_CHG_INT_OK_THM_OK_SHIFT;
++
++	if (thm_ok && vbus_ok)
++	{
++		/* Inside THM range and VBUS is OK, enable charging. */
++		if (chg_oper != CHARGER_ON_LINEAR_ON) {
++			printf("Enable charging (THM_OK: %d, VBUS_OK: %d).\n", thm_ok, vbus_ok);
++			chg_oper = CHARGER_ON_LINEAR_ON;
++		}
++	}
++	else
++	{
++		/* Outside of THM range or VBUS is not OK, disable charging. */
++		if (chg_oper != CHARGER_OFF_LINEAR_ON) {
++			printf("Disable charging (THM_OK: %d, VBUS_OK: %d).\n", thm_ok, vbus_ok);
++			chg_oper = CHARGER_OFF_LINEAR_ON;
++		}
++	}
++
++	/* Apply charge operation mode if needed */
++	res = pf1550_read_reg(PF1550_CHARG_REG_CHG_OPER, &chg_oper_reg);
++	if (res)
++		return;
++
++	if ((chg_oper_reg & PF1550_CHARG_REG_CHG_OPER_CHG_OPER_MASK) != chg_oper)
++	{
++		chg_oper_reg = (chg_oper_reg & ~PF1550_CHARG_REG_CHG_OPER_CHG_OPER_MASK) | chg_oper;
++		pf1550_write_reg(PF1550_CHARG_REG_CHG_OPER, chg_oper_reg);
++	}
++}
++
++
++void set_charging_current(int mA)
++{
++	u8 ilim = _10ma << VBUS_LIN_ILIM_SHIFT;
++
++	if(mA >= 1500)
++		ilim = _1500ma << VBUS_LIN_ILIM_SHIFT;
++	else if(mA >= 1000)
++		ilim = _1000ma << VBUS_LIN_ILIM_SHIFT;
++	else if(mA >= 500)
++		ilim = _500ma  << VBUS_LIN_ILIM_SHIFT;
++	else if(mA >= 100)
++		ilim = _100ma << VBUS_LIN_ILIM_SHIFT;
++	else 
++		ilim = _10ma << VBUS_LIN_ILIM_SHIFT;
++
++	pf1550_write_reg(PF1550_CHARG_REG_VBUS_INLIM_CNFG, ilim);
++
++	// turn on charging if within allowed thermal range
++	pf1550_thm_ok_toogle_charging();
++}
++
+diff --git a/board/flir/ec401w/pf1550.h b/board/flir/ec401w/pf1550.h
+new file mode 100644
+index 0000000000..ead2aed38d
+--- /dev/null
++++ b/board/flir/ec401w/pf1550.h
+@@ -0,0 +1,296 @@
++/*
++ * pf1550.h - mfd head file for PF1550
++ *
++ * Copyright (C) 2016 Freescale Semiconductor, Inc.
++ * Robin Gong <yibin.gong@freescale.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef __LINUX_MFD_PF1550_H
++#define __LINUX_MFD_PF1550_H
++
++
++enum pf1550_pmic_reg {
++	/* PMIC regulator part */
++	PF1550_PMIC_REG_DEVICE_ID		= 0x00,
++	PF1550_PMIC_REG_OTP_FLAVOR		= 0x01,
++	PF1550_PMIC_REG_SILICON_REV		= 0x02,
++
++	PF1550_PMIC_REG_INT_CATEGORY		= 0x06,
++	PF1550_PMIC_REG_SW_INT_STAT0		= 0x08,
++	PF1550_PMIC_REG_SW_INT_MASK0		= 0x09,
++	PF1550_PMIC_REG_SW_INT_SENSE0		= 0x0A,
++	PF1550_PMIC_REG_SW_INT_STAT1		= 0x0B,
++	PF1550_PMIC_REG_SW_INT_MASK1		= 0x0C,
++	PF1550_PMIC_REG_SW_INT_SENSE1		= 0x0D,
++	PF1550_PMIC_REG_SW_INT_STAT2		= 0x0E,
++	PF1550_PMIC_REG_SW_INT_MASK2		= 0x0F,
++	PF1550_PMIC_REG_SW_INT_SENSE2		= 0x10,
++	PF1550_PMIC_REG_LDO_INT_STAT0		= 0x18,
++	PF1550_PMIC_REG_LDO_INT_MASK0		= 0x19,
++	PF1550_PMIC_REG_LDO_INT_SENSE0		= 0x1A,
++	PF1550_PMIC_REG_TEMP_INT_STAT0		= 0x20,
++	PF1550_PMIC_REG_TEMP_INT_MASK0		= 0x21,
++	PF1550_PMIC_REG_TEMP_INT_SENSE0		= 0x22,
++	PF1550_PMIC_REG_ONKEY_INT_STAT0		= 0x24,
++	PF1550_PMIC_REG_ONKEY_INT_MASK0		= 0x25,
++	PF1550_PMIC_REG_ONKEY_INT_SENSE0	= 0x26,
++	PF1550_PMIC_REG_MISC_INT_STAT0		= 0x28,
++	PF1550_PMIC_REG_MISC_INT_MASK0		= 0x29,
++	PF1550_PMIC_REG_MISC_INT_SENSE0		= 0x2A,
++
++	PF1550_PMIC_REG_COINCELL_CONTROL	= 0x30,
++
++	PF1550_PMIC_REG_SW1_VOLT		= 0x32,
++	PF1550_PMIC_REG_SW1_STBY_VOLT		= 0x33,
++	PF1550_PMIC_REG_SW1_SLP_VOLT		= 0x34,
++	PF1550_PMIC_REG_SW1_CTRL		= 0x35,
++	PF1550_PMIC_REG_SW1_CTRL1		= 0x36,
++	PF1550_PMIC_REG_SW2_VOLT		= 0x38,
++	PF1550_PMIC_REG_SW2_STBY_VOLT		= 0x39,
++	PF1550_PMIC_REG_SW2_SLP_VOLT		= 0x3A,
++	PF1550_PMIC_REG_SW2_CTRL		= 0x3B,
++	PF1550_PMIC_REG_SW2_CTRL1		= 0x3C,
++	PF1550_PMIC_REG_SW3_VOLT		= 0x3E,
++	PF1550_PMIC_REG_SW3_STBY_VOLT		= 0x3F,
++	PF1550_PMIC_REG_SW3_SLP_VOLT		= 0x40,
++	PF1550_PMIC_REG_SW3_CTRL		= 0x41,
++	PF1550_PMIC_REG_SW3_CTRL1		= 0x42,
++	PF1550_PMIC_REG_VSNVS_CTRL		= 0x48,
++	PF1550_PMIC_REG_VREFDDR_CTRL		= 0x4A,
++	PF1550_PMIC_REG_LDO1_VOLT		= 0x4C,
++	PF1550_PMIC_REG_LDO1_CTRL		= 0x4D,
++	PF1550_PMIC_REG_LDO2_VOLT		= 0x4F,
++	PF1550_PMIC_REG_LDO2_CTRL		= 0x50,
++	PF1550_PMIC_REG_LDO3_VOLT		= 0x52,
++	PF1550_PMIC_REG_LDO3_CTRL		= 0x53,
++	PF1550_PMIC_REG_PWRCTRL0		= 0x58,
++	PF1550_PMIC_REG_PWRCTRL1		= 0x59,
++	PF1550_PMIC_REG_PWRCTRL2		= 0x5A,
++	PF1550_PMIC_REG_PWRCTRL3		= 0x5B,
++	PF1550_PMIC_REG_SW1_PWRDN_SEQ		= 0x5F,
++	PF1550_PMIC_REG_SW2_PWRDN_SEQ		= 0x60,
++	PF1550_PMIC_REG_SW3_PWRDN_SEQ		= 0x61,
++	PF1550_PMIC_REG_LDO1_PWRDN_SEQ		= 0x62,
++	PF1550_PMIC_REG_LDO2_PWRDN_SEQ		= 0x63,
++	PF1550_PMIC_REG_LDO3_PWRDN_SEQ		= 0x64,
++	PF1550_PMIC_REG_VREFDDR_PWRDN_SEQ	= 0x65,
++
++	PF1550_PMIC_REG_STATE_INFO		= 0x67,
++	PF1550_PMIC_REG_I2C_ADDR		= 0x68,
++	PF1550_PMIC_REG_IO_DRV0			= 0x69,
++	PF1550_PMIC_REG_IO_DRV1			= 0x6A,
++	PF1550_PMIC_REG_RC_16MHZ		= 0x6B,
++	PF1550_PMIC_REG_KEY			= 0x6F,
++
++	/* charger part */
++	PF1550_CHARG_REG_CHG_INT		= 0x80,
++	PF1550_CHARG_REG_CHG_INT_MASK		= 0x82,
++	PF1550_CHARG_REG_CHG_INT_OK		= 0x84,
++	PF1550_CHARG_REG_VBUS_SNS		= 0x86,
++	PF1550_CHARG_REG_CHG_SNS		= 0x87,
++	PF1550_CHARG_REG_BATT_SNS		= 0x88,
++	PF1550_CHARG_REG_CHG_OPER		= 0x89,
++	PF1550_CHARG_REG_CHG_TMR		= 0x8A,
++	PF1550_CHARG_REG_CHG_EOC_CNFG		= 0x8D,
++	PF1550_CHARG_REG_CHG_CURR_CNFG		= 0x8E,
++	PF1550_CHARG_REG_BATT_REG		= 0x8F,
++	PF1550_CHARG_REG_BATFET_CNFG		= 0x91,
++	PF1550_CHARG_REG_THM_REG_CNFG		= 0x92,
++	PF1550_CHARG_REG_VBUS_INLIM_CNFG	= 0x94,
++	PF1550_CHARG_REG_VBUS_LIN_DPM		= 0x95,
++	PF1550_CHARG_REG_USB_PHY_LDO_CNFG	= 0x96,
++	PF1550_CHARG_REG_DBNC_DELAY_TIME	= 0x98,
++	PF1550_CHARG_REG_CHG_INT_CNFG		= 0x99,
++	PF1550_CHARG_REG_THM_ADJ_SETTING	= 0x9A,
++	PF1550_CHARG_REG_VBUS2SYS_CNFG		= 0x9B,
++	PF1550_CHARG_REG_LED_PWM		= 0x9C,
++	PF1550_CHARG_REG_FAULT_BATFET_CNFG	= 0x9D,
++	PF1550_CHARG_REG_LED_CNFG		= 0x9E,
++	PF1550_CHARG_REG_CHGR_KEY2		= 0x9F,
++
++	PF1550_TEST_REG_FMRADDR			= 0xC4,
++	PF1550_TEST_REG_FMRDATA			= 0xC5,
++	PF1550_TEST_REG_KEY3			= 0xDF,
++
++	PF1550_PMIC_REG_END			= 0xff,
++};
++
++#define PF1550_CHG_PRECHARGE		0
++#define PF1550_CHG_CONSTANT_CURRENT	1
++#define PF1550_CHG_CONSTANT_VOL		2
++#define PF1550_CHG_EOC			3
++#define PF1550_CHG_DONE			4
++#define PF1550_CHG_TIMER_FAULT		6
++#define PF1550_CHG_SUSPEND		7
++#define PF1550_CHG_OFF_INV		8
++#define PF1550_CHG_BAT_OVER		9
++#define PF1550_CHG_OFF_TEMP		10
++#define PF1550_CHG_LINEAR_ONLY		12
++#define PF1550_CHG_SNS_MASK		0xf
++
++#define PF1550_BAT_NO_VBUS		0
++#define PF1550_BAT_LOW_THAN_PRECHARG	1
++#define PF1550_BAT_CHARG_FAIL		2
++#define PF1550_BAT_HIGH_THAN_PRECHARG	4
++#define PF1550_BAT_OVER_VOL		5
++#define	PF1550_BAT_NO_DETECT		6
++#define PF1550_BAT_SNS_MASK		0x7
++
++#define PF1550_VBUS_UVLO		BIT(2)
++#define PF1550_VBUS_IN2SYS		BIT(3)
++#define PF1550_VBUS_OVLO		BIT(4)
++#define PF1550_VBUS_VALID		BIT(5)
++
++#define PF1550_CHG_INT_OK_VBUS_OK BIT(5)
++#define PF1550_CHG_INT_OK_THM_OK  BIT(7)
++#define PF1550_CHG_INT_OK_VBUS_OK_SHIFT 5
++#define PF1550_CHG_INT_OK_THM_OK_SHIFT  7
++
++#define PF1550_CHARG_REG_BATT_REG_CHGCV_MASK		0x3f
++#define PF1550_CHARG_REG_BATT_REG_VMINSYS_SHIFT		6
++#define PF1550_CHARG_REG_BATT_REG_VMINSYS_MASK		(0x3 << 6)
++#define PF1550_CHARG_REG_THM_REG_CNFG_REGTEMP_SHIFT	2
++#define PF1550_CHARG_REG_THM_REG_CNFG_REGTEMP_MASK	(0x3 << 2)
++
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK		(0x3 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_4S 		(0x0 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_8S 		(0x1 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_12S		(0x2 << 6)
++#define PF1550_PMIC_REG_PWRCTRL0_TGRESET_16S		(0x3 << 6)
++
++#define PF1550_CHARG_REG_CHG_OPER_CHG_OPER_MASK 0x3
++
++enum pf1550_chg_oper{
++	CHARGER_OFF_LINEAR_OFF = 0,
++	CHARGER_OFF_LINEAR_ON  = 1,
++	CHARGER_ON_LINEAR_ON   = 2
++};
++
++#define PMIC_IRQ_SW1_LS		BIT(0)
++#define PMIC_IRQ_SW2_LS		BIT(1)
++#define PMIC_IRQ_SW3_LS		BIT(2)
++#define PMIC_IRQ_SW1_HS		BIT(0)
++#define PMIC_IRQ_SW2_HS		BIT(1)
++#define PMIC_IRQ_SW3_HS		BIT(2)
++#define PMIC_IRQ_LDO1_FAULT	BIT(0)
++#define PMIC_IRQ_LDO2_FAULT	BIT(1)
++#define PMIC_IRQ_LDO3_FAULT	BIT(2)
++#define PMIC_IRQ_TEMP_110	BIT(0)
++#define PMIC_IRQ_TEMP_125	BIT(1)
++
++#define ONKEY_IRQ_PUSHI		BIT(0)
++#define ONKEY_IRQ_1SI		BIT(1)
++#define ONKEY_IRQ_2SI		BIT(2)
++#define ONKEY_IRQ_3SI		BIT(3)
++#define ONKEY_IRQ_4SI		BIT(4)
++#define ONKEY_IRQ_8SI		BIT(5)
++
++#define CHARG_IRQ_BAT2SOCI	BIT(1)
++#define CHARG_IRQ_BATI		BIT(2)
++#define CHARG_IRQ_CHGI		BIT(3)
++#define CHARG_IRQ_VBUSI		BIT(5)
++#define CHARG_IRQ_DPMI		BIT(6)
++#define CHARG_IRQ_THMI		BIT(7)
++
++#define VBUS_LIN_ILIM_SHIFT 3
++
++enum pf1550_pmic_irq {
++	PF1550_PMIC_IRQ_SW1_LS,
++	PF1550_PMIC_IRQ_SW2_LS,
++	PF1550_PMIC_IRQ_SW3_LS,
++	PF1550_PMIC_IRQ_SW1_HS,
++	PF1550_PMIC_IRQ_SW2_HS,
++	PF1550_PMIC_IRQ_SW3_HS,
++	PF1550_PMIC_IRQ_LDO1_FAULT,
++	PF1550_PMIC_IRQ_LDO2_FAULT,
++	PF1550_PMIC_IRQ_LDO3_FAULT,
++	PF1550_PMIC_IRQ_TEMP_110,
++	PF1550_PMIC_IRQ_TEMP_125,
++};
++
++enum pf1550_onkey_irq {
++	PF1550_ONKEY_IRQ_PUSHI,
++	PF1550_ONKEY_IRQ_1SI,
++	PF1550_ONKEY_IRQ_2SI,
++	PF1550_ONKEY_IRQ_3SI,
++	PF1550_ONKEY_IRQ_4SI,
++	PF1550_ONKEY_IRQ_8SI,
++};
++
++enum pf1550_charg_irq {
++	PF1550_CHARG_IRQ_BAT2SOCI,
++	PF1550_CHARG_IRQ_BATI,
++	PF1550_CHARG_IRQ_CHGI,
++	PF1550_CHARG_IRQ_VBUSI,
++	PF1550_CHARG_IRQ_THMI,
++};
++
++enum pf1550_regulators {
++	PF1550_SW1,
++	PF1550_SW2,
++	PF1550_SW3,
++	PF1550_VREFDDR,
++	PF1550_LDO1,
++	PF1550_LDO2,
++	PF1550_LDO3,
++};
++
++
++
++enum pf1550_ilim {
++	_10ma = 0,
++	_15ma = 1,
++	_20ma = 2,
++	_25ma = 3,
++	_30ma = 4,
++	_35ma = 5,
++	_40ma = 6,
++	_45ma = 7,
++	_50ma = 8,
++	_100ma = 9,
++	_150ma = 10,
++	_200ma = 11,
++	_300ma = 12,
++	_400ma = 13,
++	_500ma = 14,
++	_600ma = 15,
++	_700ma = 16,
++	_800ma = 17,
++	_900ma = 18,
++	_1000ma = 19,
++	_1500ma = 20,
++};
++
++
++void init_pf1550_pmic(void);
++
++void pf1550_thm_ok_toogle_charging(void);
++
++void set_charging_current(int mA);
++
++int pf1550_write_reg(int reg, u8 val);
++
++int pf1550_read_reg(int reg, u8* val);
++
++int get_usb_cable_state(void);
++
++int get_onoff_key(void);
++
++void power_off();
++
++void reboot(void);
++
++
++
++
++#endif /* __LINUX_MFD_PF1550_H */
+diff --git a/board/flir/ec401w/usbdcd.c b/board/flir/ec401w/usbdcd.c
+new file mode 100644
+index 0000000000..2069fd7754
+--- /dev/null
++++ b/board/flir/ec401w/usbdcd.c
+@@ -0,0 +1,215 @@
++#include <usbdcd.h>
++
++#define usbdcd_clear_interrupt_field() writel(readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_IACK, USB_DCD_CONTROL)
++#define usbdcd_control_if(reg) ((reg) & USB_DCD_CONTROL_IF)
++#define usbdcd_get_sequence_result(reg) (((reg) & USB_DCD_STATUS_SEQ_RES) >> USB_DCD_STATUS_SEQ_RES_SHIFT)
++#define usbdcd_get_sequence_status(reg) (((reg) & USB_DCD_STATUS_SEQ_STAT) >> USB_DCD_STATUS_SEQ_STAT_SHIFT)
++#define usbdcd_get_tunitcon() readl(USB_DCD_TIMER0) & USB_DCD_TUNITCON
++#define usbdcd_set_signal_override_vdp() writel((readl(USB_DCD_SIGNAL_OVERRIDE) | USB_DCD_SIGNAL_OVERRIDE_PS_VDP_SRC), USB_DCD_SIGNAL_OVERRIDE)
++#define usbdcd_software_reset() writel(readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_SR, USB_DCD_CONTROL)
++#define usbdcd_status_active(reg) ((reg) & USB_DCD_STATUS_ACTIVE)
++#define usbdcd_status_err(reg) ((reg) & USB_DCD_STATUS_ERR)
++#define usbdcd_status_to(reg) ((reg) & USB_DCD_STATUS_TO)
++#define usbdcd_tdcd_dbnc() (readl(USB_DCD_TIMER1) & USB_DCD_TDCD_DBNC) >> USB_DCD_TDCD_DBNC_SHIFT
++
++#define usbdcd_print(str, ...) do {			\
++		printf("USB DCD [%d]: "str, usbdcd_get_tunitcon(), ##__VA_ARGS__); \
++	} while(0)
++
++int usbdcd_get_charge_current_mA(int *charge_current_mA)
++{
++	u32 status_reg;
++
++	if(!get_usb_cable_state())
++		return 0;
++
++	usbdcd_start_charger_detection_sequence();
++
++	status_reg = usbdcd_data_pin_contact_detect();
++	if(usbdcd_status_to(status_reg))
++		return usbdcd_handle_timeout(charge_current_mA);
++
++	status_reg = usbdcd_charger_port();
++	if(usbdcd_status_to(status_reg))
++		return usbdcd_handle_timeout(charge_current_mA);
++	else if(usbdcd_status_err(status_reg))
++		return usbdcd_handle_error(charge_current_mA);
++
++	status_reg = usbdcd_charger_type();
++	if(usbdcd_status_to(status_reg))
++		return usbdcd_handle_timeout(charge_current_mA);
++
++	switch(usbdcd_get_sequence_result(status_reg)){
++	case SEQ_DCP:
++		usbdcd_print("Dedicated Charger Port detected\n");
++
++                /* V_DP_SRC needs to be enabled if DCP according to BC
++		 * 1.2 */
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 1500;
++		break;
++	case SEQ_CDP_DCP:
++		usbdcd_print("Charging Downstream Port detected\n");
++
++		/* Unknown why we need to set D+ high in this case. If
++		 * not, the upstream port will after a moment stop
++		 * supplying current. */
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 1500;
++		break;
++	case SEQ_SDP:
++		usbdcd_print("Standard Downstream Port detected\n");
++
++		/* Set D+ to HIGH. According to BC 1.2 we are not allowed to
++		 * draw more than 2.5mA if we have not reached configured (or
++		 * enumerated) and the upstream port is an SDP. We will never
++		 * reach configured if camera is off but charging. To be able
++		 * to draw more current we need to fulfill the requirements
++		 * for Dead Battery Provision and one of these requirements is
++		 * to set D+ to high.*/
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 500;
++		break;
++	default:
++		usbdcd_print("Unknown charging port detected, sequence result: x%x\n",
++			usbdcd_get_sequence_result(status_reg));
++		usbdcd_set_signal_override_vdp();
++		*charge_current_mA = 500;
++		break;
++	}
++
++	usbdcd_software_reset();
++	return 0;
++}
++
++int usbdcd_start_charger_detection_sequence(void)
++{
++
++	/* Set data pin contact debounce timer. */
++	usbdcd_set_tdcd_dbnc(50);
++
++	/* Disable pulldown resistors on USB_DP and USB_DM. IF the
++	 * pulldown resistors are enabled the data pins are held low
++	 * which interferes with the Data Pin Contact Detection. */
++	writel(readl(USBPHY_ANACTRL) & ~USBPHY_ANACTRL_DEV_PULLDOWN, USBPHY_ANACTRL);
++
++	usbdcd_software_reset();
++
++	/* Disable interrupts. */
++	writel((readl(USB_DCD_CONTROL) & ~USB_DCD_CONTROL_IE),
++		USB_DCD_CONTROL);
++
++	usbdcd_clear_interrupt_field();
++
++	/* Set Usb Battery Charging revision. */
++	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_BC12),
++		USB_DCD_CONTROL);
++
++	/* Start charger detection sequence */
++	writel((readl(USB_DCD_CONTROL) | USB_DCD_CONTROL_START),
++		USB_DCD_CONTROL);
++
++	return 0;
++}
++
++void usbdcd_set_tdcd_dbnc(u32 val)
++{
++	u32 curr;
++	curr = readl(USB_DCD_TIMER1) & ~USB_DCD_TDCD_DBNC;
++	val = (val << USB_DCD_TDCD_DBNC_SHIFT) & USB_DCD_TDCD_DBNC;
++	writel(curr | val, USB_DCD_TIMER1);
++}
++
++int usbdcd_handle_timeout(int *charge_current_mA)
++{
++	usbdcd_print("Failed to detect data pin connection: Timeout reached\n");
++	usbdcd_software_reset();
++	usbdcd_set_signal_override_vdp();
++	*charge_current_mA = 500;
++
++	return USB_DCD_TIMEOUT;
++}
++
++int usbdcd_handle_error(int *charge_current_mA)
++{
++	printf("Failed to complete charger detection sequence: Error occured\n");
++	usbdcd_software_reset();
++	usbdcd_set_signal_override_vdp();
++	*charge_current_mA = 500;
++
++	return USB_DCD_ERROR;
++}
++
++/*
++ * DETECT CHARGER TYPE
++ *
++ * Possible reasons for exiting while loop:
++ * - Charger reaches sequence completion (not active)
++ * - USBDCD module determines the type of the charger (interrupt).
++ * - Timeout
++ *
++ * Notice that no errors are generated by the module at this
++ * stage.
++ */
++u32 usbdcd_charger_type(void)
++{
++	u32 status_reg, control_reg;
++
++	status_reg = readl(USB_DCD_STATUS);
++	control_reg = readl(USB_DCD_CONTROL);
++
++	while(!usbdcd_control_if(control_reg) &&
++		!usbdcd_status_to(status_reg) &&
++		usbdcd_status_active(status_reg)){
++
++		status_reg = readl(USB_DCD_STATUS);
++		control_reg = readl(USB_DCD_CONTROL);
++		mdelay(1);
++	}
++	usbdcd_clear_interrupt_field();
++
++	return status_reg;
++}
++
++/*
++ * CHARGING PORT DETECTION
++ *
++ * Possible reasons for exiting loop:
++ * - Charger reaches sequence completion (not active)
++ * - USBDCD module determines that port is charger or not (interrupt).
++ * - Timeout
++ * - Error
++ */
++u32 usbdcd_charger_port(void)
++{
++	u32 status_reg, control_reg;
++
++	status_reg = readl(USB_DCD_STATUS);
++	control_reg = readl(USB_DCD_CONTROL);
++
++	while(!usbdcd_control_if(control_reg) &&
++		!usbdcd_status_to(status_reg) &&
++		!usbdcd_status_err(status_reg) &&
++		usbdcd_status_active(status_reg)){
++
++		status_reg = readl(USB_DCD_STATUS);
++		control_reg = readl(USB_DCD_CONTROL);
++		mdelay(1);
++	}
++	usbdcd_clear_interrupt_field();
++
++	return status_reg;
++}
++
++u32 usbdcd_data_pin_contact_detect(void)
++{
++	u32 status_reg;
++
++	status_reg = readl(USB_DCD_STATUS);
++	while(!usbdcd_status_to(status_reg) && usbdcd_get_sequence_status(status_reg) == STAT_DISABLED){
++		status_reg = readl(USB_DCD_STATUS);
++		mdelay(1);
++	}
++
++	return status_reg;
++}
+diff --git a/board/flir/ec401w/usbdcd.h b/board/flir/ec401w/usbdcd.h
+new file mode 100644
+index 0000000000..1c8265e6c1
+--- /dev/null
++++ b/board/flir/ec401w/usbdcd.h
+@@ -0,0 +1,64 @@
++#include <asm/io.h>
++#include <usb.h>
++#include "pf1550.h"
++
++#define USBPHY_ANACTRL                               (USB_PHY0_BASE_ADDR + 0x100)
++#define USBPHY_ANACTRL_DEV_PULLDOWN                  (1 << 10)
++
++#define USBPHY_USB1_CHRG_DET_STAT                    (USB_PHY0_BASE_ADDR + 0xF0)
++#define USBPHY_USB1_CHRG_DET_STAT_PLUG_CONTACT_MASK  (1 << 0)
++#define USBPHY_USB1_CHRG_DET_STAT_CHRG_DETECTED_MASK (1 << 1)
++#define USBPHY_USB1_CHRG_DET_STAT_DM_STATE_MASK      (1 << 2)
++#define USBPHY_USB1_CHRG_DET_STAT_DP_STATE_MASK      (1 << 3)
++#define USBPHY_USB1_CHRG_DET_STAT_SECDET_DCP_MASK    (1 << 4)
++
++#define USB_DCD                                      (USB_PHY0_BASE_ADDR + 0x800)
++#define USB_DCD_CONTROL                              (USB_DCD + 0x0)
++#define USB_DCD_CONTROL_SR                           (1<<25)
++#define USB_DCD_CONTROL_START                        (1<<24)
++#define USB_DCD_CONTROL_BC12                         (1<<17)
++#define USB_DCD_CONTROL_IE                           (1<<16)
++#define USB_DCD_CONTROL_IACK                         (1)
++#define USB_DCD_CONTROL_IF                           (1<<8)
++#define USB_DCD_STATUS                               (USB_DCD + 0x8)
++#define USB_DCD_STATUS_ACTIVE                        (1<<22)
++#define USB_DCD_STATUS_TO                            (1<<21)
++#define USB_DCD_STATUS_ERR                           (1<<20)
++#define USB_DCD_STATUS_SEQ_STAT                      (0x000C0000)
++#define USB_DCD_STATUS_SEQ_RES                       (0x00030000)
++#define USB_DCD_STATUS_SEQ_STAT_SHIFT                (18)
++#define USB_DCD_STATUS_SEQ_RES_SHIFT                 (16)
++#define USB_DCD_SIGNAL_OVERRIDE                      (USB_DCD + 0xC)
++#define USB_DCD_SIGNAL_OVERRIDE_PS_VDP_SRC           (0x2)
++#define USB_DCD_TIMER0                               (USB_DCD + 0x10)
++#define USB_DCD_TIMER1                               (USB_DCD + 0x14)
++#define USB_DCD_TDCD_DBNC                            (0x3FF0000)
++#define USB_DCD_TDCD_DBNC_SHIFT                      (16)
++#define USB_DCD_TUNITCON                             (0xFFF)
++
++enum {
++	SEQ_NO_RESULT=0,
++	SEQ_SDP=1,		/* Standard Downstream Port */
++	SEQ_CDP_DCP=2,		/* Charging Downstream Port or Dedicated Charging Port */
++	SEQ_DCP=3,		/* Dedicated Charging Port */
++};
++
++enum {
++	STAT_DISABLED=0,
++	STAT_DATA_PIN=1,
++	STAT_CHARGING=2,
++	STAT_CHARGER_TYPE=3,
++};
++
++enum {
++	USB_DCD_ERROR=-2,
++	USB_DCD_TIMEOUT=-1,
++};
++
++int usbdcd_get_charge_current_mA(int *charge_current_mA);
++void usbdcd_set_tdcd_dbnc(u32 val);
++u32 usbdcd_charger_port(void);
++u32 usbdcd_data_pin_contact_detect(void);
++u32 usbdcd_charger_type(void);
++int usbdcd_handle_error(int *charge_current_mA);
++int usbdcd_handle_timeout(int *charge_current_mA);
+diff --git a/configs/mx7ulp_ec401w_defconfig b/configs/mx7ulp_ec401w_defconfig
+new file mode 100644
+index 0000000000..2e4ad21351
+--- /dev/null
++++ b/configs/mx7ulp_ec401w_defconfig
+@@ -0,0 +1,77 @@
++CONFIG_ARM=y
++CONFIG_ARCH_MX7ULP=y
++CONFIG_SYS_TEXT_BASE=0x67800000
++# CONFIG_AUTOBOOT is not set
++CONFIG_TARGET_MX7ULP_EC401W=y
++CONFIG_DEFAULT_FDT_FILE="imx7ulp-ec401w.dtb"
++CONFIG_DEFAULT_DEVICE_TREE="imx7ulp-ec401w"
++CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/flir/ec401w/imximage.cfg"
++CONFIG_BOARD_EARLY_INIT_F=y
++CONFIG_HUSH_PARSER=y
++CONFIG_CMD_BOOTZ=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_FAT=y
++CONFIG_CMD_PING=y
++CONFIG_CMD_DHCP=y
++CONFIG_OF_CONTROL=y
++CONFIG_ENV_IS_IN_MMC=y
++CONFIG_DM=y
++CONFIG_DM_GPIO=y
++CONFIG_IMX_RGPIO2P=y
++# CONFIG_MXC_GPIO is not set
++CONFIG_DM_I2C=y
++CONFIG_DM_MMC=y
++CONFIG_SYS_I2C_IMX_LPI2C=y
++CONFIG_PINCTRL=y
++CONFIG_PINCTRL_IMX7ULP=y
++CONFIG_DM_REGULATOR=y
++CONFIG_DM_REGULATOR_FIXED=y
++CONFIG_DM_REGULATOR_GPIO=y
++CONFIG_DM_SERIAL=y
++CONFIG_FSL_LPUART=y
++# CONFIG_CMD_SF=y
++# CONFIG_FSL_QSPI=y
++# CONFIG_DM_SPI=y
++# CONFIG_DM_SPI_FLASH=y
++# CONFIG_SPI_FLASH=y
++# CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_ULP_WATCHDOG=y
++# CONFIG_CMD_USB=y
++# CONFIG_USB=y
++# CONFIG_DM_USB=y
++# CONFIG_USB_EHCI_HCD=y
++# CONFIG_MXC_USB_OTG_HACTIVE=y
++# CONFIG_USB_STORAGE=y
++# CONFIG_USB_HOST_ETHER=y
++# CONFIG_USB_ETHER_ASIX=y
++# CONFIG_USB_ETHER_RTL8152=y
++# CONFIG_VIDEO=y
++#
++# CONFIG_IMX_NORTHWEST_MIPI_DSI=y
++# CONFIG_USB_FUNCTION_FASTBOOT=y
++# CONFIG_USB_GADGET=y
++# CONFIG_USB_GADGET_DOWNLOAD=y
++# CONFIG_USB_GADGET_MANUFACTURER="FSL"
++# CONFIG_USB_GADGET_VENDOR_NUM=0x0525
++# CONFIG_USB_GADGET_PRODUCT_NUM=0xa4a5
++# CONFIG_CI_UDC=y
++# CONFIG_FSL_FASTBOOT=y
++# CONFIG_FASTBOOT=y
++# CONFIG_FASTBOOT_BUF_ADDR=0x60800000
++# CONFIG_FASTBOOT_BUF_SIZE=0x20000000
++# CONFIG_FASTBOOT_FLASH=y
++# CONFIG_FASTBOOT_FLASH_MMC_DEV=1
++# CONFIG_EFI_PARTITION=y
++# CONFIG_CMD_READ=y
++CONFIG_IMX_BOOTAUX=y
++CONFIG_DOS_PARTITION=y
++CONFIG_CMD_EXT4=y
++CONFIG_CMD_GPT=y
++CONFIG_EFI_PARTITION=y
++CONFIG_AUTOBOOT=y
++CONFIG_BOOTDELAY=0
++
++CONFIG_AUTO_COMPLETE=y
++CONFIG_CMDLINE_EDITING=y
+\ No newline at end of file
+diff --git a/include/configs/ec401w.h b/include/configs/ec401w.h
+new file mode 100644
+index 0000000000..948035e215
+--- /dev/null
++++ b/include/configs/ec401w.h
+@@ -0,0 +1,414 @@
++/*
++ * Copyright 2018 FLIR
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __MX7ULP_EC201_CONFIG_H
++#define __MX7ULP_EC201_CONFIG_H
++
++#include <linux/sizes.h>
++#include <asm/arch/imx-regs.h>
++
++
++#define CONFIG_BOARD_POSTCLK_INIT
++#define CONFIG_SYS_BOOTM_LEN		0x1000000
++
++#define SRC_BASE_ADDR			CMC1_RBASE
++#define IRAM_BASE_ADDR			OCRAM_0_BASE
++#define IOMUXC_BASE_ADDR		IOMUXC1_RBASE
++
++/* Fuses */
++#define CONFIG_CMD_FUSE
++#define CONFIG_MXC_OCOTP
++
++#define CONFIG_BOUNCE_BUFFER
++#define CONFIG_FSL_ESDHC
++#define CONFIG_FSL_USDHC
++#define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
++
++#define CONFIG_SYS_FSL_USDHC_NUM        1
++#define CONFIG_SYS_FSL_ESDHC_ADDR       0
++
++
++/* Using ULP WDOG for reset */
++#define WDOG_BASE_ADDR			WDG1_RBASE
++
++#define CONFIG_SYS_ARCH_TIMER
++#define CONFIG_SYS_HZ_CLOCK		1000000 /* Fixed at 1Mhz from TSTMR */
++
++#define CONFIG_INITRD_TAG
++#define CONFIG_CMDLINE_TAG
++#define CONFIG_SETUP_MEMORY_TAGS
++/*#define CONFIG_REVISION_TAG*/
++
++/* Size of malloc() pool */
++#define CONFIG_SYS_MALLOC_LEN		(8 * SZ_1M)
++
++/* UART */
++#define LPUART_BASE			LPUART4_RBASE
++
++/* allow to overwrite serial and ethaddr */
++#define CONFIG_ENV_OVERWRITE
++#define CONFIG_CONS_INDEX		1
++#define CONFIG_BAUDRATE			115200
++
++#undef CONFIG_CMD_IMLS
++
++#define CONFIG_SYS_CACHELINE_SIZE      64
++
++/* Miscellaneous configurable options */
++#define CONFIG_SYS_PROMPT		"=> "
++#define CONFIG_SYS_CBSIZE		512
++
++/* Print Buffer Size */
++#define CONFIG_SYS_MAXARGS		256
++#define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
++#define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
++
++#define CONFIG_STACKSIZE		SZ_8K
++
++/* Physical Memory Map */
++#define CONFIG_NR_DRAM_BANKS		1
++
++#define CONFIG_SYS_TEXT_BASE		0x67800000
++#define PHYS_SDRAM			0x60000000
++#define PHYS_SDRAM_SIZE			SZ_512M
++#define CONFIG_SYS_MEMTEST_START	PHYS_SDRAM
++#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM
++
++#define CONFIG_LOADADDR             0x60800000
++
++#define CONFIG_CMD_MEMTEST
++#define CONFIG_SYS_MEMTEST_END      0x9E000000
++
++
++#define CONFIG_SYS_HZ			1000
++#define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
++#define CONFIG_STANDALONE_LOAD_ADDR  CONFIG_SYS_LOAD_ADDR
++
++#define CONFIG_SYS_INIT_RAM_ADDR	IRAM_BASE_ADDR
++#define CONFIG_SYS_INIT_RAM_SIZE	SZ_256K
++
++#define CONFIG_SYS_INIT_SP_OFFSET \
++	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
++#define CONFIG_SYS_INIT_SP_ADDR \
++	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
++
++#ifndef CONFIG_SYS_DCACHE_OFF
++#define CONFIG_CMD_CACHE
++#endif
++
++#ifdef CONFIG_VIDEO
++#define CONFIG_VIDEO_MXS
++#define CONFIG_VIDEO_LOGO
++#define CONFIG_SPLASH_SCREEN
++#define CONFIG_SPLASH_SCREEN_ALIGN
++#define CONFIG_CMD_BMP
++#define CONFIG_BMP_16BPP
++#define CONFIG_VIDEO_BMP_RLE8
++#define CONFIG_VIDEO_BMP_LOGO
++#define CONFIG_IMX_VIDEO_SKIP
++#define CONFIG_HX8394
++
++#define CONFIG_SPLASH_SOURCE
++#define CONFIG_VIDEO_BMP_GZIP
++#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE 1024*1024
++#endif
++#define CONFIG_CFB_CONSOLE_ANSI
++#define CONFIG_OF_BOARD_SETUP
++
++/* Override imx standard behavior when loading u-boot from usb */
++#ifdef is_boot_from_usb
++#undef is_boot_from_usb
++#endif
++
++/* MFG version from separate (easily patchable) file */
++#include "flir_mfgmode.h"
++
++#if CONFIG_MFG == 1
++/* MFG preloaded recovery boot for board production */
++
++#ifdef CONFIG_ENV_IS_IN_MMC
++#undef CONFIG_ENV_IS_IN_MMC
++#endif
++#define CONFIG_ENV_IS_NOWHERE
++#define CONFIG_ENV_SIZE SZ_16K
++
++#define CONFIG_BOOTCOMMAND \
++	"setenv ethaddr 00:40:7f:21:22:23; " \
++	"fuse prog -y 2 7 8000; " \
++	"run partition_mmc_flir; run recboot"
++
++#elif CONFIG_MFG == 2
++/* preloaded recovery boot */
++
++#ifdef CONFIG_ENV_IS_IN_MMC
++#undef CONFIG_ENV_IS_IN_MMC
++#endif
++#define CONFIG_ENV_IS_NOWHERE
++#define CONFIG_ENV_SIZE SZ_16K
++
++#define CONFIG_BOOTCOMMAND \
++        "run recboot"
++
++#else /* CONFIG_MFG */
++
++#define CONFIG_SYS_MMC_ENV_DEV		0		/* emmc0 */
++#define CONFIG_ENV_SIZE			SZ_16K
++#define CONFIG_ENV_OFFSET		(1792 * 1024)	/* 256kB below 2MiB */
++#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + (128 * 1024))
++#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
++
++#define CONFIG_BOOTCOMMAND \
++	"setmac;" \
++	"if recoverytrigger; then " \
++		"run recoveryboot;" \
++	"else " \
++		"run mmcbootflir;" \
++	"fi;" \
++	"echo Fallback to recovery boot!....;" \
++	"run recoveryboot;"
++
++#endif /* CONFIG_MFG */
++
++
++/* protected environment variables (besides ethaddr and serial#) */
++#define CONFIG_ENV_FLAGS_LIST_STATIC	\
++	"bootargs_once:sr"
++
++
++/* Pool of randomly generated UUIDs at host machine */
++#define RANDOM_UUIDS	\
++	"uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff\0" \
++	"part1_uuid=43f1961b-ce4c-4e6c-8f22-2230c5d532bd\0" \
++	"part2_uuid=f241b915-4241-47fd-b4de-ab5af832a0f6\0" \
++	"part3_uuid=1c606ef5-f1ac-43b9-9bb5-d5c578580b6b\0" \
++	"part4_uuid=c7d8648b-76f7-4e2b-b829-e95a83cc7b32\0" \
++	"part5_uuid=ebae5694-6e56-497c-83c6-c4455e12d727\0" \
++	"part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef\0" \
++	"part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0\0" \
++	"part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c\0" \
++	"part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e\0"
++
++
++#define CONFIG_OVERWRITE_ETHADDR_ONCE
++#define CONFIG_DEFAULT_NETWORK_SETTINGS	\
++	"wlanaddr=00:04:f3:ff:ff:fb\0" \
++	"btaddr=00:04:f3:ff:ff:fc\0" \
++	"ipaddr=192.168.42.30\0" \
++	"serverip=192.168.42.1\0" \
++	"netmask=255.255.0.0\0"
++
++
++/* Selects device tree*
++ * Reads select-device-tree-script from boot partition
++ * and  selects which device tree to use based on board article nr
++ * update-fdt updates device tree with board article numbers
++ */
++#define CONFIG_SELECT_FDT_FILE_ENV \
++	"fdt_file=""\0" \
++	"fdt_file_default=" CONFIG_DEFAULT_FDT_FILE "\0"\
++	"select_fdt_script=select-fdt.uscr\0" \
++	"update-fdt=" \
++			  "if ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} /boot/update-fdt.uscr; then " \
++					"source ${tempaddr}; " \
++			  "fi\0 " \
++	"selectfdtfile=" \
++			"if test -n ${fdt_file};then " \
++				  "echo Devicetree file already selected;" \
++			"else " \
++				  "if ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} /boot/${select_fdt_script}; then " \
++						"source ${tempaddr}; " \
++				  "else;" \
++						"setenv fdt_file ${fdt_file_default};" \
++				  "fi; " \
++		   "fi\0" \
++	"selectrecfdtfile=" \
++		   "if fatload mmc ${mmcdev}:1 ${tempaddr} ${select_fdt_script}; then " \
++				  "source ${tempaddr}; " \
++		   "else;" \
++				  "setenv fdt_file ${fdt_file_default};" \
++		   "fi\0"
++
++
++/* FLIR partition creation*
++ * 
++ * parition1 = recovery     40 MiB
++ * parition2 = rootfs1     512 MiB
++ * parition3 = rootfs2     512 MiB
++ * parition4 = rootfsrw	   128 MiB
++ * parition5 = apps        512 MiB
++ * parition6 = data        512 MiB
++ * parition7 = storage     rest - about 1600 MiB
++ */
++#define CONFIG_PARTITION_FLIR_ENV \
++	"parts_flir=\"uuid_disk=${uuid_disk};" \
++		"start=2MiB,name=recovery,size=40MiB,uuid=${part1_uuid};" \
++		"name=rootfs1,size=512MiB,uuid=${part2_uuid};" \
++		"name=rootfs2,size=512MiB,uuid=${part3_uuid};" \
++		"name=rootfsrw,size=128MiB,uuid=${part4_uuid};" \
++		"name=apps,size=512MiB,uuid=${part5_uuid};" \
++		"name=data,size=512MiB,uuid=${part6_uuid};" \
++		"name=storage,size=-,uuid=${part7_uuid};\"\0" \
++	"partition_mmc_flir=mmc rescan; " \
++		"if mmc dev ${mmcdev} 0; then " \
++			  "gpt write mmc ${mmcdev} ${parts_flir}; " \
++			  "mmc rescan; " \
++		"else " \
++			  "if mmc dev ${mmcdev}; then " \
++				  "gpt write mmc ${mmcdev} ${parts_flir}; " \
++				  "mmc rescan; " \
++			  "else; " \
++			  "fi; " \
++		"fi; \0"
++
++
++/* FLIR Recovery boot
++* 
++* Boot from preloaded recovery in ram
++* Loads kernel, devicetree and ram rootfs from ram
++* 
++* Boot from recovery partition in mmc
++* Loads kernel, devicetree and ram rootfs from recovery partition on emmc
++*/
++#define CONFIG_REC_BOOT_ENV \
++	"recargs=setenv bootargs console=${console},${baudrate} " \
++		"root=/dev/ram0 ethaddr=${ethaddr}\0" \
++	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
++	"initrd_addr=0x63800000\0" \
++	"initrd_file=uRamdisk.img\0" \
++\
++	"recboot=echo Booting preloaded recovery...; "\
++		"run recargs; " \
++		"bootz ${loadaddr} ${initrd_addr} ${fdt_addr}; \0" \
++\
++	"recoveryboot=echo Booting from mmc recovery;" \
++				 "run selectrecfdtfile; run recargs; " \
++				 "setenv bootargs_linux ${bootargs}; " \
++				 "setenv mmcpart 1; " \
++				 "run loadfdt; run loadinitrd; run loadimage; " \
++				 "bootz ${loadaddr} ${initrd_addr} ${fdt_addr};\0" 
++
++
++/* Select which emmc partition to boot from
++ * 
++* * Boot from emmc partition2 or partition3
++* based on system_active variable
++*/
++
++#define CONFIG_SELECT_BOOT_PARTITION_ENV \
++	"system_active=system1\0" \
++	"select_boot=" \
++		"if itest.s ${system_active} == system2; " \
++		"then " \
++			  "setenv mmcpart 3; setenv rootfs root=/dev/mmcblk0p3; " \
++		"else setenv mmcpart 2; setenv rootfs root=/dev/mmcblk0p2; " \
++		"fi; \0" 
++
++/* common mmc boot
++* Environment shared between flir mmc boot and legacy mmc boot
++*/
++#define CONFIG_MMC_BOOT_COMMON_ENV \
++	"mmcdev=0\0" \
++	"mmcpart=1\0" \
++	"mmcargs=setenv bootargs console=${console},${baudrate} " \
++		"${rootfs} rootwait rw ethaddr=${ethaddr} " \
++		"wlanaddr=${wlanaddr} btaddr=${btaddr} ${bootargs_once} " \
++		 "${extra_bootargs} \0" \
++\
++	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
++	"loadimage4=ext4load mmc ${mmcdev}:${mmcpart} ${loadaddr} boot/${image}\0" \
++	"loadfdt4=ext4load mmc ${mmcdev}:${mmcpart} ${fdt_addr} " \
++		"boot/${fdt_file}\0" \
++	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" 
++
++/* FLIR mmc boot 
++*
++*loads kernel and boots from partition 2 or 3 on emmc
++*/
++#define CONFIG_MMC_BOOT_FLIR_ENV \
++	"hw_start=run startM4;\0" \
++	"setup_boot=bootargs_once=init=/sbin/preinit; " \
++			"run select_boot;\0" \
++\
++	"mmcbootflir=echo Booting from mmc (flir)...;" \
++			"bootstate;" \
++			"run setup_boot;run update-fdt; run selectfdtfile; " \
++			"run hw_start;" \
++			"run mmcargs;" \
++			"if run loadimage4; then " \
++						"if run loadfdt4; then " \
++							  "bootz ${loadaddr} - ${fdt_addr}; " \
++						"else echo WARN: Cannot load the DT; " \
++						"fi; " \
++			 "else echo ERR: Cannot load the kernel; " \
++			 "fi;\0" 
++
++/* Legacy mmc boot 
++*
++* Uses partition layout as created by yocto rootfs.sdcard file
++*/
++#define CONFIG_MMC_BOOT_LEGACY_ENV \
++	"mmcroot_sdcard=/dev/mmcblk0p2  rootwait rw\0" \
++	"mmcargs_sdcard=setenv bootargs console=${console},${baudrate} " \
++		"root=${mmcroot_sdcard}\0" \
++\
++	"mmcboot_sdcard=echo Booting from mmc ...; " \
++		"if run loadimage; then " \
++			"run mmcargs_sdcard; " \
++			"if run loadfdt; then " \
++				"bootz ${loadaddr} - ${fdt_addr}; " \
++			"fi;" \
++		"fi;\0" \
++
++
++/* M4 boot
++*
++* Loads M4 code from emmc to sram
++* Starts executing M4
++*/
++
++#define CONFIG_M4_BOOT_ENV \
++	"m4_image=imx7ulpm4.bin\0" \
++	"m4_addr=0x1ffd2000\0" \
++	"loadM4=ext4load mmc ${mmcdev}:${mmcpart} ${m4_addr} boot/${m4_image}\0" \
++\
++	"startM4=echo Starting M4 ...; " \
++			"if run loadM4; then " \
++				"bootaux ${m4_addr};" \
++			"fi;\0"
++
++#define CONFIG_SPLASH_IMAGE_ENV \
++	"splashimage=0x67000000\0" \
++	"splashsource=mmc_fs\0" \
++	"splashfile=/boot/bootlogo.bmp.gz\0" \
++	"panel=TRULY-VGA-SHERLOCK\0"
++
++#define CONFIG_EXTRA_ENV_SETTINGS \
++	CONFIG_DEFAULT_NETWORK_SETTINGS \
++	CONFIG_PARTITION_FLIR_ENV \
++	RANDOM_UUIDS \
++	"image=zImage\0" \
++	"console=ttyLP0\0" \
++	"tempaddr=0x66000000\0"\
++	"fdt_addr=0x63000000\0" \
++	"fdt_high=0xffffffff\0"	  \
++	"initrd_high=0xffffffff\0" \
++	"extra_bootargs=quiet\0" \
++\
++	CONFIG_M4_BOOT_ENV \
++	CONFIG_MMC_BOOT_COMMON_ENV\
++	CONFIG_SELECT_FDT_FILE_ENV \
++	CONFIG_REC_BOOT_ENV \
++	CONFIG_SELECT_BOOT_PARTITION_ENV \
++	CONFIG_MMC_BOOT_FLIR_ENV\
++	CONFIG_MMC_BOOT_LEGACY_ENV \
++	CONFIG_SPLASH_IMAGE_ENV \
++	""	/* end line */
++
++
++
++#endif	/* __MX7ULP_EC201_CONFIG_H */
+-- 
+2.17.1
+
