@@ -70,7 +70,7 @@ COMMON_PACKAGES = " \
     os-release \
     parted \
     pciutils \
-    python-core \
+    python3-core \
     sudo \
     sysfsutils \
     sysmon-service \
@@ -78,7 +78,7 @@ COMMON_PACKAGES = " \
     systemd-analyze \
     systemd-compat-units \
     telnetd-service \
-    tzdata \
+    tzdata-core \
     udev \
     udev-extraconf \
     zlib \

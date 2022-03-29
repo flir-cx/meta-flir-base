@@ -47,9 +47,8 @@ RDEPENDS_${PN}-tools-testapps = " \
     i2c-tools \
     iproute2 \
     memtester \
-    python-subprocess \
-    python-datetime \
-    python-json \
+    python3-datetime \
+    python3-json \
     ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'v4l-utils', '', d)} \
     ethtool \
     mtd-utils \
