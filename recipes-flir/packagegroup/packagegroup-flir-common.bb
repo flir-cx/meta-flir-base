@@ -16,10 +16,8 @@ PROVIDES = "${PACKAGES}"
 PACKAGES += " \
     ${PN}-packages \
 "
-DISTRO_SSH_DAEMON ?= "openssh"
 
 COMMON_PACKAGES = " \
-    ${DISTRO_SSH_DAEMON} \
     aufsrootfs \
     avahi-daemon \
     avahi-dnsconfd \
@@ -65,6 +63,7 @@ COMMON_PACKAGES = " \
     mtd-utils-ubifs \
     nano \
     ncurses-libpanelw \
+    openssh \
     openssl \
     opkg \
     os-release \
@@ -96,10 +95,9 @@ RDEPENDS_${PN}-packages_mx6 = "\
     kernel-devicetree \
 "
 
-UNUSED = " \
-    kernel-module-g-ether \
-"
-
+# The UNBUILDABLE variable is just a placeholder for packages that used to
+# be included in yocto2 but that cannot (and sometimes should not) be built 
+# in yocto3. This should be removed once yocto3 lift has been completed.
 UNBUILDABLE = " \
     iperf \
     getherload \

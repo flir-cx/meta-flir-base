@@ -1,18 +1,64 @@
 require flir-image-base.inc
 
-### evco specifics for flir-image (cirrus)
+### evco specifics for flir-image
 inherit populate_sdk_qt5
 
-### evco specifics for flir-image (Evander, Lennox)
-
-TEST_SUITES = "ping ssh flir_test_valid_platform df connman \
-                 scp python gst1-0-fsl-plugin dmesg2 flirsystemd wi-fi \
-                 bluetooth sysfs standby wi-fi bluetooth mmdc"
-
 IMAGE_INSTALL_append = "\
-    packagegroup-flir-ec101-packages \
+    alsa-lib \
+    alsa-utils \
+    autofs \
+    bluez5 \
+    btload \
+    chargelogo \
+    firmware-imx-vpu-imx6d \
+    flirbifrost \
+    flirfad \
+    flirfvdk \
+    fliriptables \
+    flirvcam \
+    fliryildun \
+    gadgetload \
+    haproxy \
+    iputils-ping \
+    kernel-modules \
+    libevdev \
+    libubootenv-bin \
+    mmc-utils \
+    mtd-utils-jffs2 \
+    qtbase \
+    qtgraphicaleffects \
+    php \
+    php-cgi \
+    php-cli \
+    php-opcache \
+    progressapp-service \
+    ti-bt-firmware \
+    ti-firmware \
+    ti-nvs \
+    ti-uim \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
+		     'weston weston-init \
+		      qtwayland qtwayland-plugins', '', d)} \
+    u-boot-default-env-pingu \
+    u-boot-script \
+    umtp-responder \
+    \
     packagegroup-flir-opencv-packages \
     packagegroup-flir-pulseaudio-packages \
+"
+
+# The UNBUILDABLE variable is just a placeholder for packages that used to
+# be included in yocto2 but that cannot (and sometimes should not) be built 
+# in yocto3. This should be removed once yocto3 lift has been completed.
+UNBUILDABLE = "\
+    kernel-module-btwilink \
+    kernel-module-g-uvc-msd \
+    kernel-module-si114x \
+    kernel-module-leds-lm3644 \
+    blankscreen-service \
+    chargeapp-service \
+    u-boot-fw-utils-pingu \
+    wifi-test-suite \
 "
 
 # For Wi-Fi certification (Radio tests)

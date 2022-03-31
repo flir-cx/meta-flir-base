@@ -3,9 +3,16 @@
 #
 require flir-image-${MACHINE}.inc
 
-COMPATIBLE_MACHINE = "(ec501|evco|roco)"
+COMPATIBLE_MACHINE = "(ec501|evco|eoco)"
 
 IMAGE_INSTALL_append = " \
     ltp \
-    packagegroup-flir-test \
+"
+
+IMAGE_INSTALL_append_ec501 = " \
+    ipu-test \
+"
+
+IMAGE_INSTALL_append_evco = " \
+    compass-test \
 "

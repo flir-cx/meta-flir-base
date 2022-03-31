@@ -1,15 +1,8 @@
 require flir-image-base.inc
 
-### ec501 specifics for flir-image (cirrus)
-inherit populate_sdk_qt5
-
 ### ec501 specifics for flir-image (Bellatrix, Ballofix)
 
-TEST_SUITES = "ping ssh flir_test_valid_platform df connman \
-                 scp python gst1-0-fsl-plugin dmesg2 flirsystemd wi-fi \
-                 bluetooth sysfs wi-fi mmdc"
-
-EC501_PACKAGES = "\
+IMAGE_INSTALL_append = " \
     autofs \
     firmware-imx-vpu-imx6d \
     fliriptables \
@@ -35,13 +28,16 @@ EC501_PACKAGES = "\
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
+    \
+    packagegroup-flir-opencv-packages \
 "
 
-UNAVAILABLE_PACKAGES32 = " \
+# The UNAVAILABLE_PACKAGES variable is just a placeholder for packages that 
+# used to be included in yocto2 but that cannot (and sometimes should not) be 
+# built in yocto3. This should be removed once yocto3 lift has been completed.
+UNAVAILABLE_PACKAGES = " \
     kernel-module-btwilink \
     wifi-test-suite \
-"
-UNAVAILABLE_PACKAGES_append = " \
     backlight-service \
     backlight-worker \
     blankscreen-service \
@@ -60,17 +56,8 @@ UNAVAILABLE_PACKAGES_append = " \
     ti-wl18xx-modules \
     u-boot-fw-utils-pingu \
     u-boot-script \
-"
-
-IMAGE_INSTALL_append = " \
-    ${EC501_PACKAGES} \
-    packagegroup-flir-opencv-packages \
-"
-
-UNAVAILABLE_PACKAGES_append = " \
     packagegroup-flir-pulseaudio-packages \
 "
 
 # For Wi-Fi certification (Radio tests)
 # Install packages ti-wlconf_*.ipk, ti-scripts_*.ipk and ti-calibrator_*.ipk
-

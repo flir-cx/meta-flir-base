@@ -1,20 +1,65 @@
 require flir-image-base.inc
 
-### nitrogen6x specifics for flir-image (cirrus)
+### nitrogen6x specifics for flir-image (sabrelite)
 inherit populate_sdk_qt5
 
-### nitrogen6x specifics for flir-image (sabrelite)
-
-TEST_SUITES = "ping ssh flir_test_valid_platform df connman \
-                 scp python gst1-0-fsl-plugin dmesg2 flirsystemd wi-fi \
-                 bluetooth sysfs standby wi-fi bluetooth mmdc"
-
 IMAGE_INSTALL_append = " \
-    packagegroup-flir-nitrogen6x-packages \
+    alsa-lib \
+    alsa-utils \
+    autofs \
+    bluez5 \
+    firmware-imx-vpu-imx6d \
+    firmware-imx-vpu-imx6q \
+    fliriptables \
+    gadgetload \
+    haproxy \
+    imx-gst1.0-plugin \
+    iputils-ping \
+    kernel-module-g-mass-storage \
+    kernel-module-usb-f-ecm \
+    kernel-module-usb-f-ecm-subset \
+    kernel-module-ov5640-camera-mipi-int \
+    kernel-module-ov5640-camera-v2 \
+    libevdev \
+    mmc-utils \
+    qtbase \
+    qtgraphicaleffects \
+    php \
+    php-cgi \
+    php-cli \
+    progressapp-service \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
+		     'weston weston-init \
+		      qtwayland qtwayland-plugins', '', d)} \
+    v4l-utils \
+    \
     packagegroup-flir-opencv-packages \
 "
 
-UNAVAILABLE_PACKAGES_append = " \
+# The UNAVAILABLE_PACKAGES variable is just a placeholder for packages that 
+# used to be included in yocto2 but that cannot (and sometimes should not) be 
+# built in yocto3. This should be removed once yocto3 lift has been completed.
+UNAVAILABLE_PACKAGES = " \
+    kernel-module-btwilink \
+    wifi-test-suite \
+    backlight-service \
+    backlight-worker \
+    blankscreen-service \
+    chargeapp-service \
+    fliryildun \
+    kernel-module-g-uvc-msd \
+    kernel-module-leds-lm3644 \
+    kernel-module-si114x \
+    mmdc \
+    mtd1mounter \
+    packagegroup-flir-pulseaudio-packages \
+    ti-bt-firmware \
+    ti-firmware \
+    ti-nvs \
+    ti-uim \
+    ti-wl18xx-modules \
+    u-boot-fw-utils-pingu \
+    u-boot-script \
     packagegroup-flir-pulseaudio-packages \
 "
 
