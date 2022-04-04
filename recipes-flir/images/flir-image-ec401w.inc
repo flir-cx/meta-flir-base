@@ -16,6 +16,7 @@ IMAGE_INSTALL = " \
     brcm-patchram \
     btload \
     cjson \
+    calib-files-mgmt \
     connman \
     connman-client \
     crda \
@@ -80,4 +81,5 @@ IMAGE_INSTALL = " \
     wifi-test-suite \
     wpa-supplicant \
     zeromq \
+    zip \
 "

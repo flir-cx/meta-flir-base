@@ -1,0 +1,10 @@
+[Unit]
+Description=Calibration files management
+Before=skylab-cmd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/calib-files-mgmt.sh
+
+[Install]
+WantedBy=multi-user.target
