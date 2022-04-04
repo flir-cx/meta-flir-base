@@ -1,6 +1,4 @@
 require flir-image-base.inc
-
-### evco specifics for flir-image
 inherit populate_sdk_qt5
 
 IMAGE_INSTALL_append = "\
