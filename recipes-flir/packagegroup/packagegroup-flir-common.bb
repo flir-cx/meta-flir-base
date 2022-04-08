@@ -95,6 +95,11 @@ RDEPENDS_${PN}-packages_mx6 = "\
     kernel-devicetree \
 "
 
+RDEPENDS_${PN}-packages_mx7 = "\
+    ${COMMON_PACKAGES} \
+    kernel-devicetree \
+"
+
 # The UNBUILDABLE variable is just a placeholder for packages that used to
 # be included in yocto2 but that cannot (and sometimes should not) be built 
 # in yocto3. This should be removed once yocto3 lift has been completed.
