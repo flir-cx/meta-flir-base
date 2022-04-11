@@ -32,5 +32,5 @@ SRC_URI += "file://0034-SHLK-2505-Change-hard-reset-time-in-PMIC-to-4s.patch"
 SRC_URI += "file://0035-Add-support-for-fuelguage-lc709204.patch"
 SRC_URI += "file://0036-Enable-quiet-boot.patch"
 SRC_URI += "file://0037-Add-board-support-for-ec401w.patch"
-
-
+SRC_URI += "file://0038-Add-driver-for-LP5562-leds.patch"
+SRC_URI += "file://0039-ec401w-Add-button-trigger-sequence-and-chargeapp.patch"

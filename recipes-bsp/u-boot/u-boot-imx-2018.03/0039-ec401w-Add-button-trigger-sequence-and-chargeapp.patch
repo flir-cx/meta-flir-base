@@ -1,0 +1,728 @@
+From dd077b8645798f15fea46dc81f895ee01127eaae Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@flir.com>
+Date: Mon, 11 Apr 2022 09:06:47 +0200
+Subject: [PATCH 2/2] ec401w: Add button trigger sequence and chargeapp
+
+Add button trigger sequence for ec401w. It will listen to PRW
+button and boot to linux, recovery or factory default depending
+on the users input.
+
+Add led support for ec401w board. Leds show battery status, and
+patterns depending on boot mode.
+
+Add chargeapp led support
+---
+ board/flir/ec401w/Makefile              |   1 +
+ board/flir/ec401w/bootstate.c           |  11 +-
+ board/flir/ec401w/chargeapp.c           |  62 ++------
+ board/flir/ec401w/cmd_recoverytrigger.c | 184 +++++++++++++++++++-----
+ board/flir/ec401w/ec401w.c              |   2 +-
+ board/flir/ec401w/leds.c                | 158 ++++++++++++++++++++
+ board/flir/ec401w/leds.h                |  13 ++
+ board/flir/ec401w/pf1550.c              |  12 +-
+ configs/mx7ulp_ec401w_defconfig         |   6 +
+ 9 files changed, 353 insertions(+), 96 deletions(-)
+ create mode 100644 board/flir/ec401w/leds.c
+ create mode 100644 board/flir/ec401w/leds.h
+
+diff --git a/board/flir/ec401w/Makefile b/board/flir/ec401w/Makefile
+index 2d8708f541..f10e107b51 100644
+--- a/board/flir/ec401w/Makefile
++++ b/board/flir/ec401w/Makefile
+@@ -14,3 +14,4 @@ obj-y  += lc709203.o
+ obj-y  += cmd_recoverytrigger.o
+ obj-y  += cmd_setmac.o
+ obj-y  += usbdcd.o
++obj-y  += leds.o
+diff --git a/board/flir/ec401w/bootstate.c b/board/flir/ec401w/bootstate.c
+index 7a7c9862f3..e0e9558bb0 100644
+--- a/board/flir/ec401w/bootstate.c
++++ b/board/flir/ec401w/bootstate.c
+@@ -18,8 +18,9 @@
+ #include <asm/arch/sys_proto.h>
+ #include <dm.h>
+ #include <i2c.h>
+-#include <pf1550.h>
+-#include <lc709203.h>
++#include "pf1550.h"
++#include "lc709203.h"
++#include "leds.h"
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -229,7 +230,6 @@ static int do_boot_state(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
+ 			break;
+ 		default:
+ 			printf("Invalid boot event: INVALID_EVENT \n");
+-			fuelgauge_sleep();
+ 			power_off();
+ 			break;
+ 		}
+@@ -246,12 +246,13 @@ static int do_boot_state(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
+ 	switch(state.boot_state)
+ 	{
+ 	case NORMAL_BOOT:
++		leds_boot();
+ 		break;
+ 	case NO_BATTERY:
+ 		printf("Battery missing\n");
+ 	case LOW_BATTERY:
+-		// Blink red led here
+-		fuelgauge_sleep();
++		leds_on(0, 0); // low batt
++		udelay(2000000);
+ 		power_off();
+ 		break;
+ 	case USB_CHARGE:
+diff --git a/board/flir/ec401w/chargeapp.c b/board/flir/ec401w/chargeapp.c
+index 06b2ab0138..2aea60d9ad 100644
+--- a/board/flir/ec401w/chargeapp.c
++++ b/board/flir/ec401w/chargeapp.c
+@@ -3,9 +3,6 @@
+ #include <common.h>
+ #include <asm/io.h>
+ #include <asm/arch/sys_proto.h>
+-#include <asm/arch/mx7ulp-pins.h>
+-#include <asm/arch/iomux.h>
+-#include <asm/gpio.h>
+ #include <dm.h>
+ #include <bootstate.h>
+ #include <console.h>
+@@ -13,43 +10,16 @@
+ #include <stdio_dev.h>
+ #include <pf1550.h>
+ #include <lc709203.h>
++#include <leds.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+-typedef enum {
+-	LEDS_ON,
+-	LEDS_OFF
+-} leds_state_t;
+-
+-static leds_state_t leds_state = LEDS_OFF;
+-
+-void leds_on(void)
+-{
+-	// turn on leds here
+-	leds_state = LEDS_ON;
+-	return;
+-}
+-
+-void leds_off(void)
+-{
+-	// Turn off leds here
+-	leds_state = LEDS_OFF;
+-	return;
+-}
+-
+-void do_charge_update(int level)
+-{
+-	// LED blink change
+-	return;
+-}
+-
+-
+ void test_charge_levels()
+ {
+-	for(int i=0;i<=100;i++)
++	for(int i=0;i<=100;i+=10)
+ 	{
+-		do_charge_update(i);
+-		mdelay(400);
++		leds_on(i, CHARGING);
++		mdelay(2000);
+ 	}
+ }
+ 
+@@ -58,6 +28,8 @@ static int do_chargeapp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
+ 
+ 	int exit = 0;
+ 
++	int soc = 0;
++
+ 	//Test for display charge level with leds
+ 	if(argc == 2 && argv[1][0]=='t')
+ 	{
+@@ -67,32 +39,24 @@ static int do_chargeapp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
+ 
+ 	while(!exit)
+ 	{
+-		int soc=0;
+-
+ 		//if we are within allowed thermal range, enable charging, otherwise disable
+ 		pf1550_thm_ok_toogle_charging();
+ 
+ 		//get battery state of charge
+ 		get_battery_state_of_charge(&soc);
++
+ 		//update battery progressbar
+-		do_charge_update(soc);
++		leds_on(soc, CHARGING);
+ 
+ 		if(get_onoff_key())
+-		{	
+-			if(leds_state==LEDS_OFF)
+-				leds_on();
+-			else //turn on camera if onoff key is pressed
+-			{
+-				leds_off();
+-				// turn off leds
+-				reboot();
+-			}
+-				
++		{
++			//Turn on camera
++			leds_off();
++			reboot();
+ 		}
+ 
+ 		//poweroff camera if usb-cable is removed
+ 		if(!get_usb_cable_state()){
+-			fuelgauge_sleep();
+ 			power_off();
+ 		}
+ 
+@@ -100,7 +64,7 @@ static int do_chargeapp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
+ 		if(ctrlc())
+ 			exit=1;
+ 
+-				
++		udelay(100000);
+ 	}
+ 	return 0;
+ }
+diff --git a/board/flir/ec401w/cmd_recoverytrigger.c b/board/flir/ec401w/cmd_recoverytrigger.c
+index d038bc127a..80b06ccaae 100644
+--- a/board/flir/ec401w/cmd_recoverytrigger.c
++++ b/board/flir/ec401w/cmd_recoverytrigger.c
+@@ -35,16 +35,65 @@
+ #include <dm.h>
+ #include <i2c.h>
+ #include <asm/arch/pcc.h>
++#include "leds.h"
++#include "bootstate.h"
++#include "pf1550.h"
++#include "lc709203.h"
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#define PWR_GPIO   IMX_GPIO_NR(3, 13)
++#define BTN_GPIO_PAD_CTRL	(PAD_CTL_IBE_ENABLE | PAD_CTL_PUS_UP)
++
++static iomux_cfg_t const btn_pwr_pad[] = {
++	MX7ULP_PAD_PTC13__PTC13 | MUX_PAD_CTRL(BTN_GPIO_PAD_CTRL),
++};
++
++// HW reset 16s
++#define SEQ_HOLD_START_MS           3000
++#define SEQ_DISPLAY_SOC_MS          4000
++#define SEQ_SLOW_FDEFAULT_MS        3000
++#define SEQ_FAST_FDEFAULT_MS        2000
++#define SEQ_END_MS                  3000
++
++#define TRIG_ON 0
++#define TRIG_OFF 1
+ #define POLL_TIME 10
+ 
+ #define OK 0
+ #define FAIL 1
+ 
++// timeout in ms
++int trigger_wait_until(int btn_state, int mtimeout)
++{
++    int t = 0;
++    int ret = FAIL;
++
++    while(gpio_get_value(PWR_GPIO) != btn_state && t < mtimeout)
++    {
++        mdelay(POLL_TIME);
++        t += POLL_TIME;
++    }
++
++    if(t < mtimeout)
++    {
++        ret = OK;
++    }
++    else
++        ret = FAIL;
++
++    return ret;
++}
++
++int get_press(int mtimeout)
++{
++    if(trigger_wait_until(TRIG_ON, mtimeout) == OK)
++        return trigger_wait_until(TRIG_OFF, mtimeout);
++
++    return FAIL;
++}
++
+ 
+-/*
+ int seq(int no)
+ {
+     if(get_press(2000) == OK)
+@@ -60,62 +109,133 @@ int seq(int no)
+ 
+     return OK;
+ }
+-*/
+ 
+-/*
++
+ 
+ int check_recovery_sequence(void)
+ {
+-    int ret;
++    // sequence 1
++    printf("sequence 1 start \n");
+     
+-    //wait for 0
+-    ret = trigger_wait_until(TRIG_OFF, 3000);
++    if(seq(5) == FAIL)
++        return FAIL;
++
++    if(trigger_wait_until(TRIG_ON, 1000) == OK)
++        return FAIL; // dont press again.
++
++    printf("sequence 1 ok\n");
++
++    leds_on(50, 1);
++
++    // sequence 2
++    printf("sequence 2 start \n");
++    
++    if(seq(6) == FAIL)
++        return FAIL;
++
++    printf("sequence 2 ok\n");
++
++    if(trigger_wait_until(TRIG_ON, 2000) == OK)
++        return FAIL; // dont press again.
++
++    return OK;
++}
+ 
+-    if(ret == OK)
++int check_button_sequence(void)
++{
++    int soc;
++
++    printf("Check button sequence\n");
++
++    if(trigger_wait_until(TRIG_OFF, SEQ_HOLD_START_MS) == OK)
++        return FAIL;
++
++    // Display SOC
++    get_battery_state_of_charge(&soc);
++    leds_on(soc, NOT_CHARGING);
++
++    printf("Button sequence 1 %d\n", soc);
++
++    if(trigger_wait_until(TRIG_OFF, SEQ_DISPLAY_SOC_MS) == OK)
+     {
+-        // sequence 1
+-        printf("sequence 1 start \n");
+-        
+-        if(seq(5) == FAIL)
+-            return FAIL;
++        // Power off if user releases button
++        leds_off();
++        power_off();
++    }
+ 
+-        if(trigger_wait_until(TRIG_ON, 1000) == OK)
+-            return FAIL; // dont press again.
++    printf("Button sequence 2\n");
+ 
+-        printf("sequence 1 ok\n");
++    //factory default sequence 1
++    leds_all_blink_slow();
+ 
+-        // sequence 2
+-        printf("sequence 2 start \n");
+-        
+-        if(seq(6) == FAIL)
+-            return FAIL;
++    if(trigger_wait_until(TRIG_OFF, SEQ_SLOW_FDEFAULT_MS) == OK)
++    {
++        if(check_recovery_sequence() == FAIL)
++        {
++            leds_off;
++            power_off;
++        }
++    }
+ 
+-        printf("sequence 2 ok\n");
++    printf("Button sequence 3\n");
+ 
+-        if(trigger_wait_until(TRIG_ON, 2000) == OK)
+-            return FAIL; // dont press again.
++    //factory default sequence 2
++    leds_all_blink_fast();
+ 
++    if(trigger_wait_until(TRIG_OFF, SEQ_FAST_FDEFAULT_MS) == OK)
++    {
++        leds_off;
++        power_off;
+     }
+ 
+-    printf("get_recovery_sequence: %d\n", ret);
+-    return ret;
++    printf("Button sequence 4\n");
++
++    leds_on(100, NOT_CHARGING);
++
++    if(trigger_wait_until(TRIG_OFF, SEQ_END_MS) == OK)
++    {
++        printf("Factory default\n");
++        // User release button while steady leds
++        // inject factory default here
++        return FAIL;
++    }
++    
++    return FAIL;
+ }
+-*/
+ 
+ int do_recoverytrigger(void)
+ {
+-    int res = FAIL;
++    int pwr_btn = 0;
+ 
+     printf("Check recovery\n");
+ 
+-    //res = check_recovery_sequence();
++    pcc_clock_enable(PER_CLK_PCTLC, true);
++
++    mx7ulp_iomux_setup_multiple_pads(btn_pwr_pad, ARRAY_SIZE(btn_pwr_pad));
++
++    gpio_request(PWR_GPIO, "pwr_gpio");
+ 
+-    if(res == FAIL)
++	pwr_btn = gpio_direction_input(PWR_GPIO);
++
++    if(pwr_btn == -1)
+     {
+-        //print_recovery("                      "); //clear screen
++        return FAIL;
+     }
+-    
+-    return res;
++
++    pwr_btn = gpio_get_value(PWR_GPIO);
++
++    if(pwr_btn == 0)
++    {
++
++        if(check_button_sequence() == OK)
++        {
++            return OK;
++        }
++
++        leds_off();
++    }
++
++    return FAIL;
+ }
+ 
+ U_BOOT_CMD(
+diff --git a/board/flir/ec401w/ec401w.c b/board/flir/ec401w/ec401w.c
+index 10665c80e5..baf54b8df5 100644
+--- a/board/flir/ec401w/ec401w.c
++++ b/board/flir/ec401w/ec401w.c
+@@ -71,8 +71,8 @@ int usb_charge_detect(void)
+ 
+ int board_early_init_f(void)
+ {
++	printf("early init\n");
+ 	setup_iomux_uart();
+-
+ 	return 0;
+ }
+ 
+diff --git a/board/flir/ec401w/leds.c b/board/flir/ec401w/leds.c
+new file mode 100644
+index 0000000000..0e711e8afa
+--- /dev/null
++++ b/board/flir/ec401w/leds.c
+@@ -0,0 +1,158 @@
++#include <common.h>
++#include <asm/io.h>
++#include <dm.h>
++#include <console.h>
++#include <command.h>
++#include <leds.h>
++
++typedef enum {
++	LEDS_CHG_LOW,
++	LEDS_CHG_MED,
++	LEDS_CHG_HIGH,
++	LEDS_CHG_FULL,
++    LEDS_CRITICAL,
++	LEDS_BLINK_SLOW,
++	LEDS_BLINK_FAST,
++    LEDS_LOW,
++    LEDS_MED,
++    LEDS_HIGH,
++	LEDS_OFF
++} leds_state_t;
++
++#define CHG_LEVEL_FULL 95
++#define CHG_LEVEL_HIGH 80
++#define CHG_LEVEL_MED 50
++#define CHG_LEVEL_LOW 3
++
++#define CHARGING     1
++#define NOT_CHARGING 0
++
++static leds_state_t leds_state = LEDS_OFF;
++
++void leds_on(int soc, int chg)
++{
++	leds_state_t new_state;
++ 
++    if(chg == CHARGING)
++    {
++        if (soc >= CHG_LEVEL_FULL)
++	    	new_state = LEDS_CHG_FULL;
++        else if (soc >= CHG_LEVEL_HIGH)
++            new_state = LEDS_CHG_HIGH;
++        else if (soc >= CHG_LEVEL_MED)
++            new_state = LEDS_CHG_MED;
++        else
++            new_state = LEDS_CHG_LOW;
++    }
++    else
++    {
++        if (soc >= CHG_LEVEL_HIGH)
++            new_state = LEDS_HIGH;
++        else if (soc >= CHG_LEVEL_MED)
++            new_state = LEDS_MED;
++        else if (soc >= CHG_LEVEL_LOW)
++            new_state = LEDS_LOW;
++        else
++            new_state = LEDS_CRITICAL;
++    }
++
++	if(leds_state == new_state)
++		return;
++
++	printf("leds set soc:%d chg:%d\n", soc, chg);
++
++	switch(new_state)
++	{
++		case LEDS_CHG_FULL:
++			run_command("led 1 on", 0);
++			run_command("led 2 on", 0);
++			run_command("led 3 on", 0);
++			run_command("led r off", 0);
++			leds_state=LEDS_CHG_FULL;
++			break;
++		case LEDS_CHG_HIGH:
++			run_command("led 1 on", 0);
++			run_command("led 1 blink 500", 0);
++			run_command("led 2 on", 0);
++			run_command("led 3 on", 0);
++			run_command("led r off", 0);
++			leds_state=LEDS_CHG_HIGH;
++			break;
++		case LEDS_CHG_MED:
++			run_command("led 1 off", 0);
++			run_command("led 2 on", 0);
++			run_command("led 2 blink 500", 0);
++			run_command("led 3 on", 0);
++			run_command("led r off", 0);
++			leds_state=LEDS_CHG_MED;
++			break;
++		case LEDS_CHG_LOW:
++			run_command("led 1 off", 0);
++			run_command("led 2 off", 0);
++			run_command("led 3 off", 0);
++			run_command("led 3 blink 500", 0);
++			run_command("led r off", 0);
++			leds_state=LEDS_CHG_LOW;
++			break;
++
++		case LEDS_HIGH:
++			run_command("led 1 on", 0);
++			run_command("led 2 on", 0);
++			run_command("led 3 on", 0);
++			run_command("led r off", 0);
++			break;
++		case LEDS_MED:
++			run_command("led 1 off", 0);
++			run_command("led 2 on", 0);
++			run_command("led 3 on", 0);
++			run_command("led r off", 0);
++			break;
++		case LEDS_LOW:
++			run_command("led 1 off", 0);
++			run_command("led 2 off", 0);
++			run_command("led 3 on", 0);
++			run_command("led r off", 0);
++			break;
++		case LEDS_CRITICAL:
++			run_command("led 1 off", 0);
++			run_command("led 2 off", 0);
++			run_command("led 3 off", 0);
++			run_command("led r blink 250", 0); //red
++		case LEDS_OFF:
++			break;
++		default:
++			break;
++	}
++	
++	return;
++}
++
++void leds_off(void)
++{
++	if(leds_state == LEDS_OFF)
++		return;
++	
++	run_command("led p 2 1000", 0);
++	leds_state = LEDS_OFF;
++	return;
++}
++
++void leds_all_blink_slow(void)
++{
++	leds_off();
++	run_command("led p 3 1000", 0);
++
++	leds_state = LEDS_BLINK_SLOW;
++}
++
++void leds_all_blink_fast(void)
++{
++	leds_off();
++	run_command("led p 3 500", 0);
++	leds_state = LEDS_BLINK_FAST;
++}
++
++void leds_boot(void)
++{
++	run_command("led p 0 600", 0);
++}
+\ No newline at end of file
+diff --git a/board/flir/ec401w/leds.h b/board/flir/ec401w/leds.h
+new file mode 100644
+index 0000000000..a6214b5492
+--- /dev/null
++++ b/board/flir/ec401w/leds.h
+@@ -0,0 +1,13 @@
++#ifndef _LEDS_H
++#define _LEDS_H
++
++#define CHARGING     1
++#define NOT_CHARGING 0
++
++void leds_on(int soc, int chg);
++void leds_off(void);
++void leds_all_blink_slow(void);
++void leds_all_blink_fast(void);
++void leds_boot(void);
++
++#endif
+\ No newline at end of file
+diff --git a/board/flir/ec401w/pf1550.c b/board/flir/ec401w/pf1550.c
+index 0a3f43ee7e..49fd51f212 100644
+--- a/board/flir/ec401w/pf1550.c
++++ b/board/flir/ec401w/pf1550.c
+@@ -13,6 +13,7 @@
+ #include <asm/arch/iomux.h>
+ #include <asm/gpio.h>
+ #include "pf1550.h"
++#include "lc709203.h"
+ 
+ 
+ 
+@@ -47,7 +48,6 @@ int pf1550_read_reg(int reg, u8* val)
+ 	return dm_i2c_read(dev, reg, val, 1);
+ }
+ 
+-
+ int get_usb_cable_state(void)
+ {
+ 	u8 chg_int_ok=0;
+@@ -59,7 +59,6 @@ int get_usb_cable_state(void)
+ 	return 0;
+ }
+ 
+-
+ int get_onoff_key(void)
+ {
+ 	u8 onkey_int=0;
+@@ -71,7 +70,6 @@ int get_onoff_key(void)
+ 	return 0;
+ }
+ 
+-
+ void pmic_goto_core_off(bool enable)
+ {
+ 	struct udevice *dev;
+@@ -84,6 +82,7 @@ void pmic_goto_core_off(bool enable)
+ void power_off(void)
+ {
+ 	printf("Powering off....\n");
++	fuelgauge_sleep();
+ 	//set go to core off mode
+ 	pmic_goto_core_off(true);
+ 	//set watchdog signal low
+@@ -107,9 +106,6 @@ void reboot(void)
+ 	}
+ }
+ 
+-
+-
+-
+ void init_pf1550_pmic(void)
+ {
+ 	u8 curr_pwr_ctrl0;
+@@ -126,14 +122,13 @@ void init_pf1550_pmic(void)
+ 
+ 	//set time to press off button before triggering a PMIC reset
+ 	pf1550_read_reg(PF1550_PMIC_REG_PWRCTRL0, &curr_pwr_ctrl0);
+-	new_pwr_ctrl0 = (curr_pwr_ctrl0 & ~PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK) | PF1550_PMIC_REG_PWRCTRL0_TGRESET_4S;
++	new_pwr_ctrl0 = (curr_pwr_ctrl0 & ~PF1550_PMIC_REG_PWRCTRL0_TGRESET_MASK) | PF1550_PMIC_REG_PWRCTRL0_TGRESET_16S;
+ 	pf1550_write_reg(PF1550_PMIC_REG_PWRCTRL0, new_pwr_ctrl0);
+ 
+ 	mx7ulp_iomux_setup_multiple_pads(pmic_wdog_pad, ARRAY_SIZE(pmic_wdog_pad));
+ 	gpio_request(PMIC_WDOG_GPIO, "pmic_wdog");
+ }
+ 
+-
+ void pf1550_thm_ok_toogle_charging(void)
+ {
+ 	u8 chg_int_ok;
+@@ -181,7 +176,6 @@ void pf1550_thm_ok_toogle_charging(void)
+ 	}
+ }
+ 
+-
+ void set_charging_current(int mA)
+ {
+ 	u8 ilim = _10ma << VBUS_LIN_ILIM_SHIFT;
+diff --git a/configs/mx7ulp_ec401w_defconfig b/configs/mx7ulp_ec401w_defconfig
+index 2e4ad21351..5a962c568a 100644
+--- a/configs/mx7ulp_ec401w_defconfig
++++ b/configs/mx7ulp_ec401w_defconfig
+@@ -73,5 +73,11 @@ CONFIG_EFI_PARTITION=y
+ CONFIG_AUTOBOOT=y
+ CONFIG_BOOTDELAY=0
+ 
++CONFIG_LED=y
++CONFIG_LED_GPIO=y
++CONFIG_LED_LP5562=y
++CONFIG_LED_BLINK=y
++CONFIG_CMD_LED=y
++
+ CONFIG_AUTO_COMPLETE=y
+ CONFIG_CMDLINE_EDITING=y
+\ No newline at end of file
+-- 
+2.17.1
+
