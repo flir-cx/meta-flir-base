@@ -55,6 +55,8 @@ ms_subcompat_id="5162001" # matches Windows RNDIS 6.0 Driver
 yuv_width=640
 yuv_height=480
 yuv_bytes_per_pixel=2
+mjpg_width=640
+mjpg_height=480
 
 get_base_mac_from_cmdline() {
 	cat /proc/cmdline | sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p"
@@ -150,7 +152,7 @@ config_load() {
 	cd "$gadget_path"
 
 	case "$usbmode" in
-	RNDIS) product_id="$product_id_rndis"; config_string="RNIS" ;;
+	RNDIS) product_id="$product_id_rndis"; config_string="RNDIS" ;;
 	MTP) product_id="$product_id_mtp"; config_string="MTP"  ;;
 	UVC) product_id="$product_id_uvc"; config_string="UVC" ;;
 	UVC_MTP) product_id="$product_id_uvc_mtp"; config_string="CDC UVC+MTP" ;;
@@ -182,50 +184,6 @@ config_load() {
 	mkdir -p configs/c.1/strings/0x409
 	echo "$config_string" > configs/c.1/strings/0x409/configuration
 
-	if [ "$usbmode_uvc" = true ] ; then
-		# Control endpoint packet size is 64 bytes.
-		echo 0x40 > bMaxPacketSize0
-
-		mkdir functions/uvc.usb0
-		mkdir -p functions/uvc.usb0/streaming/uncompressed/yuv/480p
-
-		echo -n -e 'YUY2\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
-
-		# Class-specific VS Frame Descriptor.
-		echo $yuv_width > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
-		echo $yuv_height > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wHeight
-
-		# echo 614400 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
-		echo $(( $yuv_width * $yuv_height * $yuv_bytes_per_pixel )) > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
-
-		echo 666666 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwDefaultFrameInterval
-
-		# Class-specifig VS Frame Descriptor.
-		cat <<EOF > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwFrameInterval
-666666
-2000000
-5000000
-EOF
-
-		mkdir -p functions/uvc.usb0/streaming/header/h
-		cd functions/uvc.usb0/streaming/header/h
-		ln -s ../../uncompressed/yuv
-		cd ../../class/fs
-		ln -s ../../header/h
-		cd ../../class/hs
-		ln -s ../../header/h
-		cd ../../class/ss
-		ln -s ../../header/h
-		cd ../../../control
-		mkdir header/h
-		ln -s header/h class/fs
-		ln -s header/h class/ss
-		cd ../../../
-
-		# Link everything up and bind the USB device.
-		ln -s functions/uvc.usb0 configs/c.1
-	fi
-
 	if [ "$usbmode_rndis" = true ] ; then
 		# This is together with the ms additions in the rndis function
 		# is to make windows detect the RNDIS device and choose the 6.0
@@ -251,6 +209,85 @@ EOF
 
 		# Link everything up and bind the USB device
 		ln -s functions/rndis.usb0 configs/c.1
+	fi
+
+	if [ "$usbmode_uvc" = true ] ; then
+		# Control endpoint packet size is 64 bytes.
+		echo 0x40 > bMaxPacketSize0
+
+		mkdir functions/uvc.usb0
+		echo 16 > functions/uvc.usb0/streaming_bulk_mult
+
+		mkdir -p functions/uvc.usb0/streaming/uncompressed/yuv/480p
+
+		echo -n -e 'UYVY\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
+
+		# Class-specific VS Frame Descriptor.
+		echo $yuv_width > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
+		echo $yuv_height > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wHeight
+
+		# echo 614400 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
+		echo $(( $yuv_width * $yuv_height * $yuv_bytes_per_pixel )) > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
+
+		echo 333333 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwDefaultFrameInterval
+
+		# Class-specifig VS Frame Descriptor.
+		cat <<EOF > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+		mkdir -p functions/uvc.usb0/streaming/mjpeg/frame/480p
+		echo $mjpg_width > functions/uvc.usb0/streaming/mjpeg/frame/480p/wWidth
+		echo $mjpg_height > functions/uvc.usb0/streaming/mjpeg/frame/480p/wHeight
+		echo 786432 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwMaxVideoFrameBufferSize
+		echo 333333 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwDefaultFrameInterval
+		cat <<EOF > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+		mkdir -p functions/uvc.usb0/streaming/framebased/mjls/480p
+		echo -n -e 'MJLS\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/mjls/guidFormat
+		echo 464 > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
+		echo 348 > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
+		echo 333333 > functions/uvc.usb0/streaming/framebased/mjls/480p/dwDefaultFrameInterval
+		cat <<EOF > functions/uvc.usb0/streaming/framebased/mjls/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+		mkdir -p functions/uvc.usb0/streaming/framebased/dfvi/480p
+		echo -n -e 'DFVI\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/dfvi/guidFormat
+		echo 464 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
+		echo 348 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
+		echo 333333 > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwDefaultFrameInterval
+		cat <<EOF > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+
+		mkdir -p functions/uvc.usb0/streaming/header/h
+		cd functions/uvc.usb0/streaming/header/h
+		ln -s ../../uncompressed/yuv
+		ln -s ../../mjpeg/frame
+		ln -s ../../framebased/mjls
+		ln -s ../../framebased/dfvi
+		cd ../../class/fs
+		ln -s ../../header/h
+		cd ../../class/hs
+		ln -s ../../header/h
+		cd ../../class/ss
+		ln -s ../../header/h
+		cd ../../../control
+		mkdir header/h
+		ln -s header/h class/fs
+		ln -s header/h class/ss
+		cd ../../../
+
+		# Link everything up and bind the USB device.
+		ln -s functions/uvc.usb0 configs/c.1
 	fi
 
 	if [ "$usbmode_mtp" = true ] ; then
@@ -296,9 +333,11 @@ enable_gadget() {
 		killall -USR1 fis 2>/dev/null
 	fi
 
-	if [ "$usbmode_uvc" = true ] && [ "$(pidof videoserver)" ]; then
-		#signal to videoserver to enable uvc stream
-		killall -USR1 videoserver 2>/dev/null
+	if [ "$usbmode_uvc" = true ] && [ "$(pidof streamserver)" ]; then
+		#signal to streamserver to enable uvc stream
+		# rset .rtp.uvc.transport bulk
+    	killall -USR1 streamserver 2>/dev/null
+		# rset .rtp.uvc.enable true
 	fi
 }
 
@@ -314,8 +353,9 @@ config_unload() {
 		exit 0 #This is not a failure.
 	fi
 
-	# Signal to videoserver to disable stream
-	killall -USR2 videoserver  2>/dev/null
+	# Signal to streamserver to disable stream
+	killall -USR2 streamserver 2>/dev/null
+	# rset .rtp.uvc.enable false
 	sleep 1 # allow stream to disable
 
 	# unbind usb device
@@ -330,8 +370,17 @@ config_unload() {
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/ss/h
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/hs/h
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/fs/h
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/dfvi
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/mjls
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/frame
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/yuv
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/dfvi/480p
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/dfvi
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/mjls/480p
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/mjls
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/mjpeg/frame/480p
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/mjpeg/frame
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv/480p
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv
 	
