@@ -21,6 +21,8 @@ SRC_URI_append = "\
              file://defconfig \
 "
 
+COMPATIBLE_MACHINE = "ec201|ec401w|rebb"
+
 # Set an external linux source, prevents Yocto from deleting your local changes
 #inherit externalsrc
 #EXTERNALSRC = "/home/...."
