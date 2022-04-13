@@ -11,8 +11,11 @@ cleanup_rootfs() {
    rm -rf ${IMAGE_ROOTFS}/opt
 }
 
-
 flir_rev_update() {
+    :
+}
+    
+flir_rev_updatex() {
    BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`;\
    if echo ${BLD_VERSION} | grep -vq "dirty"
    then
