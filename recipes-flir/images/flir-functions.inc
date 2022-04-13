@@ -12,15 +12,19 @@ cleanup_rootfs() {
 }
 
 flir_rev_update() {
-    :
-}
-    
-flir_rev_updatex() {
-   BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`;\
+   if ! grep -q ${REPODIR}/manifests $HOME/.gitconfig ; then
+      git config --global --add safe.directory ${REPODIR}/manifests 
+   fi
+   BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`
+
    if echo ${BLD_VERSION} | grep -vq "dirty"
    then
-      FLIR1DIR="${REPODIR}/../sources/meta-flir-base"; \
-      FLIR2DIR="${REPODIR}/../sources/meta-flir-internal"; \
+      FLIR1DIR="${REPODIR}/../sources/meta-flir-base"
+      FLIR2DIR="${REPODIR}/../sources/meta-flir-internal"
+      if ! grep -q ${FLIR1DIR} $HOME/.gitconfig ; then
+         git config --global --add safe.directory ${FLIR1DIR}
+      	 git config --global --add safe.directory ${FLIR2DIR}	
+      fi
       if ! ( git -C "${FLIR1DIR}" diff --quiet ) || \
          ( [ -d "${FLIR2DIR}" ] && ! ( git -C "${FLIR2DIR}" diff --quiet) )
       then
