@@ -1,5 +1,5 @@
 SUMMARY = "Calibration files management"
-DESCRIPTION = "Generate or update CameraFiles.zip"
+DESCRIPTION = "Generate or update CameraFiles.zip for Skylab"
 SECTION = "flir/application"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
@@ -30,9 +30,6 @@ do_install() {
     install -m 0644 ${WORKDIR}/calib-files-mgmt.service ${D}${systemd_unitdir}/system
     install -d ${D}/usr/bin/
     install -m 0744 ${WORKDIR}/calib-files-mgmt.sh ${D}/usr/bin/calib-files-mgmt.sh
-}
-
-do_install_append() {
     install -d ${D}/etc/
     install -m 0744 ${WORKDIR}/calib-files.lst ${D}/etc/calib-files.lst
 }
