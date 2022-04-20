@@ -1,11 +1,15 @@
-From dd077b8645798f15fea46dc81f895ee01127eaae Mon Sep 17 00:00:00 2001
+From 551a6809777dc8b67ef94eb9ad40e3671d0058ba Mon Sep 17 00:00:00 2001
 From: Erik Bengtsson <erik.bengtsson@flir.com>
 Date: Mon, 11 Apr 2022 09:06:47 +0200
 Subject: [PATCH 2/2] ec401w: Add button trigger sequence and chargeapp
 
-Add button trigger sequence for ec401w. It will listen to PRW
+Add button trigger sequence for ec401w. It will listen to PWR
 button and boot to linux, recovery or factory default depending
 on the users input.
+
+To go to recovery: With USB-cable inserted, hold power button until
+leds blink fast, then press five times, wait for leds to change,
+press 6 times. Device will now boot to recovery.
 
 Add led support for ec401w board. Leds show battery status, and
 patterns depending on boot mode.
@@ -15,13 +19,13 @@ Add chargeapp led support
  board/flir/ec401w/Makefile              |   1 +
  board/flir/ec401w/bootstate.c           |  11 +-
  board/flir/ec401w/chargeapp.c           |  62 ++------
- board/flir/ec401w/cmd_recoverytrigger.c | 184 +++++++++++++++++++-----
+ board/flir/ec401w/cmd_recoverytrigger.c | 193 +++++++++++++++++++-----
  board/flir/ec401w/ec401w.c              |   2 +-
- board/flir/ec401w/leds.c                | 158 ++++++++++++++++++++
+ board/flir/ec401w/leds.c                | 159 +++++++++++++++++++
  board/flir/ec401w/leds.h                |  13 ++
  board/flir/ec401w/pf1550.c              |  12 +-
  configs/mx7ulp_ec401w_defconfig         |   6 +
- 9 files changed, 353 insertions(+), 96 deletions(-)
+ 9 files changed, 361 insertions(+), 98 deletions(-)
  create mode 100644 board/flir/ec401w/leds.c
  create mode 100644 board/flir/ec401w/leds.h
 
@@ -194,7 +198,7 @@ index 06b2ab0138..2aea60d9ad 100644
  	return 0;
  }
 diff --git a/board/flir/ec401w/cmd_recoverytrigger.c b/board/flir/ec401w/cmd_recoverytrigger.c
-index d038bc127a..80b06ccaae 100644
+index d038bc127a..33690a962e 100644
 --- a/board/flir/ec401w/cmd_recoverytrigger.c
 +++ b/board/flir/ec401w/cmd_recoverytrigger.c
 @@ -35,16 +35,65 @@
@@ -264,7 +268,7 @@ index d038bc127a..80b06ccaae 100644
  int seq(int no)
  {
      if(get_press(2000) == OK)
-@@ -60,62 +109,133 @@ int seq(int no)
+@@ -60,62 +109,138 @@ int seq(int no)
  
      return OK;
  }
@@ -276,11 +280,12 @@ index d038bc127a..80b06ccaae 100644
  int check_recovery_sequence(void)
  {
 -    int ret;
-+    // sequence 1
-+    printf("sequence 1 start \n");
-     
+-    
 -    //wait for 0
 -    ret = trigger_wait_until(TRIG_OFF, 3000);
++    // sequence 1
++    printf("sequence 1 start \n");
++
 +    if(seq(5) == FAIL)
 +        return FAIL;
 +
@@ -293,7 +298,7 @@ index d038bc127a..80b06ccaae 100644
 +
 +    // sequence 2
 +    printf("sequence 2 start \n");
-+    
++
 +    if(seq(6) == FAIL)
 +        return FAIL;
 +
@@ -302,14 +307,16 @@ index d038bc127a..80b06ccaae 100644
 +    if(trigger_wait_until(TRIG_ON, 2000) == OK)
 +        return FAIL; // dont press again.
 +
++    leds_on(85, 1);
++
 +    return OK;
 +}
- 
--    if(ret == OK)
++
 +int check_button_sequence(void)
 +{
 +    int soc;
-+
+ 
+-    if(ret == OK)
 +    printf("Check button sequence\n");
 +
 +    if(trigger_wait_until(TRIG_OFF, SEQ_HOLD_START_MS) == OK)
@@ -319,7 +326,7 @@ index d038bc127a..80b06ccaae 100644
 +    get_battery_state_of_charge(&soc);
 +    leds_on(soc, NOT_CHARGING);
 +
-+    printf("Button sequence 1 %d\n", soc);
++    printf("Button sequence 1\n");
 +
 +    if(trigger_wait_until(TRIG_OFF, SEQ_DISPLAY_SOC_MS) == OK)
      {
@@ -348,10 +355,15 @@ index d038bc127a..80b06ccaae 100644
 -            return FAIL;
 +    if(trigger_wait_until(TRIG_OFF, SEQ_SLOW_FDEFAULT_MS) == OK)
 +    {
-+        if(check_recovery_sequence() == FAIL)
++        // Only go to recovery if cable is inserted
++        if(!get_usb_cable_state() || check_recovery_sequence() == FAIL)
 +        {
-+            leds_off;
-+            power_off;
++            leds_off();
++            power_off();
++        }
++        else
++        {
++            return OK;
 +        }
 +    }
  
@@ -365,8 +377,8 @@ index d038bc127a..80b06ccaae 100644
  
 +    if(trigger_wait_until(TRIG_OFF, SEQ_FAST_FDEFAULT_MS) == OK)
 +    {
-+        leds_off;
-+        power_off;
++        leds_off();
++        power_off();
      }
  
 -    printf("get_recovery_sequence: %d\n", ret);
@@ -392,16 +404,15 @@ index d038bc127a..80b06ccaae 100644
 -    int res = FAIL;
 +    int pwr_btn = 0;
  
-     printf("Check recovery\n");
+-    printf("Check recovery\n");
++    pcc_clock_enable(PER_CLK_PCTLC, true);
  
 -    //res = check_recovery_sequence();
-+    pcc_clock_enable(PER_CLK_PCTLC, true);
-+
 +    mx7ulp_iomux_setup_multiple_pads(btn_pwr_pad, ARRAY_SIZE(btn_pwr_pad));
-+
-+    gpio_request(PWR_GPIO, "pwr_gpio");
  
 -    if(res == FAIL)
++    gpio_request(PWR_GPIO, "pwr_gpio");
++
 +	pwr_btn = gpio_direction_input(PWR_GPIO);
 +
 +    if(pwr_btn == -1)
@@ -445,10 +456,10 @@ index 10665c80e5..baf54b8df5 100644
  
 diff --git a/board/flir/ec401w/leds.c b/board/flir/ec401w/leds.c
 new file mode 100644
-index 0000000000..0e711e8afa
+index 0000000000..57b63fbef8
 --- /dev/null
 +++ b/board/flir/ec401w/leds.c
-@@ -0,0 +1,158 @@
+@@ -0,0 +1,159 @@
 +#include <common.h>
 +#include <asm/io.h>
 +#include <dm.h>
@@ -464,6 +475,7 @@ index 0000000000..0e711e8afa
 +    LEDS_CRITICAL,
 +	LEDS_BLINK_SLOW,
 +	LEDS_BLINK_FAST,
++	LEDS_BLINK_BOOT,
 +    LEDS_LOW,
 +    LEDS_MED,
 +    LEDS_HIGH,
@@ -483,11 +495,11 @@ index 0000000000..0e711e8afa
 +void leds_on(int soc, int chg)
 +{
 +	leds_state_t new_state;
-+ 
++
 +    if(chg == CHARGING)
 +    {
 +        if (soc >= CHG_LEVEL_FULL)
-+	    	new_state = LEDS_CHG_FULL;
++			new_state = LEDS_CHG_FULL;
 +        else if (soc >= CHG_LEVEL_HIGH)
 +            new_state = LEDS_CHG_HIGH;
 +        else if (soc >= CHG_LEVEL_MED)
@@ -570,42 +582,42 @@ index 0000000000..0e711e8afa
 +			run_command("led 3 off", 0);
 +			run_command("led r blink 250", 0); //red
 +		case LEDS_OFF:
++			leds_off();
 +			break;
 +		default:
 +			break;
 +	}
-+	
 +	return;
 +}
 +
 +void leds_off(void)
 +{
-+	if(leds_state == LEDS_OFF)
-+		return;
-+	
-+	run_command("led p 2 1000", 0);
++	// Fade all
++	run_command("led p 2 500", 0);
++	run_command("led r off", 0);
 +	leds_state = LEDS_OFF;
 +	return;
 +}
 +
 +void leds_all_blink_slow(void)
 +{
-+	leds_off();
++	run_command("led r off", 0);
 +	run_command("led p 3 1000", 0);
-+
 +	leds_state = LEDS_BLINK_SLOW;
 +}
 +
 +void leds_all_blink_fast(void)
 +{
-+	leds_off();
++	run_command("led r off", 0);
 +	run_command("led p 3 500", 0);
 +	leds_state = LEDS_BLINK_FAST;
 +}
 +
 +void leds_boot(void)
 +{
++	run_command("led r off", 0);
 +	run_command("led p 0 600", 0);
++	leds_state = LEDS_BLINK_BOOT;
 +}
 \ No newline at end of file
 diff --git a/board/flir/ec401w/leds.h b/board/flir/ec401w/leds.h
