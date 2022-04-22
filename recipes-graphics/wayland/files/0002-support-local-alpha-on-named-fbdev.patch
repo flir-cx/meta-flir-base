@@ -1,0 +1,132 @@
+From 78da3c5ee360da715e6723c41e4c5cc3db775180 Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Fri, 22 Apr 2022 17:57:08 +0200
+Subject: [PATCH] Support local alpha on named fbdev
+
+Adds command line option to specify an fbdev that weston
+should enable local alpha for. This is IMX-specific and
+used to support and additional overlay, typically when
+running weston on two fbdevs, fb0 and fb1, and when fb1
+is used as a second overlay.
+
+%% original patch: 0002-support-local-alpha-on-named-fbdev.patch
+---
+ compositor/main.c                 |  2 ++
+ include/libweston/backend-fbdev.h |  1 +
+ libweston/backend-fbdev/fbdev.c   | 33 +++++++++++++++++++++++++++++++
+ 3 files changed, 36 insertions(+)
+
+diff --git a/compositor/main.c b/compositor/main.c
+index cbf06690..9683e4af 100644
+--- a/compositor/main.c
++++ b/compositor/main.c
+@@ -708,6 +708,7 @@ usage(int error_code)
+                "  \t\t\tG2D-only: The framebuffer device(s) to use\n"
+                "  --clone-mode\t\tG2D-only: Duplicate the display on the specified devices\n"
+ #endif
++               "  --local-alpha-device\t\tConfigure this device to use local alpha (IMX)\n"
+ #endif
+ 		"  --seat=SEAT\t\tThe seat that weston should run on, instead of the seat defined in XDG_SEAT\n"
+ 		"\n");
+@@ -2857,6 +2858,7 @@ load_fbdev_backend(struct weston_compositor *c,
+ #if defined(ENABLE_IMXG2D)
+ 		{ WESTON_OPTION_BOOLEAN, "clone-mode", 0, &config.clone_mode },
+ #endif
++                { WESTON_OPTION_STRING, "local-alpha-device", 0, &config.local_alpha_device },
+ #endif
+ 	};
+ 
+diff --git a/include/libweston/backend-fbdev.h b/include/libweston/backend-fbdev.h
+index da950a7e..fe705c9a 100644
+--- a/include/libweston/backend-fbdev.h
++++ b/include/libweston/backend-fbdev.h
+@@ -67,6 +67,7 @@ struct weston_fbdev_backend_config {
+ 	 * backend destruction.
+ 	 */
+ 	char *seat_id;
++        char *local_alpha_device;
+ };
+ 
+ #ifdef  __cplusplus
+diff --git a/libweston/backend-fbdev/fbdev.c b/libweston/backend-fbdev/fbdev.c
+index 624e548f..6660143f 100644
+--- a/libweston/backend-fbdev/fbdev.c
++++ b/libweston/backend-fbdev/fbdev.c
+@@ -54,6 +54,7 @@
+ #include "linux-explicit-synchronization.h"
+ 
+ #if defined(ENABLE_IMXGPU)
++#include <imx/linux/mxcfb.h>
+ #if defined(ENABLE_OPENGL)
+ #include "renderer-gl/gl-renderer.h"
+ #endif
+@@ -86,6 +87,7 @@ struct fbdev_backend {
+ 	int clone_mode;
+ 	char clone_device[50];
+ #endif
++	char local_alpha_device[50];
+ #endif
+ };
+ 
+@@ -482,6 +484,19 @@ fbdev_frame_buffer_open(const char *fb_dev,
+ 	return fd;
+ }
+ 
++/* Enables local alpha for fbdev device fd */
++static int
++fbdev_frame_buffer_conf_local_alpha(int fd, bool on)
++{
++        struct mxcfb_loc_alpha a = {0};
++
++        if (on) {
++                a.enable = 1;
++                a.alpha_in_pixel = 1;
++        }
++        return ioctl(fd, MXCFB_SET_LOC_ALPHA, &a);
++}
++
+ /* Closes the FD on success or failure. */
+ static int
+ fbdev_frame_buffer_map(struct fbdev_output *output, int fd)
+@@ -699,6 +714,7 @@ fbdev_head_create(struct fbdev_backend *backend, const char *device)
+ {
+ 	struct fbdev_head *head;
+ 	int fb_fd;
++        int retval = -1;
+ 
+ 	head = zalloc(sizeof *head);
+ 	if (!head)
+@@ -712,6 +728,15 @@ fbdev_head_create(struct fbdev_backend *backend, const char *device)
+ 		weston_log("Creating frame buffer head failed.\n");
+ 		goto out_free;
+ 	}
++
++        if (strcmp(head->device, backend->local_alpha_device) == 0) {
++                weston_log("Enabling local alpha on device %s\n", head->device);
++                retval = fbdev_frame_buffer_conf_local_alpha(fb_fd, true);
++                if (0 != retval) {
++                        weston_log("Could not enable local alpha on device %s\n",
++                                   head->device);
++                }
++        }
+ 	close(fb_fd);
+ 
+ 	if (!strcmp(head->fb_info.id, "mxc_epdc_fb")) {
+@@ -1075,6 +1100,14 @@ fbdev_backend_create(struct weston_compositor *compositor,
+ 	backend->use_g2d = param->use_g2d;
+ 	backend->clone_mode = param->clone_mode;
+ 	memcpy(&backend->clone_device[0], param->device, strlen(param->device));
++#endif
++#if defined(ENABLE_IMXGPU)
++        if (param->local_alpha_device) {
++            memcpy(&backend->local_alpha_device[0], param->local_alpha_device,
++                   strlen(param->local_alpha_device));
++        } else {
++            backend->local_alpha_device[0] = '\0';
++        }
+ #endif
+ 	backend->output_transform = param->output_transform;
+ 
+-- 
+2.25.1
+

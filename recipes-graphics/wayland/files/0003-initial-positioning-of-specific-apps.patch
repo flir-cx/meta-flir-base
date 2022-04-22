@@ -1,0 +1,70 @@
+From 7d043f2d20e517b1ce491fc36ac6bc58bc7bdfce Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Fri, 22 Apr 2022 18:01:44 +0200
+Subject: [PATCH] Initial positioning of specific apps
+
+Add support to position certain apps/windows. In particular,
+position the recsym window on the second output.
+
+%% original patch: 0003-initial-positioning-of-specific-apps.patch
+---
+ desktop-shell/shell.c | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 43 insertions(+)
+
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index 2446bbdb..83401715 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -4350,6 +4350,49 @@ weston_view_set_initial_position(struct weston_view *view,
+ 	struct weston_seat *seat;
+ 	pixman_rectangle32_t area;
+ 
++        weston_log("set_initial_position\n");
++
++        if (view->surface) {
++                const struct shell_surface *shsurf = get_shell_surface(view->surface);
++                const char *appid = weston_desktop_surface_get_app_id(shsurf->desktop_surface);
++                const char *title = weston_desktop_surface_get_title(shsurf->desktop_surface);
++                pixman_rectangle32_t output2_area = {
++                        .x = -1, .y = -1, .width = 0, .height = 0,
++                };
++
++                // Determine size and position of second output
++                wl_list_for_each(output, &compositor->output_list, link) {
++                        // Assume that the secondary output is the one NOT containing (0,0).
++                        if (!pixman_region32_contains_point(&output->region, 0, 0, NULL)) {
++                                get_output_work_area(shell, output, &area);
++                                output2_area = area;
++                                break;
++                        }
++                }
++
++                // Position some well-known applications
++                if (appid &&
++                    ((strcmp(appid, "se.flir.background") == 0) ||
++                     (strcmp(appid, "waylandsink") == 0) ||
++                     (strcmp(appid, "progressapp") == 0))) {
++                        weston_view_set_position(view, 0, 0);
++                        return;
++                } else if (appid && (strcmp(appid, "facet") == 0)) {
++                        if (title && (strcmp(title, "recsym") == 0)) {
++                                // Center on second output only if we have one
++                                if (output2_area.x >= 0) {
++                                        x = output2_area.x + output2_area.width/2 - view->surface->width/2;
++                                        y = output2_area.y;
++                                        weston_view_set_position(view, x, y);
++                                        return;
++                                }
++                        } else {
++                                weston_view_set_position(view, 0, 0);
++                                return;
++                        }
++                }
++        }
++
+ 	/* As a heuristic place the new window on the same output as the
+ 	 * pointer. Falling back to the output containing 0, 0.
+ 	 *
+-- 
+2.25.1
+
