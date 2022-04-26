@@ -10,3 +10,14 @@ background-color=0xFF000000
 
 " >> ${WESTON_INI}
 }
+
+do_install_append_eoco() {
+    WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
+
+    echo "
+[output]
+name=fbdev
+transform=rotate-180
+
+" >> ${WESTON_INI}
+}
