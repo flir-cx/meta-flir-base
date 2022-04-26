@@ -1,0 +1,79 @@
+From 97b3396e1efbfc9418e25195c5e47b48f67cdecf Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Mathias=20B=C3=A5ge?= <mathias.bage@flir.com>
+Date: Thu, 14 Apr 2022 13:00:47 +0200
+Subject: [PATCH] ec401w: recovery mode and factory default
+
+* Adds "recovery" or "factorydefault" to kernel
+command line (/proc/cmdline) depending on
+which button sequence is used.
+---
+ board/flir/ec401w/cmd_recoverytrigger.c |  7 ++++++-
+ include/configs/ec401w.h                | 13 +++++++++++--
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/board/flir/ec401w/cmd_recoverytrigger.c b/board/flir/ec401w/cmd_recoverytrigger.c
+index e0f8a25fb4..66b51ccc11 100644
+--- a/board/flir/ec401w/cmd_recoverytrigger.c
++++ b/board/flir/ec401w/cmd_recoverytrigger.c
+@@ -204,7 +204,9 @@ int check_button_sequence(void)
+         printf("Factory default\n");
+         // User release button while steady leds
+         // inject factory default here
+-        return FAIL;
++	printf("triggercommand = factorydefaultboot\n");
++	env_set("triggercommand", "factorydefaultboot");
++        return OK;
+     }
+     
+     return FAIL;
+@@ -214,6 +216,9 @@ int do_recoverytrigger(void)
+ {
+     int pwr_btn = 0;
+ 
++    printf("triggercommand = recoveryboot\n");
++    env_set("triggercommand", "recoveryboot");
++
+     pcc_clock_enable(PER_CLK_PCTLC, true);
+ 
+     mx7ulp_iomux_setup_multiple_pads(btn_pwr_pad, ARRAY_SIZE(btn_pwr_pad));
+diff --git a/include/configs/ec401w.h b/include/configs/ec401w.h
+index 948035e215..8d15938a07 100644
+--- a/include/configs/ec401w.h
++++ b/include/configs/ec401w.h
+@@ -165,7 +165,7 @@
+ #define CONFIG_BOOTCOMMAND \
+ 	"setmac;" \
+ 	"if recoverytrigger; then " \
+-		"run recoveryboot;" \
++		"run ${triggercommand};" \
+ 	"else " \
+ 		"run mmcbootflir;" \
+ 	"fi;" \
+@@ -276,7 +276,9 @@
+ */
+ #define CONFIG_REC_BOOT_ENV \
+ 	"recargs=setenv bootargs console=${console},${baudrate} " \
+-		"root=/dev/ram0 ethaddr=${ethaddr}\0" \
++		"root=/dev/ram0 recovery ethaddr=${ethaddr}\0" \
++        "fdefargs=setenv bootargs console=${console},${baudrate} " \
++		"root=/dev/ram0 factorydefault ethaddr=${ethaddr} factorydefault\0" \
+ 	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}\0" \
+ 	"initrd_addr=0x63800000\0" \
+ 	"initrd_file=uRamdisk.img\0" \
+@@ -290,6 +292,13 @@
+ 				 "setenv bootargs_linux ${bootargs}; " \
+ 				 "setenv mmcpart 1; " \
+ 				 "run loadfdt; run loadinitrd; run loadimage; " \
++				 "bootz ${loadaddr} ${initrd_addr} ${fdt_addr};\0" \
++\
++	"factorydefaultboot=echo Booting from mmc factory default;" \
++				 "run selectrecfdtfile; run fdefargs; " \
++				 "setenv bootargs_linux ${bootargs}; " \
++				 "setenv mmcpart 1; " \
++				 "run loadfdt; run loadinitrd; run loadimage; " \
+ 				 "bootz ${loadaddr} ${initrd_addr} ${fdt_addr};\0" 
+ 
+ 
+-- 
+2.25.1
+
