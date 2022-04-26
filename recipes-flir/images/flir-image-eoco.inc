@@ -14,7 +14,6 @@ IMAGE_INSTALL_append = "\
     flirfvdk \
     fliriptables \
     flirvcam \
-    fliryildun \
     gadgetload \
     haproxy \
     iputils-ping \
@@ -45,7 +44,7 @@ IMAGE_INSTALL_append = "\
 "
 
 # The UNBUILDABLE variable is just a placeholder for packages that used to
-# be included in yocto2 but that cannot (and sometimes should not) be built 
+# be included in yocto2 but that cannot (and sometimes should not) be built
 # in yocto3. This should be removed once yocto3 lift has been completed.
 UNBUILDABLE = "\
     kernel-module-btwilink \
