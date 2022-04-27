@@ -1,0 +1,13 @@
+[Unit]
+Description=FLIR internal prepare 
+DefaultDependencies=no
+After=sysinit.target
+ConditionPathExists=/dev/mmcblk0p7
+
+[Service]
+Type=simple
+ExecStartPre=/usr/sbin/internal-prepare
+ExecStart=/bin/echo "prepared internal"
+
+[Install]
+WantedBy=multi-user.target
