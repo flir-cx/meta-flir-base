@@ -21,6 +21,8 @@ IMAGE_INSTALL_append = "\
     libevdev \
     libubootenv-bin \
     mmc-utils \
+    mmc7mounter-intnl \
+    mmc7prepare \
     mtd-utils-jffs2 \
     qtbase \
     qtgraphicaleffects \
