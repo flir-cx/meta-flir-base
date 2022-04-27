@@ -13,7 +13,9 @@ then
     exit 1
 fi
 
-eval $(grep ssid= /etc/wpa_supplicant.conf | xargs echo -n)
+ssid=$(hostname)
+
+grep >/dev/null HABANERO /etc/wpa_supplicant.conf && sed -i "s/HABANERO/$ssid/" /etc/wpa_supplicant.conf
 
 # SSID maximum length is 18 chars
 if [ -n "$ssid" ]
@@ -50,7 +52,7 @@ done
 FLAGS="02 01 06"
 LENGTH=1A
 TYPE=FF
-COMPANY_ID="E9 04"   # little endian
+COMPANY_ID="E9 0A"   # little endian
 
 # note: 1st time setup bit (bit 0) not set yet
 if [ -a /etc/skylab/passkey-changed ]
