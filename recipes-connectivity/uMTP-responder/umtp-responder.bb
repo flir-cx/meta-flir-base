@@ -24,7 +24,6 @@ SRC_URI[sha256sum] = "6d5bb2fb217bb41268e3c20063b7307acacac66a3d31a9b2c4e777e3b9
 
 SRC_URI += "file://umtprd.conf"
 SRC_URI += "file://umtprd.service"
-SRC_URI += "file://umtprd-sd.conf"
 SRC_URI += "file://0001-Fix-usb-driver-close-if-SUSPEND-RESUME-events-comes-.patch"
 SRC_URI += "file://0002-Update-size-if-file-is-modified.patch"
 
@@ -42,5 +41,4 @@ do_install() {
     install -d ${D}/etc/
     install -d ${D}/etc/umtprd
     install -m 0644 ${S}/../umtprd.conf ${D}/etc/umtprd/umtprd.conf
-    install -m 0644 ${S}/../umtprd-sd.conf ${D}/etc/umtprd/umtprd-sd.conf
 }
