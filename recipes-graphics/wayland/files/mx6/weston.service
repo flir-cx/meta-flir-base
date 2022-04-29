@@ -70,4 +70,4 @@ UtmpMode=user
 [Install]
 # Note: If you only want weston to start on-demand, remove this line with a
 # service drop file
-WantedBy=graphical.target
+WantedBy=graphical.target charge.target

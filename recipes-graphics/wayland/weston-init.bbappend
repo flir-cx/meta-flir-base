@@ -1,5 +1,4 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
-SRC_URI += "file://weston.service_evco"
 
 # configure shell in weston.ini
 # set background alpha to fully transparent
@@ -14,6 +13,13 @@ background-color=0x00ffffff
 " >> ${WESTON_INI}
 }
 
+update_file() {
+# short circuit this meta-imx .bbappend patch function
+# (is only used to patch weston.service)
+# we provide our own (flir) weston.service based upon platform
+	:
+}
+
 do_install_append_eoco() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
 
@@ -23,10 +29,4 @@ name=fbdev
 transform=rotate-180
 
 " >> ${WESTON_INI}
-}
-
-# Use evco-specific weston.service
-do_install_append_evco() {
-    install -d ${D}${systemd_unitdir}/system
-    install -m 0644 ${WORKDIR}/weston.service_evco ${D}${systemd_unitdir}/system/weston.service
 }

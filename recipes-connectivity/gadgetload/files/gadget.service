@@ -9,4 +9,4 @@ ExecStop=/sbin/gadget.sh unload
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.target charge.target
