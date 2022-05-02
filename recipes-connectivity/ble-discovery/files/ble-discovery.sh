@@ -13,9 +13,14 @@ then
     exit 1
 fi
 
-ssid=$(hostname)
+eval `xargs -n 1 echo -e </proc/cmdline |fgrep btaddr=`
+ssid=ec401w_$(echo -n $btaddr|sed 's/://g'|cut -c7-)
 
-grep >/dev/null HABANERO /etc/wpa_supplicant.conf && sed -i "s/HABANERO/$ssid/" /etc/wpa_supplicant.conf
+if ! grep $ssid /etc/wpa_supplicant.conf >/dev/null
+then
+    echo Setting ssid to $ssid in /etc/wpa_supplicant.conf
+    sed -i "s/ssid=\(.*\)/ssid=\"$ssid\"/" /etc/wpa_supplicant.conf
+fi
 
 # SSID maximum length is 18 chars
 if [ -n "$ssid" ]
