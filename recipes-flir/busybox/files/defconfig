@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Busybox version: 1.33.1
-# Mon May  2 13:39:02 2022
+# Mon May  2 13:45:16 2022
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -855,7 +855,7 @@ CONFIG_FEATURE_BRCTL_SHOW=y
 # CONFIG_DNSD is not set
 # CONFIG_ETHER_WAKE is not set
 CONFIG_FTPD=y
-# CONFIG_FEATURE_FTPD_WRITE is not set
+CONFIG_FEATURE_FTPD_WRITE=y
 CONFIG_FEATURE_FTPD_ACCEPT_BROKEN_LIST=y
 # CONFIG_FEATURE_FTPD_AUTHENTICATION is not set
 CONFIG_FTPGET=y
