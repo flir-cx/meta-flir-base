@@ -1,0 +1,13 @@
+Index: wpa_supplicant-2.9/wpa_supplicant/systemd/wpa_supplicant.service.in
+===================================================================
+--- wpa_supplicant-2.9.orig/wpa_supplicant/systemd/wpa_supplicant.service.in
++++ wpa_supplicant-2.9/wpa_supplicant/systemd/wpa_supplicant.service.in
+@@ -6,7 +6,7 @@ Wants=network.target
+ [Service]
+ Type=dbus
+ BusName=fi.w1.wpa_supplicant1
+-ExecStart=@BINDIR@/wpa_supplicant -u
++ExecStart=@BINDIR@/wpa_supplicant -u -iwlan0 -Dnl80211 -c/etc/wpa_supplicant.conf
+ 
+ [Install]
+ WantedBy=multi-user.target
