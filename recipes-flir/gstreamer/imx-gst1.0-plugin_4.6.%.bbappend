@@ -5,4 +5,5 @@ SRC_URI_append = " \
    file://0008-Set-up-displays-for-Ninjago.patch \
    file://0009-Find-empty-buffer.patch \
    file://0010-Add-combine-support.patch \
+   file://0011-Buffer-out-of-sync.patch \
 "
