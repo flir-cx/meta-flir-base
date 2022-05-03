@@ -15,7 +15,7 @@ UBOOT_SRC ?= "git://bitbucketcommercial.flir.com:7999/camos/uboot-pingu.git;prot
 #SRCBRANCH = "FLIR_EC101_v21_04"
 #SRC_URI = "${UBOOT_SRC};branch=${SRCBRANCH}"
 SRC_URI = "${UBOOT_SRC};nobranch=1"
-SRCREV = "26624ed22ff5af37fbf6affa4fa22ace464d9645"
+SRCREV = "89c773a36178f22475c4f592075e44fd6687ce37"
 
 LOCALVERSION = "-${SRCBRANCH}"
 
