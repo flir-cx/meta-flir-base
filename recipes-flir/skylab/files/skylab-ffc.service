@@ -1,0 +1,11 @@
+[Unit]
+Description=Skylab cmd
+Before=skylab-cmd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ffc_3
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

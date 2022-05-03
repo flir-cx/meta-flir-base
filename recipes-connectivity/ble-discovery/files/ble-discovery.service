@@ -1,0 +1,10 @@
+[Unit]
+Description=BLE discovery by advertising SSID and (currently faked) camserial
+After=bluetooth.service
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/ble-discovery.sh on
+
+[Install]
+WantedBy=bluetooth.target

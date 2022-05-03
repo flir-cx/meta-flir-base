@@ -16,6 +16,14 @@ PROVIDES = "${PACKAGES}"
 PACKAGES += " \
     ${PN}-packages \
 "
+GSTREAMER_PACKAGES = " \
+    gst-interpipes \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-base-app \
+    gstreamer1.0-plugins-base-tcp \
+    gstreamer1.0-plugins-base-videorate \
+    gstreamer1.0-rtsp-server \
+"
 
 COMMON_PACKAGES = " \
     aufsrootfs \
@@ -37,12 +45,6 @@ COMMON_PACKAGES = " \
     fliruseradd \
     ftpd-service \
     glibmm \
-    gstreamer1.0-plugins-bad \
-    gstreamer1.0-plugins-base-app \
-    gstreamer1.0-plugins-base-tcp \
-    gstreamer1.0-plugins-base-videorate \
-    gstreamer1.0-rtsp-server \
-    gst-interpipes \
     i2c-tools \
     iproute2 \
     iw \
@@ -89,6 +91,7 @@ RDEPENDS_${PN}-packages = "\
 
 RDEPENDS_${PN}-packages_mx6 = "\
     ${COMMON_PACKAGES} \
+    ${GSTREAMER_PACKAGES} \
     imx-gpu-viv \
     imx-kobs \
     imx-lib \

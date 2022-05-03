@@ -1,0 +1,14 @@
+[Unit]
+Description=Skylab cmd
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/skylab-cmd \
+			      --verbosity=3 \
+			      --client-bind-endpoint=tcp://*:5551 \
+				  --fileio-bind-endpoint=tcp://*:5552
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

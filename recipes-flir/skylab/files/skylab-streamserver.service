@@ -1,0 +1,13 @@
+[Unit]
+Description=Skylab streamserver
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/skylab-streamserver \
+				       --verbosity=3 \
+				       --frames-bind-endpoint=tcp://*:5550
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
