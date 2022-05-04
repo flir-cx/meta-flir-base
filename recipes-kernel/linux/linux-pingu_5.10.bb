@@ -9,7 +9,7 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "390af13b1e7acd98789aadfccf8b29941c56644e"
+SRCREV = "63a0a1fc77cf60684a23e15ec392ef65d0d7ed24"
 # Temporarily: We use a special commit series for mx7 (ec201, ec401w...)
 # to be merged to the one and only SRCREV when mx7 is fully merged and
 # same commit works for all FLIR targets
@@ -31,3 +31,7 @@ COMPATIBLE_MACHINE = "evco|ec501|eoco"
 # Set an external linux source, prevents Yocto from deleting your local changes
 #inherit externalsrc
 #EXTERNALSRC = "/home/...."
+
+# Avoid getting the git commit hash in the /lib/modules path and kernel name.
+# This makes it easier to replace kernels and modules during development.
+#do_kernel_localversion[noexec] = "1"
