@@ -46,7 +46,7 @@ flir_rev_update() {
    sed -i s/IVERSION/${BLD_VERSION}/g ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i 's/BLDUSER/${USER}/g' ${IMAGE_ROOTFS}/etc/os-release ;\
    sed -i s/BLDHOST/${BLDHOST}/g ${IMAGE_ROOTFS}/etc/os-release ;\
-   cp --preserve=timestamps ${REPODIR}/manifest.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
+   cp --preserve=timestamps ${REPODIR}/manifests/default.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
 }
 
 link_licenses_info() {
