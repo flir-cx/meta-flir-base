@@ -81,7 +81,7 @@ IMAGE_CMD_recovery.vfat() {
     # Truncate the image to speed up the downloading/writing to the EMMC
     if [ -n "${BOARD_BOOTIMAGE_PARTITION_SIZE}" ]; then
         # U-Boot writes 512 bytes sectors so truncate the image at a sector boundary
-        truncate -s $(expr \( \( ${BOOTIMG_FILES_SIZE} + 511 \) / 512 \) \* 512) ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat
+        /usr/bin/truncate -s $(expr \( \( ${BOOTIMG_FILES_SIZE} + 511 \) / 512 \) \* 512) ${IMGDEPLOYDIR}/${IMAGE_NAME}.recovery.vfat
     fi
 
     # Create the symlink
