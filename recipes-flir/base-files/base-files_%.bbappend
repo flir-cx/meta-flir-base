@@ -5,19 +5,24 @@ SRC_URI_remove ="file://issue.net"
 
 dirs755 += "/FLIR /FLIR/usr /FLIR/system"
 
-do_install_append() {
-    if [ "${MACHINE}" = "neco" ]
-    then
-        ln -sf system/images ${D}/FLIR/images
-    fi
-    if [ "${MACHINE}" = "ec501" ] ||
-       [ "${MACHINE}" = "ec201" ] ||
-       [ "${MACHINE}" = "bblc" ] ||
-       [ "${MACHINE}" = "rebb" ]
-    then
-        install -m 0755 -d ${D}/FLIR/images
-    fi
-    rm -fd ${D}/media/FLIR
+do_install_append_neco() {
+    ln -sf system/images ${D}/FLIR/images
+}
+
+do_install_append_ec201() {
+    install -m 0755 -d ${D}/FLIR/images
+}
+
+do_install_append_ec501() {
+    install -m 0755 -d ${D}/FLIR/images
+}
+
+do_install_append_evco() {
+    install -m 0755 -d ${D}/FLIR/internal
+}
+
+do_install_append_eoco() {
+    install -m 0755 -d ${D}/FLIR/internal
 }
 
 do_install_basefilesissue () {

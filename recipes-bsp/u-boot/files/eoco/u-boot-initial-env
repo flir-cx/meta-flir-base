@@ -49,10 +49,10 @@ part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c
 part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e
 partition_mmc_flir=mmc rescan; if mmc dev ${mmcdev} 0; then gpt write mmc ${mmcdev} ${parts_flir}; mmc rescan; else if mmc dev ${mmcdev}; then gpt write mmc ${mmcdev} ${parts_flir}; mmc rescan; else; fi; fi; 
 partition_mmc_linux=mmc rescan;if mmc dev ${mmcdev} 0; then gpt write mmc ${mmcdev} ${parts_linux};mmc rescan;else if mmc dev ${mmcdev};then gpt write mmc ${mmcdev} ${parts_linux};mmc rescan;else;fi;fi;
-parts_flir="uuid_disk=${uuid_disk};start=2MiB,name=recovery,size=24MiB,uuid=${part1_uuid};name=rootfs1,size=512MiB,uuid=${part2_uuid};name=rootfs2,size=512MiB,uuid=${part3_uuid};name=rootfsrw,size=128MiB,uuid=${part4_uuid};name=apps,size=512MiB,uuid=${part5_uuid};name=data,size=512MiB,uuid=${part6_uuid};name=spare,size=-,uuid=${part7_uuid};"
+parts_flir="uuid_disk=${uuid_disk};start=2MiB,name=recovery,size=40MiB,uuid=${part1_uuid};name=rootfs1,size=504MiB,uuid=${part2_uuid};name=rootfs2,size=504MiB,uuid=${part3_uuid};name=rootfsrw,size=128MiB,uuid=${part4_uuid};name=apps,size=512MiB,uuid=${part5_uuid};name=data,size=512MiB,uuid=${part6_uuid};name=spare,size=-,uuid=${part7_uuid};"
 parts_linux="uuid_disk=${uuid_disk};start=2MiB,name=linux,size=64MiB,uuid=${part1_uuid};name=linux2,size=64MiB,uuid=${part2_uuid};name=rootfs,size=1GiB,uuid=${part3_uuid};name=rootfs2,size=1GiB,uuid=${part4_uuid};name=userfs,size=-,uuid=${part5_uuid};"
 recargs=setenv bootargs console=${console},${baudrate} root=/dev/ram0 ethaddr=${ethaddr}
-recboot=echo Booting preloaded recovery...; run recargs; bootm ${loadaddr} ${initrd_addr} ${fdt_addr};
+recboot=echo Booting preloaded recovery...; run recargs; bootm ${loadaddr} ${initrd_addr} ${fdt_addr}; 
 recoveryboot=echo Booting from mmc recovery;run selectrecfdtfile; run recargs; setenv bootargs_linux ${bootargs}; setenv mmcpart 1; run loadfdt; run loadinitrd; run loaduimage; bootm ${loadaddr} ${initrd_addr} ${fdt_addr};
 script=boot.scr
 select_boot=if itest.s ${system_active} == system2; then setenv mmcpart 3; setenv rootfs root=/dev/mmcblk0p3; else setenv mmcpart 2; setenv rootfs root=/dev/mmcblk0p2; fi; 
