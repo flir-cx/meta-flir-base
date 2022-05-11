@@ -20,8 +20,8 @@ flir_rev_update() {
 
    if echo ${BLD_VERSION} | grep -vq "dirty"
    then
-      FLIR1DIR=$(realpath "${REPODIR}/../sources/meta-flir-base")
-      FLIR2DIR=$(realpath "${REPODIR}/../sources/meta-flir-internal")
+      FLIR1DIR=$(/usr/bin/realpath "${REPODIR}/../sources/meta-flir-base")
+      FLIR2DIR=$(/usr/bin/realpath "${REPODIR}/../sources/meta-flir-internal")
       echo FLIR1DIR:${FLIR1DIR}
       echo FLIR2DIR:${FLIR2DIR}
       
