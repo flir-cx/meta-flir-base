@@ -9,12 +9,13 @@ IMAGE_INSTALL_append = " \
     brcm-patchram \
     btload \
     calib-files-mgmt \
-    cjson \
     connman \
     connman-client \
     exfat-utils \
+    flir-sysfs-links-service \
+    fliriptables \
+    flir-powerbutton \
     gadgetload \
-    iperf3 \
     iputils-ping \
     kernel-modules \
     lepton-m4 \
@@ -26,12 +27,8 @@ IMAGE_INSTALL_append = " \
     python \
     rng-tools \
     rpmsg-bifrost \
-    screen \
-    screen-service \
     skylab-service \
     sqlite3 \
-    system-sleep-flir \
-    tzdata \
     u-boot-fw-utils \
     u-boot-script \
     wlanload \
