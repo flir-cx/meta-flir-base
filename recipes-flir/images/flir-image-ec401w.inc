@@ -12,12 +12,14 @@ IMAGE_INSTALL_append = " \
     connman \
     connman-client \
     exfat-utils \
+    firmware-qca9377 \
     flir-sysfs-links-service \
     fliriptables \
     flir-powerbutton \
     gadgetload \
     iputils-ping \
     kernel-modules \
+    kernel-module-qca9377 \
     lepton-m4 \
     libevdev \
     libturbojpeg \
@@ -25,6 +27,7 @@ IMAGE_INSTALL_append = " \
     mmc7mounter \
     pubsftp \
     python \
+    qca-tools \
     rng-tools \
     rpmsg-bifrost \
     skylab-service \
@@ -34,10 +37,4 @@ IMAGE_INSTALL_append = " \
     wlanload \
     wpa-supplicant \
     zeromq \
-"
-
-UNBUILDABLE = "\
-    wifi-test-suite \
-    kernel-module-qca9377 \
-    system-sleep-qca9377 \
 "
