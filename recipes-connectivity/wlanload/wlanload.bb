@@ -18,9 +18,11 @@ SYSTEMD_AUTO_ENABLE_${PN} ?= "disable"
 SYSTEMD_AUTO_ENABLE_${PN}_evco = "disable"
 SYSTEMD_AUTO_ENABLE_${PN}_ec501 = "disable"
 SYSTEMD_AUTO_ENABLE_${PN}_roco = "enable"
+SYSTEMD_AUTO_ENABLE_${PN}_ec401w = "enable"
 
 SRC_URI += "file://wlanload.sh"
 SRC_URI += "file://wlanload.service"
+SRC_URI_append_ec401w = " file://udhcpd.conf"
 
 S = "${WORKDIR}"
 
@@ -29,4 +31,9 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/wlanload.service ${D}${systemd_unitdir}/system
     install -d ${D}/sbin/
     install -m 0744 ${WORKDIR}/wlanload.sh ${D}/sbin/wlanload
+}
+
+do_install_append_ec401w() {
+    install -d ${D}/etc/
+    install -m 0644 ${WORKDIR}/udhcpd.conf ${D}/etc/udhcpd.conf
 }
