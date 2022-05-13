@@ -1,7 +1,6 @@
 [Unit]
 Description=WLAN loader
-# wait for network to come up before we run
-After=network.target
+After=wpa_supplicant.service
 
 [Service]
 Type=forking

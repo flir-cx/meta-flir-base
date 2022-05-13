@@ -9,8 +9,6 @@ IMAGE_INSTALL_append = " \
     brcm-patchram \
     btload \
     calib-files-mgmt \
-    connman \
-    connman-client \
     exfat-utils \
     firmware-qca9377 \
     flir-sysfs-links-service \
