@@ -34,6 +34,7 @@ IMAGE_INSTALL_append = " \
     sqlite3 \
     u-boot-fw-utils \
     u-boot-script \
+    u-boot-default-env-pingu \
     wlanload \
     wpa-supplicant \
     zeromq \
