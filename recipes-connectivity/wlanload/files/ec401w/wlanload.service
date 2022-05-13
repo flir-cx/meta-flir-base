@@ -8,7 +8,7 @@ Type=forking
 # SIGINT doesn't leave the service in failed state
 KillSignal=SIGINT
 ExecStartPre=-/sbin/wlanload
-ExecStart=/usr/sbin/udhcpd -I192.168.0.1
+ExecStart=/usr/sbin/udhcpd -I192.168.87.1
 
 [Install]
 WantedBy=multi-user.target
