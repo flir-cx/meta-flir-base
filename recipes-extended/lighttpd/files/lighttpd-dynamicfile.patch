@@ -1,19 +1,19 @@
-From 82df030ee5c5042761455949fbbb1b48c30e94ec Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@flir.se>
-Date: Mon, 25 Nov 2019 11:56:37 +0100
+From 4780c61f4aa3030ed8a87f07e47ec21726ad068a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ulf=20Palm=C3=A9r?= <ulf.palmer@teledyneflir.com>
+Date: Wed, 18 May 2022 13:07:13 +0200
 Subject: [PATCH] Added mod_dynamicfile
 
 ---
  src/Makefile.am       |   5 +
- src/mod_dynamicfile.c | 386 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 391 insertions(+)
+ src/mod_dynamicfile.c | 344 ++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 349 insertions(+)
  create mode 100644 src/mod_dynamicfile.c
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 8b2828b..d141e3e 100644
+index 24915ae..55edb7b 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -210,6 +210,11 @@ mod_staticfile_la_SOURCES = mod_staticfile.c
+@@ -233,6 +233,11 @@ mod_staticfile_la_SOURCES = mod_staticfile.c
  mod_staticfile_la_LDFLAGS = $(common_module_ldflags)
  mod_staticfile_la_LIBADD = $(common_libadd)
  
@@ -27,30 +27,35 @@ index 8b2828b..d141e3e 100644
  mod_dirlisting_la_LDFLAGS = $(common_module_ldflags)
 diff --git a/src/mod_dynamicfile.c b/src/mod_dynamicfile.c
 new file mode 100644
-index 0000000..2cddc52
+index 0000000..48d68a8
 --- /dev/null
 +++ b/src/mod_dynamicfile.c
-@@ -0,0 +1,386 @@
+@@ -0,0 +1,344 @@
 +#include "first.h"
 +
-+#include "base.h"
-+#include "log.h"
++#include "request.h"
++#include "array.h"
 +#include "buffer.h"
++#include "log.h"
 +
 +#include "plugin.h"
 +
++#include <stdlib.h>
++#include <string.h>
++
 +#include <ctype.h>
 +#include "stat_cache.h"
-+#include "etag.h"
++#include "http_date.h"
++#include "http_etag.h"
 +#include "http_chunk.h"
++#include "http_header.h"
++
 +#include "response.h"
 +
 +#include <ctype.h>
-+#include <stdlib.h>
 +#include <unistd.h>
 +#include <fcntl.h>
 +#include <stdio.h>
-+#include <string.h>
 +#include <errno.h>
 +
 +/**
@@ -65,136 +70,79 @@ index 0000000..2cddc52
 +/* plugin config for all request/connections */
 +
 +typedef struct {
-+	array *include_ext;
++        const array *include_ext;
 +	int retries;
 +} plugin_config;
 +
 +typedef struct {
 +	PLUGIN_DATA;
-+
-+	plugin_config **config_storage;
-+
++        plugin_config defaults;
 +	plugin_config conf;
 +} plugin_data;
 +
 +/* init the plugin data */
 +INIT_FUNC(mod_dynamicfile_init) {
-+	plugin_data *p;
-+
-+	p = calloc(1, sizeof(*p));
-+        force_assert(p);
-+
-+	return p;
++        return calloc(1, sizeof(plugin_data));
 +}
 +
-+/* detroy the plugin data */
-+FREE_FUNC(mod_dynamicfile_free) {
-+	plugin_data *p = p_d;
++/* handle plugin config and check values */
 +
-+	UNUSED(srv);
++static void mod_dynamicfile_merge_config_cpv(plugin_config * const pconf, const config_plugin_value_t * const cpv) {
++    switch (cpv->k_id) { /* index into static config_plugin_keys_t cpk[] */
++      case 0: /* dynamicfile.array */
++        pconf->include_ext = cpv->v.a;
++        break;
++    case 1:   /* dynamicfile.retries */
++        pconf->retries = cpv->v.u;
++	
++    default:/* should not happen */
++        return;
++    }
++}
 +
-+	if (!p) return HANDLER_GO_ON;
++static void mod_dynamicfile_merge_config(plugin_config * const pconf, const config_plugin_value_t *cpv) {
++    do {
++        mod_dynamicfile_merge_config_cpv(pconf, cpv);
++    } while ((++cpv)->k_id != -1);
++}
 +
-+	if (p->config_storage) {
-+		size_t i;
-+		for (i = 0; i < srv->config_context->used; i++) {
-+			plugin_config *s = p->config_storage[i];
-+
-+			array_free(s->include_ext);
-+
-+			free(s);
-+		}
-+		free(p->config_storage);
-+	}
-+
-+	free(p);
-+
-+	return HANDLER_GO_ON;
++static void mod_dynamicfile_patch_config(request_st * const r, plugin_data * const p) {
++    p->conf = p->defaults; /* copy small struct instead of memcpy() */
++    /*memcpy(&p->conf, &p->defaults, sizeof(plugin_config));*/
++    for (int i = 1, used = p->nconfig; i < used; ++i) {
++        if (config_check_cond(r, (uint32_t)p->cvlist[i].k_id))
++            mod_dynamicfile_merge_config(&p->conf, p->cvlist+p->cvlist[i].v.u2[0]);
++    }
 +}
 +
 +/* handle plugin config and check values */
 +
 +SETDEFAULTS_FUNC(mod_dynamicfile_set_defaults) {
-+	plugin_data *p = p_d;
-+	size_t i = 0;
++  static const config_plugin_keys_t cpk[] = {
++      { CONST_STR_LEN("dynamic-file.include-extensions"),
++        T_CONFIG_ARRAY_VLIST,
++        T_CONFIG_SCOPE_CONNECTION }
++     ,{ CONST_STR_LEN("dynamic-file.retries"),
++        T_CONFIG_INT,
++        T_CONFIG_SCOPE_CONNECTION }
++     ,{ NULL, 0,
++        T_CONFIG_UNSET,
++        T_CONFIG_SCOPE_UNSET }
++    };
 +
-+	config_values_t cv[] = {
-+		{ "dynamic-file.include-extensions", NULL, T_CONFIG_ARRAY, T_CONFIG_SCOPE_CONNECTION },       /* 0 */
-+		{ "dynamic-file.retries", NULL, T_CONFIG_SHORT, T_CONFIG_SCOPE_CONNECTION },       /* 1 */
-+		{ NULL,			 NULL, T_CONFIG_UNSET, T_CONFIG_SCOPE_UNSET }
-+	};
++    plugin_data * const p = p_d;
++    if (!config_plugin_values_init(srv, p, cpk, "mod_dynamicfile"))
++        return HANDLER_ERROR;
 +
-+	if (!p) return HANDLER_ERROR;
++    /* initialize p->defaults from global config context */
++    if (p->nconfig > 0 && p->cvlist->v.u2[1]) {
++        const config_plugin_value_t *cpv = p->cvlist + p->cvlist->v.u2[0];
++        if (-1 != cpv->k_id)
++            mod_dynamicfile_merge_config(&p->defaults, cpv);
++    }
 +
-+	p->config_storage = calloc(1, srv->config_context->used * sizeof(specific_config *));
-+        force_assert(p->config_storage);
-+
-+	for (i = 0; i < srv->config_context->used; i++) {
-+                data_config const* config = (data_config const*)srv->config_context->data[i];
-+		plugin_config *s;;
-+
-+		s = calloc(1, sizeof(plugin_config));
-+                force_assert(s);
-+        
-+		s->include_ext    = array_init();
-+		s->retries	= 1;
-+
-+		cv[0].destination = s->include_ext;
-+		cv[1].destination = &(s->retries);
-+
-+		p->config_storage[i] = s;
-+
-+//		if (0 != config_insert_values_global(srv, ((data_config *)srv->config_context->data[i])->value, cv)) {
-+//	                return HANDLER_ERROR;
-+		
-+                if (0 != config_insert_values_global(srv, config->value, cv, i == 0 ? T_CONFIG_SCOPE_SERVER : T_CONFIG_SCOPE_CONNECTION)) {
-+			return HANDLER_ERROR;
-+		}
-+                
-+                if (!array_is_vlist(s->include_ext)) {
-+			log_error_write(srv, __FILE__, __LINE__, "s",
-+					"unexpected value for dynamicfile.array; expected list of \"urlpath\"");
-+			return HANDLER_ERROR;
-+		}
-+        }
-+
-+	return HANDLER_GO_ON;
-+}
-+
-+#define PATCH(x) \
-+	p->conf.x = s->x;
-+static int mod_dynamicfile_patch_connection(server *srv, connection *con, plugin_data *p) {
-+	size_t i, j;
-+	plugin_config *s = p->config_storage[0];
-+
-+	PATCH(include_ext);
-+	PATCH(retries);
-+
-+	/* skip the first, the global context */
-+	for (i = 1; i < srv->config_context->used; i++) {
-+		data_config *dc = (data_config *)srv->config_context->data[i];
-+		s = p->config_storage[i];
-+
-+		/* condition didn't match */
-+		if (!config_check_cond(srv, con, dc)) continue;
-+
-+		/* merge config */
-+		for (j = 0; j < dc->value->used; j++) {
-+			data_unset *du = dc->value->data[j];
-+
-+			if (buffer_is_equal_string(du->key, CONST_STR_LEN("dynamic-file.include-extensions"))) {
-+				PATCH(include_ext);
-+			}
-+			if (buffer_is_equal_string(du->key, CONST_STR_LEN("dynamic-file.retries"))) {
-+				PATCH(retries);
-+			}
-+		}
-+	}
-+
-+	return 0;
-+}
-+#undef PATCH
-+
++    return HANDLER_GO_ON;
++}    
 +
 +URIHANDLER_FUNC(mod_dynamicfile_subrequest) {
 +	plugin_data *p = p_d;
@@ -210,65 +158,66 @@ index 0000000..2cddc52
 +	char *mem_buffer = NULL;
 +	size_t file_length = 0, mem_length = 0;
 +
-+	/* someone else has done a decision for us */
-+	if (con->http_status != 0) return HANDLER_GO_ON;
-+	if (con->uri.path->used == 0) return HANDLER_GO_ON;
-+	if (con->physical.path->used == 0) return HANDLER_GO_ON;
++	/* get module config for request */
++	mod_dynamicfile_patch_config(r, p);
 +
++	/* someone else has done a decision for us */
++	if (r->http_status != 0) return HANDLER_GO_ON;
++	if (buffer_string_is_empty(&r->uri.path)) return HANDLER_GO_ON;
++	if (buffer_string_is_empty(&r->physical.path)) return HANDLER_GO_ON;
 +	/* someone else has handled this request */
-+	if (con->mode != DIRECT) return HANDLER_GO_ON;
++	if (NULL != r->handler_module) return HANDLER_GO_ON;
 +
 +	/* we only handle GET */
-+	switch(con->request.http_method) {
++	switch(r->http_method) {
 +	case HTTP_METHOD_GET:
 +		break;
 +	default:
 +		return HANDLER_GO_ON;
 +	}
 +
-+	mod_dynamicfile_patch_connection(srv, con, p);
-+
 +	/* process certain extensions */
 +	for (k = 0; k < p->conf.include_ext->used; k++) {
 +		ds = (data_string *)p->conf.include_ext->data[k];
 +
-+		if (ds->value->used == 0) continue;
++		if (ds->value.used == 0) continue;
 +
-+		if (buffer_is_equal_right_len(con->physical.path, ds->value, ds->value->used - 1)) {
++		if (buffer_is_equal_right_len(&r->physical.path, &ds->value, ds->value.used - 1)) {
 +			is_dynamic_extension = 1;
 +			break;
 +		}
 +	}
 +
 +	if (!is_dynamic_extension) {
-+		if (con->conf.log_request_handling) {
-+			log_error_write(srv, __FILE__, __LINE__,  "s",  "-- NOT handling file as dynamic file, extension forbidden");
++		if (r->conf.log_request_handling) {
++			log_error(r->conf.errh, __FILE__, __LINE__, "-- NOT handling file as dynamic file, extension forbidden");
 +		}
 +		return HANDLER_GO_ON;
 +	}
 +
 +
-+	if (con->conf.log_request_handling) {
-+		log_error_write(srv, __FILE__, __LINE__,  "s",  "-- handling file as dynamic file");
++	if (r->conf.log_request_handling) {
++		log_error(r->conf.errh, __FILE__, __LINE__,  "-- handling file as dynamic file");
 +	}
 +
-+	if (HANDLER_ERROR == stat_cache_get_entry(srv, con, con->physical.path, &sce)) {
-+		con->http_status = 403;
++	sce = stat_cache_get_entry(&r->physical.path);
++	if (NULL == sce ) {
 +
-+		log_error_write(srv, __FILE__, __LINE__, "sbsb",
-+				"not a regular file:", con->uri.path,
-+				"->", con->physical.path);
++		r->http_status = 403;
++
++		log_error(r->conf.errh, __FILE__, __LINE__, 
++				"not a regular file: %s -> %s", r->uri.path,
++				r->physical.path.ptr);
 +
 +		return HANDLER_FINISHED;
 +	}
 +
 +	if (!S_ISREG(sce->st.st_mode)) {
-+		con->http_status = 404;
++		r->http_status = 404;
 +
-+		if (con->conf.log_file_not_found) {
-+			log_error_write(srv, __FILE__, __LINE__, "sbsb",
-+					"not a regular file:", con->uri.path,
-+					"->", sce->name);
++		if (r->conf.log_file_not_found) {
++			log_error(r->conf.errh, __FILE__, __LINE__,
++					"not a regular file: %s -> %s", r->uri.path, sce->name);
 +		}
 +
 +		return HANDLER_FINISHED;
@@ -277,21 +226,26 @@ index 0000000..2cddc52
 +	/* mod_compress might set several data directly, don't overwrite them */
 +
 +	/* set response content-type, if not set already */
++	const buffer * const h =
++	  http_header_response_get(r,HTTP_HEADER_CONTENT_TYPE, CONST_STR_LEN("Content-Type"));
 +
-+	if (NULL == array_get_element(con->response.headers, "Content-Type")) {
-+		if (buffer_is_empty(sce->content_type)) {
++	if (NULL == h) {
++		if (buffer_string_is_empty(&sce->content_type)) {
 +			/* we are setting application/octet-stream, but also announce that
 +			 * this header field might change in the seconds few requests 
 +			 *
 +			 * This should fix the aggressive caching of FF and the script download
 +			 * seen by the first installations
 +			 */
-+			response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("application/octet-stream"));
++		  http_header_response_set(r, HTTP_HEADER_CONTENT_TYPE,
++					   CONST_STR_LEN("Content-Type"),
++					   CONST_STR_LEN("application/octet-stream"));
 +		} else {
-+			response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_BUF_LEN(sce->content_type));
++			 http_header_response_set(r, HTTP_HEADER_CONTENT_TYPE,
++						  CONST_STR_LEN("Content-Type"),
++						  CONST_BUF_LEN(&sce->content_type));
 +		}
 +	}
-+
 +	/* if we are still here, prepare body */
 +
 +	/* once file is opened, hold it open until done with it to make sure it 
@@ -299,34 +253,40 @@ index 0000000..2cddc52
 +	for (k = 0; k <= p->conf.retries; k++) {
 +		struct stat st;
 +
-+		if (con->conf.log_request_handling) {
-+			if (k) log_error_write(srv, __FILE__, __LINE__,  "sdsd",  "-- retry open ", k, " of ", p->conf.retries);
++		if (r->conf.log_request_handling) {
++			if (k) log_error(r->conf.errh, __FILE__, __LINE__,  "-- retry open %d of %d", k, p->conf.retries);
 +		}
 +#ifdef USE_FOPEN
-+		fp = fopen(con->physical.path->ptr, "r");
++		fp = fopen(r->physical.path.ptr, "r");
 +		if (NULL == fp) {
-+			//if (con->conf.log_request_handling) {
-+				log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- retry open ", k+1);
-+			//}
++			if (r->conf.log_request_handling) {
++				log_error(r->conf.errh, __FILE__, __LINE__, "-- retry open %d", k+1);
++			}
 +			usleep(1000);  // 1ms
 +			continue;
 +		}
 +		fd = fileno(fp);
 +#else
-+		fd = open(con->physical.path->ptr, O_RDONLY /*|O_NOATIME*/);
++		char *path = r->physical.path.ptr;
++		// fprintf(stderr, "uffe: to open %s\n", path);
++		fd = open(path, O_RDONLY /* | O_NOATIME */ );
 +		if (fd < 0) {
-+			//if (con->conf.log_request_handling) {
-+				log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- retry open ", k+1);
-+			//}
++			if (r->conf.log_request_handling) {
++				log_error(r->conf.errh, __FILE__, __LINE__,  "-- retry open %d", k+1);
++			}
++			// fprintf(stderr, "uffe: open %s failed, errno %d\n", path, errno);
 +			usleep(1000);  // 1ms
 +			continue;
 +		}
++		// fprintf(stderr, "uffe: opened %s (fd = %d)\n", path, fd);
++
 +#endif
++		
 +    /* track 2 different sizes because the chunk code assumes memory segments 
 +     * are null terminated: buffer has 1 extra byte over actual file size */
 +		st.st_size = 0;
 +		if (fstat(fd, &st)) {
-+			log_error_write(srv, __FILE__, __LINE__,  "ss",  "-- fstat failed ", strerror(errno));
++			log_error(r->conf.errh, __FILE__, __LINE__, "-- fstat failed %s", strerror(errno));
 +			return HANDLER_ERROR;
 +		}
 +
@@ -334,7 +294,7 @@ index 0000000..2cddc52
 +		mem_length = file_length + 1; 
 +		mem_buffer = calloc(1, mem_length);
 +		if (!mem_buffer) {
-+			log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- failed to calloc ", mem_length);
++			log_error(r->conf.errh, __FILE__, __LINE__, "-- failed to calloc %d", mem_length);
 +			close(fd);
 +		} else {
 +#ifdef USE_FOPEN
@@ -345,14 +305,15 @@ index 0000000..2cddc52
 +#ifdef VALIDATE_READ_COMPLETE
 +#ifdef USE_FOPEN
 +				if (ferror(fp))
-+					log_error_write(srv, __FILE__, __LINE__,  "sssd",  "-- file read failed: ", strerror(errno), ", size ", file_length);
++					log_error(r->conf.errh, __FILE__, __LINE__,  "-- file read failed: %s, size %d", strerror(errno), file_length);
 +				if (feof(fp))
-+					log_error_write(srv, __FILE__, __LINE__,  "sdsd",  "-- file read failed: EOF, size ", file_length, ", pos ", ftell(fp));
++					log_error(r->conf.errh, __FILE__, __LINE__,  "-- file read failed: EOF, size %d, pos %d", file_length, ftell(fp));
 +#endif
 +#endif
++// fprintf(stderr, "uffe: closes (fd = %d) A\n", fd);
 +				close(fd);
 +				free(mem_buffer);
-+				//con->http_status = 409;
++				//r->http_status = 409;
 +				//return HANDLER_FINISHED;
 +			} else {
 +#ifdef VALIDATE_READ_COMPLETE
@@ -360,16 +321,16 @@ index 0000000..2cddc52
 +				// force a final read, which had better fail and set EOF
 +				if (1 != fread(&c, 1, 1, fp)) {
 +					if (ferror(fp)) {
-+						log_error_write(srv, __FILE__, __LINE__,  "sssd",  "-- final file read failed: ", strerror(errno), ", size ", file_length);
++						log_error(r->conf.errh, __FILE__, __LINE__,  "-- final file read failed: %s, size %d", strerror(errno), file_length);
 +					} else if (feof(fp)) {
-+						if (k) log_error_write(srv, __FILE__, __LINE__,  "sdsd",  "-- recovered after retry ", k, ", size ", file_length);
-+						//else log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- final file read failed, but, OKAY...at EOF: size ", file_length);
++						if (k) log_error(r->conf.errh, __FILE__, __LINE__,  "-- recovered after retry %d, size %d", k, file_length);
++						//else log_error(srv, __FILE__, __LINE__,  "-- final file read failed, but, OKAY...at EOF: size %d", file_length);
 +						break;
 +					} else {
-+						log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- final file read failed, but not at EOF:  size ", file_length);
++						log_error(r->conf.errh, __FILE__, __LINE__,  "-- final file read failed, but not at EOF:  size %d", file_length);
 +					}
 +				} else {
-+					log_error_write(srv, __FILE__, __LINE__,  "sd",  "-- final file read did NOT fail, must not be at EOF:  size ", file_length);
++					log_error(r->conf.errh, __FILE__, __LINE__, "-- final file read did NOT fail, must not be at EOF:  size %d", file_length);
 +				}
 +				close(fd);
 +				free(mem_buffer);
@@ -382,21 +343,20 @@ index 0000000..2cddc52
 +	}	// for
 +
 +	if (0 > fd) {
-+		con->http_status = 404;
-+		con->file_finished = 0;
++		r->http_status = 404;
++		r->resp_body_finished = 1;
 +
-+		//if (con->conf.log_file_not_found) {
-+			log_error_write(srv, __FILE__, __LINE__,  "s",  "-- failed to open file ");
++		//if (r->conf.log_file_not_found) {
++			log_error(r->conf.errh, __FILE__, __LINE__,  "-- failed to open file ");
 +		//}
 +		return HANDLER_FINISHED;
 +	}
 +	close(fd);
-+
-+	http_chunk_append_mem(srv, con, mem_buffer, mem_length);
++	http_chunk_append_mem(r, mem_buffer, mem_length);
 +	free(mem_buffer);
 +
-+	con->http_status = 200;
-+	con->file_finished = 1;
++	r->http_status = 200;
++	r->resp_body_finished = 1;
 +
 +	return HANDLER_FINISHED;
 +}
@@ -406,17 +366,15 @@ index 0000000..2cddc52
 +int mod_dynamicfile_plugin_init(plugin *p);
 +int mod_dynamicfile_plugin_init(plugin *p) {
 +	p->version     = LIGHTTPD_VERSION_ID;
-+	p->name	= buffer_init_string("dynamicfile");
++	p->name	= "dynamicfile";
 +
 +	p->init	= mod_dynamicfile_init;
 +	p->handle_subrequest_start = mod_dynamicfile_subrequest;
 +	p->set_defaults  = mod_dynamicfile_set_defaults;
-+	p->cleanup     = mod_dynamicfile_free;
-+
-+	p->data	= NULL;
++	p->handle_uri_clean     = mod_dynamicfile_subrequest;
 +
 +	return 0;
 +}
 -- 
-1.9.1
+2.25.1
 

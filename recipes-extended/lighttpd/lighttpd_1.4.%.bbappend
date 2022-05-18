@@ -6,11 +6,9 @@ SRC_URI += " \
        file://lighttpd.conf \
        file://lighttpd.service \
        file://lighttpd.serviceadd \
+       file://lighttpd-dynamicfile.patch \
        file://lighttpd_env_check.sh \
 "
-
-#        file://lighttpd-dynamicfile.patch \
-#
 
 do_compile_append() {
     rm -f ${WORKDIR}/lighttpd_comb.service

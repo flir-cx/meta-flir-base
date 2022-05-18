@@ -57,6 +57,7 @@ COMMON_PACKAGES = " \
     lighttpd  \
     lighttpd-module-alias \
     lighttpd-module-cgi \
+    lighttpd-module-dynamicfile \
     lighttpd-module-fastcgi \
     lighttpd-module-proxy \
     lighttpd-module-redirect \
@@ -113,6 +114,5 @@ UNBUILDABLE = " \
     sleepd \
     gstreamer1.0-plugins-bad-fragmented \
     lighttpd-module-compress \
-    lighttpd-module-dynamicfile \
 "
 
