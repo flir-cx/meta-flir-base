@@ -72,6 +72,7 @@ TOOLCHAIN_TARGET_TASK_append = "\
     boost-staticdev \
     breakpad \
     breakpad-staticdev \
+    dbus-glib-dev \
     doctest-dev \
     glibmm-dev \
     googletest-staticdev \
@@ -89,5 +90,6 @@ TOOLCHAIN_TARGET_TASK_append = "\
     php-dev \
     stduuid-dev \
     valijson-dev \
+    cppzmq-dev \
     zstr-dev \
 "
