@@ -3,7 +3,8 @@ Description=Skylab streamserver
 After=network-online.target
 
 [Service]
-Type=simple
+Type=dbus
+BusName=com.flir.skylab1.streamserver
 ExecStart=/usr/bin/skylab-streamserver \
 				       --verbosity=3 \
 				       --frames-bind-endpoint=tcp://*:5550

@@ -7,7 +7,7 @@ LICENSE = "CLOSED"
 PR = "r1"
 PV = "1"
 
-RDEPENDS_${PN} += "bash"
+RDEPENDS_${PN} += "bash jpeg"
 
 inherit systemd
 

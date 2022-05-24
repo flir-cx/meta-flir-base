@@ -1,10 +1,11 @@
 [Unit]
-Description=Skylab cmd
+Description=Skylab cosw adapter
+After=skylab-streamserver.service
 Before=skylab-cmd.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/ffc_3
+ExecStart=/usr/bin/skylab-cosw-adapter
 Restart=on-failure
 
 [Install]
