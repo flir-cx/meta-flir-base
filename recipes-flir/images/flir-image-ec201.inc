@@ -41,6 +41,7 @@ IMAGE_INSTALL_append = "\
     umtp-responder \
     videorender-service \
     \
+    packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
     packagegroup-flir-pulseaudio-packages \
 "

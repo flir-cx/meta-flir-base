@@ -30,6 +30,8 @@ IMAGE_INSTALL_append = " \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
     \
+    packagegroup-flir-gstreamer \
+    packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
 "
 

@@ -12,6 +12,7 @@ inherit packagegroup
 PROVIDES = "${PACKAGES}"
 PACKAGES += " \
     ${PN}-gstreamer \
+    ${PN}-lighttpd \
     ${PN}-tools-testapps \
     ${PN}-tools-benchmark \
 "
@@ -24,6 +25,17 @@ RDEPENDS_${PN}-gstreamer = " \
     gstreamer1.0-meta-debug \
     gstreamer1.0-plugins-good-meta \
     ${MACHINE_GSTREAMER_PLUGIN} \
+"
+
+RDEPENDS_${PN}-lighttpd = " \
+    lighttpd  \
+    lighttpd-module-alias \
+    lighttpd-module-cgi \
+    lighttpd-module-dynamicfile \
+    lighttpd-module-fastcgi \
+    lighttpd-module-proxy \
+    lighttpd-module-redirect \
+    lighttpd-module-rewrite \
 "
 
 SOC_TOOLS_TESTAPPS = ""

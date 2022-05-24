@@ -56,7 +56,6 @@ IMAGE_INSTALL = " \
     libstdc++ \
     packagegroup-boot \
     packagegroup-flir-common-packages \
-    packagegroup-flir-gstreamer \
     packagegroup-machine-base \
 "
 

@@ -33,6 +33,8 @@ IMAGE_INSTALL_append = " \
 		      qtwayland qtwayland-plugins', '', d)} \
     v4l-utils \
     \
+    packagegroup-flir-gstreamer \
+    packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
 "
 

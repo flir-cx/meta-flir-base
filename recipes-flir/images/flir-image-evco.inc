@@ -46,6 +46,8 @@ IMAGE_INSTALL_append = "\
     u-boot-script \
     umtp-responder \
     \
+    packagegroup-flir-gstreamer \
+    packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
     packagegroup-flir-pulseaudio-packages \
 "

@@ -12,6 +12,8 @@ IMAGE_INSTALL_append = " \
     php-cgi \
     php-cli \
     php-opcache \
+    packagegroup-flir-gstreamer \
+    packagegroup-flir-lighttpd \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init ', '', d)} \
 "
