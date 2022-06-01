@@ -1,0 +1,146 @@
+From be5a0c8ab5f084311a5db39f614fee0aa50f5895 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?R=C3=BAni=20Eriksen?= <runi.eriksen@teledyneflir.com>
+Date: Wed, 1 Jun 2022 16:24:39 +0200
+Subject: [PATCH] ec401w: led current and boot pattern
+
+* Sets current of leds to create a subjectively equal level between them.
+* Boot pattern is now controlled by led engines.
+---
+ arch/arm/dts/imx7ulp-ec401w.dts |  8 ++---
+ drivers/led/led_lp5562.c        | 61 ++++++++-------------------------
+ 2 files changed, 18 insertions(+), 51 deletions(-)
+
+diff --git a/arch/arm/dts/imx7ulp-ec401w.dts b/arch/arm/dts/imx7ulp-ec401w.dts
+index c63fe87d80..2bb32de282 100644
+--- a/arch/arm/dts/imx7ulp-ec401w.dts
++++ b/arch/arm/dts/imx7ulp-ec401w.dts
+@@ -129,22 +129,22 @@
+ 		led0@0 {
+ 			reg = <0x2>; /* B */
+ 			label = "3";
+-			ti,led_current = <0x32>; /* 0.5ma */
++			ti,led_current = <0x04>;
+ 		};
+ 		led1@1 {
+ 			reg = <0x3>; /* G */
+ 			label = "2";
+-			ti,led_current = <0x32>; /* 0.5ma */
++			ti,led_current = <0x04>;
+ 		};
+ 		led2@2 {
+ 			reg = <0x4>; /* R */
+ 			label = "1";
+-			ti,led_current = <0x32>; /* 0.5ma */
++			ti,led_current = <0x05>;
+ 		};
+ 		led3@3 {
+ 			reg = <0xE>;
+ 			label = "r"; /* W */
+-			ti,led_current = <0x32>; /* 0.5ma */
++			ti,led_current = <0x19>;
+ 		};
+ 	};
+ };
+diff --git a/drivers/led/led_lp5562.c b/drivers/led/led_lp5562.c
+index 5451d01d96..0e786c2a83 100644
+--- a/drivers/led/led_lp5562.c
++++ b/drivers/led/led_lp5562.c
+@@ -331,50 +331,17 @@ static int lp5562_led_set_state(struct udevice *dev, enum led_state_t state)
+ 
+ #ifdef CONFIG_LED_BLINK
+ 
+-static int lp5562_led_pattern_boot(u16 *p1, u16 *p2, u16 *p3, u16 ramp_step, u16 wait_step)
++static int lp5562_led_pattern_boot(u16 *p1, u16 *p2, u16 *p3)
+ {
+-	int opc = 0;
+-	u16 *p;
+-
+-	// Engine 1
+-	p = p1;
+-	p[opc++] = LED_PGRM_WAIT_TRIGGER3;
+-	p[opc++] = LED_PGRM_INCREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_INCREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_DECREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_DECREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_GOTO_START;
++	static const u16 bp1[] = { 0x047F, 0xE004, 0xE200, 0x04FF, 0xE004, 0xE200, 0x0000, };
++	static const u16 bp2[] = { 0xE080, 0x047F, 0xE008, 0xE080, 0x04FF, 0xE008, 0x0000, };
++	static const u16 bp3[] = { 0xE100, 0x047F, 0xE002, 0xE100, 0x04FF, 0xE002, 0x0000, };
+ 
+-	// Engine 2
+-	p = p2;
+-	opc = 0;
+-	p[opc++] = LED_PGRM_WAIT_TRIGGER3;
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_INCREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_INCREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_DECREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_DECREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_GOTO_START;
++	memcpy(p1, bp1, sizeof(bp1));
++	memcpy(p2, bp2, sizeof(bp2));
++	memcpy(p3, bp3, sizeof(bp3));
+ 
+-	// Engine 3
+-	p = p3;
+-	opc = 0;
+-	p[opc++] = LED_PGRM_SEND_TRIGGER12;
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_INCREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_INCREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_WAIT_STEP(wait_step);
+-	p[opc++] = LED_PGRM_DECREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_DECREMENT_STEP(ramp_step);
+-	p[opc++] = LED_PGRM_GOTO_START;
+-
+-	return opc;
++	return sizeof(bp1);
+ }
+ 
+ static int lp5562_led_pattern_ramp_all(u16 *p1, u16 *p2, u16 *p3, u16 wait_time)
+@@ -521,7 +488,7 @@ static int lp5562_led_program_pattern(struct udevice *dev, int program, int peri
+ 	switch (program)
+ 	{
+ 		case PATTERN_BOOT:
+-			opcode = lp5562_led_pattern_boot(program1, program2, program3, BOOT_RAMP_STEP, WAIT_RAMP_STEP);
++			opcode = lp5562_led_pattern_boot(program1, program2, program3);
+ 			break;
+ 		case PATTERN_RAMP_ALL:
+ 			opcode = lp5562_led_pattern_ramp_all(program1, program2, program3, wait_time);
+@@ -537,11 +504,10 @@ static int lp5562_led_program_pattern(struct udevice *dev, int program, int peri
+ 			break;
+ 	}
+ 
+-	ret = lp5562_led_program_engine(parent_dev, program1, opcode, 1);
++	ret = lp5562_led_program_engine(parent_dev, program3, opcode, 3);
+ 	if(ret)
+ 	{
+-		printf("failed to program engine 1: %d", ret);
+-		goto done;
++		printf("failed to program engine 3: %d", ret);
+ 	}
+ 	ret = lp5562_led_program_engine(parent_dev, program2, opcode, 2);
+ 	if(ret)
+@@ -549,10 +515,11 @@ static int lp5562_led_program_pattern(struct udevice *dev, int program, int peri
+ 		printf("failed to program engine 2: %d", ret);
+ 		goto done;
+ 	}
+-	ret =lp5562_led_program_engine(parent_dev, program3, opcode, 3);
++	ret = lp5562_led_program_engine(parent_dev, program1, opcode, 1);
+ 	if(ret)
+ 	{
+-		printf("failed to program engine 3: %d", ret);
++		printf("failed to program engine 1: %d", ret);
++		goto done;
+ 	}
+ done:
+ 	return ret;
+-- 
+2.25.1
+
