@@ -36,7 +36,7 @@ Type=notify
 EnvironmentFile=/etc/default/weston
 ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb1 -g 640 480 640 480 32'
 ExecStartPre=/bin/bash -c '/bin/echo 0 > /sys/devices/platform/fb@0/graphics/fb1/blank'
-ExecStart=/usr/bin/weston --log=${XDG_RUNTIME_DIR}/weston.log --modules=systemd-notify.so --device=/dev/fb0,/dev/fb1 --local-alpha-device=/dev/fb1
+ExecStart=/usr/bin/weston --log=${XDG_RUNTIME_DIR}/weston.log --modules=systemd-notify.so --device=/dev/fb0,/dev/fb1 --local-alpha-device=/dev/fb1 --clone-from=/dev/fb0 --clone-to=/dev/fb4
 
 # Optional watchdog setup
 TimeoutStartSec=60

@@ -1,0 +1,101 @@
+From c646d22f968a1c617aee408fc8ad2711c164e927 Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@teledyneflir.com>
+Date: Wed, 1 Jun 2022 12:31:48 +0200
+Subject: [PATCH] Copy fb0 to fb4 for external display
+
+Signed-off-by: Klas Malmborg <klas.malmborg@teledyneflir.com>
+---
+ compositor/main.c                 |  4 ++++
+ include/libweston/backend-fbdev.h |  2 ++
+ libweston/backend-fbdev/fbdev.c   | 17 +++++++++++++++++
+ 3 files changed, 23 insertions(+)
+
+diff --git a/compositor/main.c b/compositor/main.c
+index 9683e4af..542ebc0d 100644
+--- a/compositor/main.c
++++ b/compositor/main.c
+@@ -2857,6 +2857,8 @@ load_fbdev_backend(struct weston_compositor *c,
+ #endif
+ #if defined(ENABLE_IMXG2D)
+ 		{ WESTON_OPTION_BOOLEAN, "clone-mode", 0, &config.clone_mode },
++        { WESTON_OPTION_STRING, "clone-from", 0, &config.clone_from },
++        { WESTON_OPTION_STRING, "clone-to", 0, &config.clone_to },
+ #endif
+                 { WESTON_OPTION_STRING, "local-alpha-device", 0, &config.local_alpha_device },
+ #endif
+@@ -2887,6 +2889,8 @@ load_fbdev_backend(struct weston_compositor *c,
+ 					     &config.base);
+ 
+ 	free(config.device);
++	free(config.clone_from);
++	free(config.clone_to);
+ 	return ret;
+ }
+ 
+diff --git a/include/libweston/backend-fbdev.h b/include/libweston/backend-fbdev.h
+index fe705c9a..de3942a1 100644
+--- a/include/libweston/backend-fbdev.h
++++ b/include/libweston/backend-fbdev.h
+@@ -47,6 +47,8 @@ struct weston_fbdev_backend_config {
+ #if defined(ENABLE_IMXG2D)
+ 	int use_g2d;
+ 	int clone_mode;
++	char *clone_from;
++	char *clone_to;
+ #endif
+ 	uint32_t output_transform;
+ 
+diff --git a/libweston/backend-fbdev/fbdev.c b/libweston/backend-fbdev/fbdev.c
+index 6660143f..01367460 100644
+--- a/libweston/backend-fbdev/fbdev.c
++++ b/libweston/backend-fbdev/fbdev.c
+@@ -86,6 +86,8 @@ struct fbdev_backend {
+ 	int use_g2d;
+ 	int clone_mode;
+ 	char clone_device[50];
++	char clone_from[50];
++	char clone_to[50];
+ #endif
+ 	char local_alpha_device[50];
+ #endif
+@@ -631,8 +633,17 @@ fbdev_output_enable(struct weston_output *base)
+ #if defined(ENABLE_IMXG2D)
+ 	} else if (backend->use_g2d) {
+ 		const char *g2d_device = head->device;
++        char dev_list[50] = { 0 };
+ 		if (backend->clone_mode)
+ 			g2d_device = &(backend->clone_device[0]);
++		else if (backend->clone_from[0] && backend->clone_to[0]) {
++            if (strcmp(head->device, backend->clone_from) == 0) {
++			    strcpy(dev_list, backend->clone_from);
++			    strcat(dev_list, ",");
++			    strcat(dev_list, backend->clone_to);
++    			g2d_device = &(dev_list[0]);
++            }
++        }
+ 
+ 		if (g2d_renderer->fbdev_output_create(&output->base,
+ 					backend->compositor->wl_display,
+@@ -1100,6 +1111,10 @@ fbdev_backend_create(struct weston_compositor *compositor,
+ 	backend->use_g2d = param->use_g2d;
+ 	backend->clone_mode = param->clone_mode;
+ 	memcpy(&backend->clone_device[0], param->device, strlen(param->device));
++    if (param->clone_from)
++    	memcpy(&backend->clone_from[0], param->clone_from, strlen(param->clone_from));
++    if (param->clone_to)
++    	memcpy(&backend->clone_to[0], param->clone_to, strlen(param->clone_to));
+ #endif
+ #if defined(ENABLE_IMXGPU)
+         if (param->local_alpha_device) {
+@@ -1253,6 +1268,8 @@ config_init_to_defaults(struct weston_fbdev_backend_config *config)
+ 	config->use_g2d = 0;
+ #endif
+ 	config->clone_mode = 0;
++    config->clone_from = NULL;
++    config->clone_to = NULL;
+ #endif
+ 	config->seat_id = NULL;
+ }
+-- 
+2.25.1
+
