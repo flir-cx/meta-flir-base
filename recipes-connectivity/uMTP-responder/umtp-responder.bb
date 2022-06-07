@@ -17,8 +17,8 @@ RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "umtprd.service"
 
 SRC_URI = "git://github.com/viveris/uMTP-Responder.git;protocol=https"
-#SRCREV = "73287dfd9d6ec187538d76c062a09d6757efea9d"
-SRCREV = "umtprd-1.6.2"
+SRCREV = "73287dfd9d6ec187538d76c062a09d6757efea9d"
+#SRCREV = "umtprd-1.6.2"
 SRC_URI[md5sum] = "6316eea31615c6261fd4053aeb405961"
 SRC_URI[sha256sum] = "6d5bb2fb217bb41268e3c20063b7307acacac66a3d31a9b2c4e777e3b99c77d8"
 

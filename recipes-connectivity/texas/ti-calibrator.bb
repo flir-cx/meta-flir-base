@@ -5,13 +5,13 @@ LICENSE = "Proprietary"
 LIC_FILES_CHKSUM = "file://COPYING;md5=4725015cb0be7be389cf06deeae3683d"
 PR = "r0"
 PV = "R8.8"
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+SRCREV = "b23772347318e5e3f724e9686f271efc01512708"
 
 DEPENDS = "libnl"
 
 #inherit autotools
 
-SRC_URI = "git://git.ti.com/wilink8-wlan/18xx-ti-utils.git;branch=master;tag=${PV}"
+SRC_URI = "git://git.ti.com/wilink8-wlan/18xx-ti-utils.git;branch=master"
 SRC_URI_append = " \
 	file://0001-Improved-Yocto-compatibility-of-Makefile.patch \
 	file://0001-remove-gcc10-noted-multiple-EFUSE_PARAMETER_TYPE_ENM.patch \

@@ -4,8 +4,9 @@ AUTHOR = "Peter Fitger <peter.fitger@flir.se>"
 LICENSE = "CLOSED"
 PR = "r0"
 PV = "R8.8"
+SRCREV = "fbb83426312f438a9248c1777ec3faa10a7ed55b"
 
-SRC_URI = "git://git.ti.com/wilink8-wlan/wl18xx-target-scripts.git;branch=sitara-scripts;tag=${PV}"
+SRC_URI = "git://git.ti.com/wilink8-wlan/wl18xx-target-scripts.git;branch=sitara-scripts"
 
 S = "${WORKDIR}/git"
 
