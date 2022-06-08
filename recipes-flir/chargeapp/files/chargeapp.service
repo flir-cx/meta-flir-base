@@ -1,16 +1,18 @@
 [Unit]
 Description=Chargeapp
+After=weston.service
 
 [Install]
 WantedBy=multi-user.target charge.target
 
 [Service]
 Type=simple
-ExecStart=/FLIR/usr/bin/chargeapp
+ExecStart=/FLIR/usr/bin/chargeapp -platform wayland
 ExecStop=/usr/bin/killall -HUP chargeapp
 KillMode=control-group
 TimeoutStopSec=10
 SuccessExitStatus=0 1
-Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
-Environment=QT_QPA_EGLFS_FB=/dev/fb0
-ExecStopPost=/bin/dd if=/dev/zero of=/dev/fb0 count=4800
+Environment=LD_LIBRARY_PATH=/lib:/usr/lib:/FLIR/usr/lib
+Environment=QT_PLUGIN_PATH=/usr/lib/plugins
+Environment=XDG_RUNTIME_DIR=/run/user/0
+Environment=QT_QPA_PLATFORM=wayland
