@@ -8,6 +8,7 @@ IMAGE_INSTALL_append = "\
     bluez5 \
     brcm-patchram \
     btload \
+    camcloudsync \
     chargelogo \
     cjson \
     exfat-utils \

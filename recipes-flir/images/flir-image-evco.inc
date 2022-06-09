@@ -9,6 +9,7 @@ IMAGE_INSTALL_append = "\
     autofs \
     bluez5 \
     btload \
+    camcloudsync \
     chargeapp-service \
     chargelogo \
     firmware-imx-vpu-imx6d \
