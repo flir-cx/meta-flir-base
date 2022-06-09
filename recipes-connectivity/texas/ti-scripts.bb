@@ -3,7 +3,7 @@ DESCRIPTION = "Based on build_xl18xx.sh copying miscellaneous scripts"
 AUTHOR = "Peter Fitger <peter.fitger@flir.se>"
 LICENSE = "CLOSED"
 PR = "r0"
-PV = "R8.7_SP3"
+PV = "R8.8"
 
 SRC_URI = "git://git.ti.com/wilink8-wlan/wl18xx-target-scripts.git;branch=sitara-scripts;tag=${PV}"
 
