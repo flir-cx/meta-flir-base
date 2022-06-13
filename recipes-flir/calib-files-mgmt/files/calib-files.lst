@@ -5,3 +5,5 @@
 /FLIR/system/RotationMapCCW_Lepton160.fff	CameraFiles/system/RotationMapCCW_Lepton160.fff
 /FLIR/system/RotationMapCW_Lepton160.fff	CameraFiles/system/RotationMapCW_Lepton160.fff
 /FLIR/system/ZoomMap_Lepton160.fff		CameraFiles/system/ZoomMap_Lepton160.fff
+/usr/share/common-licenses/license.manifest	CameraFiles/system/license.manifest
+/usr/share/common-licenses/licenses.html	CameraFiles/system/licenses.html
