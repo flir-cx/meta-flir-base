@@ -9,7 +9,7 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "fe5b41c7bd8ba1d794695a3af29fbe6303b92ed5"
+SRCREV = "d54693bf61cf01ef8489afb7985237bb0e2e6002"
 # Temporarily: We use a special commit series for mx7 (ec201, ec401w...)
 # to be merged to the one and only SRCREV when mx7 is fully merged and
 # same commit works for all FLIR targets
