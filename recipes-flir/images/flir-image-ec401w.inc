@@ -24,7 +24,6 @@ IMAGE_INSTALL_append = " \
     mmc-utils \
     mmc7mounter \
     pubsftp \
-    python \
     qca-tools \
     rng-tools \
     rpmsg-bifrost \

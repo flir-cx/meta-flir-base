@@ -64,7 +64,6 @@ COMMON_PACKAGES = " \
     os-release \
     parted \
     pciutils \
-    python3-core \
     sudo \
     sysfsutils \
     sysmon-service \
@@ -89,6 +88,7 @@ RDEPENDS_${PN}-packages_mx6 = "\
     imx-kobs \
     imx-lib \
     kernel-devicetree \
+    python3-core \
 "
 
 RDEPENDS_${PN}-packages_mx7 = "\
