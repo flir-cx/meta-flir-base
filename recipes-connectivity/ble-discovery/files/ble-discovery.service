@@ -1,10 +1,11 @@
 [Unit]
-Description=BLE discovery by advertising SSID and (currently faked) camserial
+Description=BLE discovery: started advserver daemon
 After=bluetooth.service
 
 [Service]
-Type=oneshot
-ExecStart=/sbin/ble-discovery.sh on
+Type=simple
+ExecStart=/sbin/ble-discovery.sh
+Restart=on-failure
 
 [Install]
 WantedBy=bluetooth.target
