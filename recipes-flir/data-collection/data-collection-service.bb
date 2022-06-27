@@ -17,6 +17,9 @@ SRC_URI = "\
            file://data-collection.service \
 "
 
+# Keep service disabled as default if not stated otherwise
+SYSTEMD_AUTO_ENABLE_${PN} ?= "disable"
+
 S = "${WORKDIR}"
 
 do_compile[noexec] = "1"

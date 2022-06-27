@@ -12,6 +12,7 @@ IMAGE_INSTALL_append = "\
     camcloudsync \
     chargeapp-service \
     chargelogo \
+    data-collection-service \
     firmware-imx-vpu-imx6d \
     flirbifrost \
     flirfad \
