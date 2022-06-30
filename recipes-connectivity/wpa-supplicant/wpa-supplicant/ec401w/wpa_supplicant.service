@@ -8,6 +8,7 @@ Wants=network.target
 Type=dbus
 BusName=fi.w1.wpa_supplicant1
 ExecStart=/usr/sbin/wpa_supplicant -u -c /etc/wpa_supplicant.conf -iwlan0 -D nl80211
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
