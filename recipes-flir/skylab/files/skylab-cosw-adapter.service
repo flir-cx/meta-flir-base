@@ -7,6 +7,7 @@ Before=skylab-cmd.service
 Type=simple
 ExecStart=/usr/bin/skylab-cosw-adapter
 Restart=on-failure
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 
 [Install]
 WantedBy=multi-user.target

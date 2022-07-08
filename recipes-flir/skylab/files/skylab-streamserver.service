@@ -7,6 +7,7 @@ Type=dbus
 BusName=com.flir.skylab1.streamserver
 ExecStart=/usr/bin/skylab-streamserver
 Restart=on-failure
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 
 [Install]
 WantedBy=multi-user.target
