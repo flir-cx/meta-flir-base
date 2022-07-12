@@ -1,6 +1,7 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 SRC_URI += "file://flir-system.conf \
+            file://systemd-random-seed.service \
 "
 
 do_install_append() {
