@@ -92,7 +92,8 @@ get_mode(){
 	echo "validate usbmode"
 
 	# Validate USB mode.
-	if	[ ! $usbmode = "RNDIS" ]
+	if	[ ! $usbmode = "RNDIS" ] &&
+		[ ! $usbmode = "NONE" ]
 	then
 		printf "Usb mode \"$usbmode\" is not supported, setting usbmode to default \"$usbmode_default\"\n"
 		usbmode="${usbmode_default}"
@@ -108,6 +109,13 @@ get_mode(){
 
 config_load() {
 	get_mode
+
+	if [[ $usbmode == "NONE" ]] ; then
+		echo "Usbmode NONE, making sure it is not loaded"
+		config_unload
+		exit 0
+	fi
+
 	[ ! -d "${gadget_root}" ] && modprobe libcomposite
 
 	if [ -d "${gadget_path}" ]
