@@ -1,0 +1,108 @@
+From 47592bd67da378270908b3ead2fb93e0397134bc Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Fri, 15 Jul 2022 15:25:24 +0200
+Subject: [PATCH] Don't automatically focus new surfaces. Base decision on
+ doing so by which layer they are in.
+
+---
+ desktop-shell/shell.c         | 35 +++++++++++++++++++++++++++++++++--
+ include/libweston/libweston.h |  1 +
+ libweston/input.c             |  4 ++++
+ 3 files changed, 38 insertions(+), 2 deletions(-)
+
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index 83401715..fe121ab2 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -1943,6 +1943,31 @@ shell_surface_calculate_layer_link (struct shell_surface *shsurf)
+ 	return &ws->layer.view_list;
+ }
+ 
++/*
++ * Compare two surfaces to determine if refocus should happen.
++ * Currently by comparing which layer they are in. A surface
++ * in a higher layer gets focus.
++ */
++static bool
++shell_surface_meets_refocus_criteria(struct weston_surface *a, struct weston_surface *b)
++{
++        if (a == NULL || b == NULL) {
++                return true;
++        }
++
++        struct shell_surface *a_shsurf = get_shell_surface(a);
++        struct shell_surface *b_shsurf = get_shell_surface(b);
++
++        if (a_shsurf == NULL || a_shsurf->view == NULL ||
++            b_shsurf == NULL || b_shsurf->view == NULL)
++                return true;
++
++        enum weston_layer_position a_pos = a_shsurf->view->layer_link.layer->position;
++        enum weston_layer_position b_pos = b_shsurf->view->layer_link.layer->position;
++
++        return a_pos >= b_pos;
++}
++
+ static void
+ shell_surface_update_child_surface_layers (struct shell_surface *shsurf)
+ {
+@@ -3895,6 +3920,7 @@ activate(struct desktop_shell *shell, struct weston_view *view,
+ 	struct workspace *ws;
+ 	struct weston_surface *old_es;
+ 	struct shell_surface *shsurf, *shsurf_child;
++        bool refocus = true;
+ 
+ 	main_surface = weston_surface_get_main_surface(es);
+ 	shsurf = get_shell_surface(main_surface);
+@@ -3912,14 +3938,19 @@ activate(struct desktop_shell *shell, struct weston_view *view,
+ 	if (shsurf->output)
+ 		lower_fullscreen_layer(shell, shsurf->output);
+ 
+-	weston_view_activate(view, seat, flags);
++	weston_view_activate(view, seat, flags | WESTON_ACTIVATE_FLAG_NO_FOCUS);
+ 
+ 	state = ensure_focus_state(shell, seat);
+ 	if (state == NULL)
+ 		return;
+ 
+ 	old_es = state->keyboard_focus;
+-	focus_state_set_focus(state, es);
++
++        refocus = shell_surface_meets_refocus_criteria(es, old_es);
++        if (refocus) {
++                focus_state_set_focus(state, es);
++                weston_view_activate(view, seat, flags);
++        }
+ 
+ 	if (weston_desktop_surface_get_fullscreen(shsurf->desktop_surface) &&
+ 	    flags & WESTON_ACTIVATE_FLAG_CONFIGURE)
+diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
+index 23a0982e..ca385dc8 100644
+--- a/include/libweston/libweston.h
++++ b/include/libweston/libweston.h
+@@ -1555,6 +1555,7 @@ enum weston_activate_flag {
+ 	WESTON_ACTIVATE_FLAG_NONE = 0,
+ 	WESTON_ACTIVATE_FLAG_CONFIGURE = 1 << 0,
+ 	WESTON_ACTIVATE_FLAG_CLICKED = 1 << 1,
++	WESTON_ACTIVATE_FLAG_NO_FOCUS = 1 << 2,
+ };
+ 
+ void
+diff --git a/libweston/input.c b/libweston/input.c
+index b4e2c66f..efbbaa2c 100644
+--- a/libweston/input.c
++++ b/libweston/input.c
+@@ -1872,6 +1872,10 @@ weston_view_activate(struct weston_view *view,
+ 			peek_next_activate_serial(compositor);
+ 	}
+ 
++        if (flags & WESTON_ACTIVATE_FLAG_NO_FOCUS) {
++                return;
++        }
++
+ 	weston_seat_set_keyboard_focus(seat, view->surface);
+ }
+ 
+-- 
+2.25.1
+
