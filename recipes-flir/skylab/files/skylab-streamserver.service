@@ -1,6 +1,6 @@
 [Unit]
 Description=Skylab streamserver
-After=network-online.target
+After=network.target bluetooth.target
 
 [Service]
 Type=dbus

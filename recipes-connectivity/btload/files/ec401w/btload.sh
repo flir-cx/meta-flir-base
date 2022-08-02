@@ -5,12 +5,8 @@ FW_ADDR_FILE="/etc/bluetooth/.bt_nv.bin"
 
 echo "Loading Bluetooth device driver"
 
-#get btaddr from nvram
-if [ -f "/proc/device-tree/bluetooth/mac-address" ]; then
-	BTADDR="$(hexdump -ve '1/1 "%02X" ":"' /proc/device-tree/bluetooth/mac-address | sed 's/:$//g')"
-else
-	BTADDR="$(sed -ne 's,^.*btaddr=\([^[:blank:]]\+\)[:blank:]*.*,\1,g;T;p' /proc/cmdline)"
-fi
+#get btaddr from cmdline
+BTADDR="$(sed -ne 's,^.*btaddr=\([^[:blank:]]\+\)[:blank:]*.*,\1,g;T;p' /proc/cmdline)"
 if [ -z "${BTADDR}" -o "${BTADDR}" = "00:00:00:00:00:00" ]; then
 	BTADDR="00:04:F3:FF:FF:FC"
 fi
@@ -25,7 +21,6 @@ done
 #fills stderr with logs...
 hciattach ttyLP2 qca 2>/dev/null
 
-sleep 1
 rfkill unblock bluetooth
 
 if hciconfig hci0 up; then

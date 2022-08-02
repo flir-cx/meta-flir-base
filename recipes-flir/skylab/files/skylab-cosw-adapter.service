@@ -1,7 +1,6 @@
 [Unit]
 Description=Skylab cosw adapter
-After=skylab-streamserver.service
-Before=skylab-cmd.service
+After=network.target bluetooth.target
 
 [Service]
 Type=simple

@@ -24,10 +24,13 @@ GSTREAMER_PACKAGES = " \
     gstreamer1.0-rtsp-server \
 "
 
-COMMON_PACKAGES = " \
-    aufsrootfs \
+AVAHI_PACKAGES = " \
     avahi-daemon \
     avahi-dnsconfd \
+"
+
+COMMON_PACKAGES = " \
+    aufsrootfs \
     bash \
     bootlogo \
     connman \
@@ -78,10 +81,12 @@ COMMON_PACKAGES = " \
 
 RDEPENDS_${PN}-packages = "\
     ${COMMON_PACKAGES} \
+    ${AVAHI_PACKAGES} \
 "
 
 RDEPENDS_${PN}-packages_mx6 = "\
     ${COMMON_PACKAGES} \
+    ${AVAHI_PACKAGES} \
     ${GSTREAMER_PACKAGES} \
     imx-gpu-viv \
     imx-kobs \

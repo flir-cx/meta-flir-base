@@ -4,6 +4,8 @@ require flir-image-base.inc
 inherit populate_sdk_qt5
 
 IMAGE_INSTALL_append = "\
+    avahi-daemon \
+    avahi-dnsconfd \
     haproxy \
     bluez5 \
     brcm-patchram \
