@@ -17,7 +17,6 @@ PACKAGES += " \
     ${PN}-packages \
 "
 GSTREAMER_PACKAGES = " \
-    gst-interpipes \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-plugins-base-app \
     gstreamer1.0-plugins-base-tcp \
