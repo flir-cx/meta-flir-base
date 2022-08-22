@@ -7,7 +7,6 @@ network={
         proto=RSN
         psk="12345678"
         mode=2
-        frequency=2412
         pairwise=CCMP
         group=CCMP
 }
