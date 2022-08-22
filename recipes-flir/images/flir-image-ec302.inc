@@ -20,6 +20,7 @@ IMAGE_INSTALL_append = "\
     gstreamer1.0-rtsp-server \
     iputils-ping \
     kernel-modules \
+    kernel-module-qca9377 firmware-qca9377 \
     lepton-m4 \
     libevdev \
     libubootenv-bin \

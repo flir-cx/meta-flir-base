@@ -22,6 +22,10 @@ SRC_URI_append = "\
              file://defconfig \
 "
 
+SRC_URI_append_ec302 += "\
+             file://0001-qca9377-oot.patch \
+"
+
 COMPATIBLE_MACHINE = "evco|ec501|eoco|ec701|ec302|ec201"
 
 # Set an external linux source, prevents Yocto from deleting your local changes

@@ -1,0 +1,153 @@
+From c18cc73bf861c2aad7c02a32709f048eb8f4616a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?R=C3=BAni=20Eriksen?= <runi.eriksen@teledyneflir.com>
+Date: Tue, 16 Aug 2022 16:40:57 +0200
+Subject: [PATCH] Updated timespec structures to 64 variant
+
+---
+ CORE/HDD/src/wlan_hdd_cfg80211.c             |  4 ++--
+ CORE/SVC/src/logging/wlan_logging_sock_svc.c |  2 +-
+ CORE/VOSS/inc/vos_cnss.h                     | 16 ++++++++--------
+ CORE/VOSS/src/vos_api.c                      |  8 ++++----
+ CORE/VOSS/src/vos_timer.c                    |  4 ++--
+ 5 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/CORE/HDD/src/wlan_hdd_cfg80211.c b/CORE/HDD/src/wlan_hdd_cfg80211.c
+index 9f7b93251..52d5065f3 100644
+--- a/CORE/HDD/src/wlan_hdd_cfg80211.c
++++ b/CORE/HDD/src/wlan_hdd_cfg80211.c
+@@ -21605,7 +21605,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
+     hdd_context_t *pHddCtx;
+     int status;
+ #ifdef CONFIG_CNSS
+-    struct timespec ts;
++    struct timespec64 ts;
+ #endif
+     hdd_config_t *cfg_param = NULL;
+ 
+@@ -32238,7 +32238,7 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
+ {
+ 	hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
+ 	struct sk_buff *skb;
+-	struct timespec ts;
++	struct timespec64 ts;
+ 	int flags = vos_get_gfp_flags();
+ 	struct hdd_ext_scan_context *context;
+ 
+diff --git a/CORE/SVC/src/logging/wlan_logging_sock_svc.c b/CORE/SVC/src/logging/wlan_logging_sock_svc.c
+index b9b289534..80d0e1646 100644
+--- a/CORE/SVC/src/logging/wlan_logging_sock_svc.c
++++ b/CORE/SVC/src/logging/wlan_logging_sock_svc.c
+@@ -314,7 +314,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
+ 		ktime_get_real_ts64(&tv);
+ 		/* Convert rtc to local time */
+ 		local_time = (u32)(tv.tv_sec - (sys_tz.tz_minuteswest * 60));
+-		rtc_time_to_tm(local_time, &tm);
++		rtc_time64_to_tm(local_time, &tm);
+ 		tlen = snprintf(tbuf, sizeof(tbuf),
+ 				"R%d: [%s][%02d:%02d:%02d.%06lu] ",
+ 				radio, current->comm, tm.tm_hour,
+diff --git a/CORE/VOSS/inc/vos_cnss.h b/CORE/VOSS/inc/vos_cnss.h
+index 07f0b6cbe..7889dd453 100644
+--- a/CORE/VOSS/inc/vos_cnss.h
++++ b/CORE/VOSS/inc/vos_cnss.h
+@@ -123,14 +123,14 @@ static inline int vos_wlan_pm_control(bool vote)
+ static inline void vos_lock_pm_sem(void) { return; }
+ static inline void vos_release_pm_sem(void) { return; }
+ 
+-static inline void vos_get_monotonic_bootime_ts(struct timespec *ts)
++static inline void vos_get_monotonic_bootime_ts(struct timespec64 *ts)
+ {
+-	*ts = ktime_to_timespec(ktime_get_boottime());
++	*ts = ktime_to_timespec64(ktime_get_boottime());
+ }
+ 
+-static inline void vos_get_boottime_ts(struct timespec *ts)
++static inline void vos_get_boottime_ts(struct timespec64 *ts)
+ {
+-	ktime_get_ts(ts);
++	ktime_get_ts64(ts);
+ }
+ 
+ static inline void *vos_get_virt_ramdump_mem(struct device *dev,
+@@ -201,9 +201,9 @@ static inline int vos_wlan_get_dfs_nol(void *info, u16 info_len)
+ 	return -EINVAL;
+ }
+ 
+-static inline void vos_get_monotonic_boottime_ts(struct timespec *ts)
++static inline void vos_get_monotonic_boottime_ts(struct timespec64 *ts)
+ {
+-	*ts = ktime_to_timespec(ktime_get_boottime());
++	*ts = ktime_to_timespec64(ktime_get_boottime());
+ }
+ 
+ static inline void vos_schedule_recovery_work(struct device *dev) { return; }
+@@ -306,7 +306,7 @@ static inline void vos_pm_wake_lock_destroy(struct wakeup_source *ws)
+ 	cnss_pm_wake_lock_destroy(ws);
+ }
+ 
+-static inline void vos_get_monotonic_boottime_ts(struct timespec *ts)
++static inline void vos_get_monotonic_boottime_ts(struct timespec64 *ts)
+ {
+         cnss_get_monotonic_boottime(ts);
+ }
+@@ -342,7 +342,7 @@ static inline int vos_wlan_get_dfs_nol(void *info, u16 info_len)
+ 	return cnss_wlan_get_dfs_nol(info, info_len);
+ }
+ 
+-static inline void vos_get_boottime_ts(struct timespec *ts)
++static inline void vos_get_boottime_ts(struct timespec64 *ts)
+ {
+         cnss_get_boottime(ts);
+ }
+diff --git a/CORE/VOSS/src/vos_api.c b/CORE/VOSS/src/vos_api.c
+index b1b2c3889..eb478c261 100644
+--- a/CORE/VOSS/src/vos_api.c
++++ b/CORE/VOSS/src/vos_api.c
+@@ -2598,7 +2598,7 @@ out:
+ v_U64_t vos_get_monotonic_boottime(void)
+ {
+ #ifdef CONFIG_CNSS
+-   struct timespec ts;
++   struct timespec64 ts;
+ 
+    vos_get_monotonic_boottime_ts(&ts);
+    return (((v_U64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000));
+@@ -3209,10 +3209,10 @@ void vos_svc_fw_shutdown_ind(struct device *dev)
+ 
+ v_U64_t vos_get_monotonic_boottime_ns(void)
+ {
+-	struct timespec ts;
++	struct timespec64 ts;
+ 
+-	ktime_get_ts(&ts);
+-	return timespec_to_ns(&ts);
++	ktime_get_ts64(&ts);
++	return timespec64_to_ns(&ts);
+ }
+ 
+ #if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 10, 0))
+diff --git a/CORE/VOSS/src/vos_timer.c b/CORE/VOSS/src/vos_timer.c
+index d316c1cb5..4c5568c1d 100644
+--- a/CORE/VOSS/src/vos_timer.c
++++ b/CORE/VOSS/src/vos_timer.c
+@@ -887,7 +887,7 @@ unsigned long vos_get_time_of_the_day_ms(void)
+ 
+ 	local_time = (uint32_t)(tv.tv_sec -
+ 		(sys_tz.tz_minuteswest * 60));
+-	rtc_time_to_tm(local_time, &tm);
++	rtc_time64_to_tm(local_time, &tm);
+ 	return ((tm.tm_hour * 60 * 60 * 1000) +
+ 		(tm.tm_min *60 * 1000) + (tm.tm_sec * 1000)+
+ 		(tv.tv_nsec/1000000));
+@@ -903,7 +903,7 @@ void vos_get_time_of_the_day_in_hr_min_sec_usec(char *tbuf, int len)
+        ktime_get_real_ts64(&tv);
+        /* Convert rtc to local time */
+        local_time = (u32)(tv.tv_sec - (sys_tz.tz_minuteswest * 60));
+-       rtc_time_to_tm(local_time, &tm);
++       rtc_time64_to_tm(local_time, &tm);
+        snprintf(tbuf, len,
+                "[%02d:%02d:%02d.%06lu] ",
+                tm.tm_hour, tm.tm_min, tm.tm_sec, tv.tv_nsec/1000);
+-- 
+2.25.1
+

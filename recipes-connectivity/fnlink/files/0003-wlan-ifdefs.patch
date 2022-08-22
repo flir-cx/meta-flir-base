@@ -1,0 +1,102 @@
+From 61d83d0f2ac937d8893dc726f742898fb9e45777 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?R=C3=BAni=20Eriksen?= <runi.eriksen@teledyneflir.com>
+Date: Tue, 16 Aug 2022 16:56:35 +0200
+Subject: [PATCH] Reinserting wlan option ifdefs
+
+---
+ CORE/HDD/src/wlan_hdd_hostapd.c | 8 ++++++++
+ CORE/HDD/src/wlan_hdd_wext.c    | 9 ++++++++-
+ 2 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/CORE/HDD/src/wlan_hdd_hostapd.c b/CORE/HDD/src/wlan_hdd_hostapd.c
+index 5f92731ee..78d3390d9 100644
+--- a/CORE/HDD/src/wlan_hdd_hostapd.c
++++ b/CORE/HDD/src/wlan_hdd_hostapd.c
+@@ -7687,11 +7687,15 @@ static const iw_handler hostapd_private[] = {
+ };
+ const struct iw_handler_def hostapd_handler_def = {
+    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),
++#ifdef CONFIG_WEXT_PRIV
+    .num_private      = sizeof(hostapd_private) / sizeof(hostapd_private[0]),
+    .num_private_args = sizeof(hostapd_private_args) / sizeof(hostapd_private_args[0]),
++#endif
+    .standard         = (iw_handler *)hostapd_handler,
++#ifdef CONFIG_WEXT_PRIV
+    .private          = (iw_handler *)hostapd_private,
+    .private_args     = hostapd_private_args,
++#endif
+    .get_wireless_stats = NULL,
+ };
+ 
+@@ -7858,7 +7862,9 @@ VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)
+     sema_init(&(WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->semWpsPBCOverlapInd, 1);
+ 
+      // Register as a wireless device
++#ifdef CONFIG_WIRELESS_EXT
+     dev->wireless_handlers = (struct iw_handler_def *)& hostapd_handler_def;
++#endif
+ 
+     //Initialize the data path module
+     status = hdd_softap_init_tx_rx(pAdapter);
+@@ -8030,6 +8036,7 @@ VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter, bool rtnl_held)
+       detach the wireless device handlers */
+    if (pAdapter->dev)
+    {
++#ifdef CONFIG_WIRELESS_EXT
+       if (rtnl_held)
+           pAdapter->dev->wireless_handlers = NULL;
+       else {
+@@ -8037,6 +8044,7 @@ VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter, bool rtnl_held)
+           pAdapter->dev->wireless_handlers = NULL;
+           rtnl_unlock();
+       }
++#endif
+    }
+ 
+ #ifdef WLAN_FEATURE_MBSSID
+diff --git a/CORE/HDD/src/wlan_hdd_wext.c b/CORE/HDD/src/wlan_hdd_wext.c
+index 7bdadcb69..cbc8d41b5 100644
+--- a/CORE/HDD/src/wlan_hdd_wext.c
++++ b/CORE/HDD/src/wlan_hdd_wext.c
+@@ -12647,12 +12647,15 @@ static const struct iw_priv_args we_private_args[] = {
+ 
+ const struct iw_handler_def we_handler_def = {
+    .num_standard     = sizeof(we_handler) / sizeof(we_handler[0]),
++#ifdef CONFIG_WEXT_PRIV
+    .num_private      = sizeof(we_private) / sizeof(we_private[0]),
+    .num_private_args = sizeof(we_private_args) / sizeof(we_private_args[0]),
+-
++#endif
+    .standard         = (iw_handler *)we_handler,
++#ifdef CONFIG_WEXT_PRIV
+    .private          = (iw_handler *)we_private,
+    .private_args     = we_private_args,
++#endif
+    .get_wireless_stats = get_wireless_stats,
+ };
+ 
+@@ -12941,7 +12944,9 @@ int hdd_register_wext(struct net_device *dev)
+     }
+     hdd_initialize_fils_info(pwextBuf);
+     /* Register as a wireless device */
++#ifdef CONFIG_WIRELESS_EXT
+     dev->wireless_handlers = (struct iw_handler_def *)&we_handler_def;
++#endif
+ 
+     EXIT();
+     return 0;
+@@ -12952,9 +12957,11 @@ int hdd_UnregisterWext(struct net_device *dev)
+ 	hddLog(LOG1, FL("dev(%pK)"), dev);
+ 
+ 	if (dev != NULL) {
++#ifdef CONFIG_WIRELESS_EXT
+ 		rtnl_lock();
+ 		dev->wireless_handlers = NULL;
+ 		rtnl_unlock();
++#endif
+ 	}
+ 
+ 	return 0;
+-- 
+2.25.1
+
