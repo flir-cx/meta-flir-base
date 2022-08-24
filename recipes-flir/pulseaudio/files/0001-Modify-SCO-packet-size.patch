@@ -1,0 +1,28 @@
+From 64fd482ceafd941b7cb537558d563cde8f37b2fc Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@teledyneflir.com>
+Date: Wed, 24 Aug 2022 13:30:44 +0200
+Subject: [PATCH] BC-172 Modify SCO packet size
+
+Signed-off-by: Klas Malmborg <klas.malmborg@teledyneflir.com>
+---
+ src/modules/bluetooth/backend-native.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/modules/bluetooth/backend-native.c b/src/modules/bluetooth/backend-native.c
+index 5ba7439..50ae5ae 100644
+--- a/src/modules/bluetooth/backend-native.c
++++ b/src/modules/bluetooth/backend-native.c
+@@ -194,8 +194,8 @@ static int sco_acquire_cb(pa_bluetooth_transport *t, bool optional, size_t *imtu
+     if (sock < 0)
+         goto fail;
+ 
+-    if (imtu) *imtu = 48;
+-    if (omtu) *omtu = 48;
++    if (imtu) *imtu = 120;
++    if (omtu) *omtu = 120;
+ 
+     if (t->device->autodetect_mtu) {
+         struct sco_options sco_opt;
+-- 
+2.25.1
+
