@@ -1,9 +1,8 @@
-/FLIR/system/calib.rsc				CameraFiles/system/calib.rsc
-/FLIR/system/maps/ds_we_ap_fi_leFOL2_LCFMap.fff	CameraFiles/system/maps/ds_we_ap_fi_leFOL2_LCFMap.fff
-/FLIR/system/maps/ds_we_ap_fi_le_LCFMap.fff	CameraFiles/system/maps/ds_we_ap_fi_le_LCFMap.fff
-/FLIR/system/DistMap_Lepton160.fff		CameraFiles/system/DistMap_Lepton160.fff
-/FLIR/system/RotationMapCCW_Lepton160.fff	CameraFiles/system/RotationMapCCW_Lepton160.fff
-/FLIR/system/RotationMapCW_Lepton160.fff	CameraFiles/system/RotationMapCW_Lepton160.fff
-/FLIR/system/ZoomMap_Lepton160.fff		CameraFiles/system/ZoomMap_Lepton160.fff
-/usr/share/common-licenses/license.manifest	CameraFiles/system/license.manifest
-/usr/share/common-licenses/licenses.html	CameraFiles/system/licenses.html
+calib.rsc				/FLIR/system			CameraFiles/system
+ds_we_ap_fi_leFOL2_LCFMap.fff		/FLIR/system/maps		CameraFiles/system/maps
+DistMap_Lepton160.fff              	/FLIR/system			CameraFiles/system
+RotationMapCCW_Lepton160.fff		/FLIR/system			CameraFiles/system
+RotationMapCW_Lepton160.fff		/FLIR/system			CameraFiles/system
+ZoomMap_Lepton160.fff			/FLIR/system			CameraFiles/system
+license.manifest			/usr/share/common-licenses	CameraFiles/system
+licenses.html				/usr/share/common-licenses	CameraFiles/system

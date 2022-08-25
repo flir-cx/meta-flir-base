@@ -1,45 +1,36 @@
 #!/bin/bash
 
 LIST_OF_CALIB_FILES=/etc/calib-files.lst
-SHARED_FOLDER=/srv/skylab
-SHARED_FOLDER_ACTUAL=/FLIR/images/skylab
-CAMERAFILES_ZIP=$SHARED_FOLDER/CameraFiles.zip
-CAMERAFILES_TMP=/tmp/Camerafiles
+CAMERAFILES_ZIP=/FLIR/images/skylab/CameraFiles.zip
+CAMERAFILES_TMPDIR=/tmp/CameraFiles
 
+mkdir $CAMERAFILES_TMPDIR
 if [ ! -e $CAMERAFILES_ZIP ]
 then
-	mkdir -p $SHARED_FOLDER_ACTUAL
-	ln -s $SHARED_FOLDER_ACTUAL $SHARED_FOLDER 
-    mkdir $CAMERAFILES_TMP
-	cd /tmp || exit
+    mkdir -p /FLIR/images/skylab
+    ln -s /FLIR/images/skylab /srv
+    cd /tmp || exit
     cat $LIST_OF_CALIB_FILES | \
-	while read IN_FILESYSTEM IN_ZIP
+	while read FILENAME FS_DIR ZIP_DIR
 	do
-	    if [ -e "$IN_FILESYSTEM" ]
+	    if [ -e "$FS_DIR/$FILENAME" ]
 	    then
-			DEST_DIR=$(dirname $IN_ZIP)
-			mkdir -p $DEST_DIR
-			ln -s $IN_FILESYSTEM $DEST_DIR
+		mkdir -p $ZIP_DIR
+		ln -s $FS_DIR/$FILENAME $ZIP_DIR
 	    else
-			echo $IN_FILESYSTEM missing
+		echo "$FS_DIR/$FILENAME missing"
 	    fi
 	done
-    zip -r $CAMERAFILES_ZIP $CAMERAFILES_TMP
+    zip -r $CAMERAFILES_ZIP CameraFiles/system
 else
     cd /tmp || exit
-    mkdir -p $CAMERAFILES_TMP
     cat $LIST_OF_CALIB_FILES | \
-	while read IN_FILESYSTEM IN_ZIP
+	while read FILENAME FS_DIR ZIP_DIR
 	do
-	    in_zip=$(unzip -p $CAMERAFILES_ZIP $IN_ZIP | wc -c)
-	    if [ -e $IN_FILESYSTEM -a $in_zip -eq 0 ]
-	    then
-			echo store $IN_FILESYSTEM in $CAMERAFILES_ZIP:
-			mkdir -p $(dirname $IN_ZIP)
-			ln -s $IN_FILESYSTEM $IN_ZIP
-			zip $CAMERAFILES_ZIP $IN_ZIP
-	    fi
+	    mkdir -p $ZIP_DIR
+	    ln -s $FS_DIR/$FILENAME $ZIP_DIR/$FILENAME
 	done
+    zip -u $CAMERAFILES_ZIP -r CameraFiles/system
 fi
 
-rm -rf $CAMERAFILES_TMP
+rm -rf $CAMERAFILES_TMPDIR
