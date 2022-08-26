@@ -4,6 +4,9 @@
 
 require linux-pingu.inc
 
+# Include compatible wireless regdb for kernel 4.14
+inherit kernel_wireless_regdb
+
 #SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_imx-4.14.y"
 SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 #SRCREV = "${AUTOREV}"
