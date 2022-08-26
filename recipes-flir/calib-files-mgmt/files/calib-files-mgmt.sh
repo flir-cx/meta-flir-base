@@ -4,11 +4,11 @@ LIST_OF_CALIB_FILES=/etc/calib-files.lst
 CAMERAFILES_ZIP=/FLIR/images/skylab/CameraFiles.zip
 CAMERAFILES_TMPDIR=/tmp/CameraFiles
 
+ln -sf /FLIR/images/skylab /srv
 mkdir $CAMERAFILES_TMPDIR
 if [ ! -e $CAMERAFILES_ZIP ]
 then
     mkdir -p /FLIR/images/skylab
-    ln -s /FLIR/images/skylab /srv
     cd /tmp || exit
     cat $LIST_OF_CALIB_FILES | \
 	while read FILENAME FS_DIR ZIP_DIR
