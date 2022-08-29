@@ -1,0 +1,82 @@
+From 0aed450a990f7dd86f22189bff0e4ccde3132dab Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Thu, 18 Aug 2022 10:08:43 +0200
+Subject: [PATCH] weston: Handle z-ordering for chargeapp
+
+---
+ desktop-shell/shell.c         | 9 ++++++++-
+ desktop-shell/shell.h         | 1 +
+ include/libweston/libweston.h | 3 +++
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index fe121ab2..a9dc390a 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -1928,8 +1928,11 @@ shell_surface_calculate_layer_link (struct shell_surface *shsurf)
+                 weston_log_continue(STAMP_SPACE "%s (overlay)\n", id);
+                 return &shsurf->shell->overlay_layer.view_list;
+         } else if (id && (strncmp(id, "progressapp", 32) == 0)) {
+-                weston_log_continue(STAMP_SPACE "%s (overlay)\n", id);
++                weston_log_continue(STAMP_SPACE "%s (progressapp)\n", id);
+                 return &shsurf->shell->progress_layer.view_list;
++        } else if (id && (strncmp(id, "chargeapp", 32) == 0)) {
++                weston_log_continue(STAMP_SPACE "%s (chargeapp)\n", id);
++                return &shsurf->shell->charge_layer.view_list;
+         } else if (id) {
+                 weston_log_continue(STAMP_SPACE "%s (default)\n", id);
+         } else {
+@@ -4973,6 +4976,7 @@ shell_for_each_layer(struct desktop_shell *shell,
+ 	func(shell, &shell->fullscreen_layer, data);
+ 	func(shell, &shell->panel_layer, data);
+         func(shell, &shell->progress_layer, data);
++        func(shell, &shell->charge_layer, data);
+         func(shell, &shell->overlay_layer, data);
+ 	func(shell, &shell->background_layer, data);
+ 	func(shell, &shell->lock_layer, data);
+@@ -5301,6 +5305,7 @@ wet_shell_init(struct weston_compositor *ec,
+ 	weston_layer_init(&shell->fullscreen_layer, ec);
+ 	weston_layer_init(&shell->panel_layer, ec);
+ 	weston_layer_init(&shell->background_layer, ec);
++	weston_layer_init(&shell->charge_layer, ec);
+ 	weston_layer_init(&shell->progress_layer, ec);
+ 	weston_layer_init(&shell->overlay_layer, ec);
+ 	weston_layer_init(&shell->lock_layer, ec);
+@@ -5314,6 +5319,8 @@ wet_shell_init(struct weston_compositor *ec,
+                                   WESTON_LAYER_POSITION_PROGRESS);
+         weston_layer_set_position(&shell->overlay_layer,
+                                   WESTON_LAYER_POSITION_OVERLAY);
++        weston_layer_set_position(&shell->charge_layer,
++                                  WESTON_LAYER_POSITION_CHARGE);
+ 	weston_layer_set_position(&shell->background_layer,
+ 				  WESTON_LAYER_POSITION_BACKGROUND);
+ 
+diff --git a/desktop-shell/shell.h b/desktop-shell/shell.h
+index b8ef024b..9d32a4cf 100644
+--- a/desktop-shell/shell.h
++++ b/desktop-shell/shell.h
+@@ -145,6 +145,7 @@ struct desktop_shell {
+ 
+ 	struct weston_layer fullscreen_layer;
+ 	struct weston_layer panel_layer;
++	struct weston_layer charge_layer;
+ 	struct weston_layer progress_layer;
+ 	struct weston_layer overlay_layer;
+ 	struct weston_layer background_layer;
+diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
+index ca385dc8..d1ea165b 100644
+--- a/include/libweston/libweston.h
++++ b/include/libweston/libweston.h
+@@ -854,6 +854,9 @@ enum weston_layer_position {
+ 	/* For camera UI progress indication. */
+ 	WESTON_LAYER_POSITION_PROGRESS   = 0x70000000,
+ 
++	/* For camera UI progress indication. */
++	WESTON_LAYER_POSITION_CHARGE     = 0x75000000,
++
+ 	/* For desktop UI, like panels. */
+ 	WESTON_LAYER_POSITION_UI         = 0x80000000,
+ 
+-- 
+2.25.1
+
