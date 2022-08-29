@@ -1,0 +1,321 @@
+From 0ff50708465f7d20208678c8ce9c791e668e69d0 Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Fri, 26 Aug 2022 17:14:43 +0200
+Subject: [PATCH] weston: Fixes for focus issues
+
+Add automatic focus handling. Specifically to surface_removed
+and resume.
+---
+ desktop-shell/shell.c           | 157 +++++++++++++++++++++++++-------
+ libweston/backend-fbdev/fbdev.c |  12 +++
+ 2 files changed, 134 insertions(+), 35 deletions(-)
+
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index a9dc390a..015509c2 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -1285,6 +1285,72 @@ surface_keyboard_focus_lost(struct weston_surface *surface)
+ 	}
+ }
+ 
++static struct weston_view *
++find_mapped_view_in_layer(struct weston_layer *layer)
++{
++        struct weston_view *view = NULL;
++        struct weston_view *next = NULL;
++        struct shell_surface *shsurf = NULL;
++
++        wl_list_for_each_safe(view, next,
++                              &layer->view_list.link,
++                              layer_link.link) {
++                if (view->is_mapped) {
++                        shsurf = get_shell_surface(view->surface);
++                        if (shsurf) {
++                                return view;
++                        }
++                }
++        }
++        return NULL;
++}
++
++static void
++surface_autofocus(struct desktop_shell *shell)
++{
++        struct workspace *ws = NULL;
++        struct weston_view *view = NULL;
++        struct weston_view *next = NULL;
++        struct weston_view *topview = NULL;
++        struct weston_surface *surface = NULL;
++        struct weston_seat *seat = NULL;
++        struct weston_compositor *compositor = shell->compositor;
++        struct shell_surface *shsurf = NULL;
++        const char *id = NULL;
++        const char *title = NULL;
++        int n = 0;
++
++        ws = get_current_workspace(shell);
++        if (!ws) {
++                return;
++        }
++
++        struct weston_layer *autofocus_layers[] = {
++                &shell->charge_layer,
++                &shell->progress_layer,
++                &shell->overlay_layer,
++                &ws->layer,
++        };
++
++        for (n=0;
++             n<(sizeof(autofocus_layers)/sizeof(struct weston_layer *));
++             n++) {
++                topview = find_mapped_view_in_layer(autofocus_layers[n]);
++                if (topview != NULL)
++                        break;
++        }
++
++        if (topview == NULL) {
++                return;
++        }
++
++        /* Focus topmost view */
++        wl_list_for_each(seat, &compositor->seat_list, link) {
++                activate(shell, topview, seat, WESTON_ACTIVATE_FLAG_CONFIGURE);
++        }
++ }
++
++
+ static void
+ take_surface_to_workspace_by_seat(struct desktop_shell *shell,
+ 				  struct weston_seat *seat,
+@@ -1869,14 +1935,14 @@ handle_pointer_focus(struct wl_listener *listener, void *data)
+ }
+ 
+ static void
+-shell_surface_lose_keyboard_focus(struct shell_surface *shsurf)
++shell_surface_deactivate(struct shell_surface *shsurf)
+ {
+ 	if (--shsurf->focus_count == 0)
+ 		weston_desktop_surface_set_activated(shsurf->desktop_surface, false);
+ }
+ 
+ static void
+-shell_surface_gain_keyboard_focus(struct shell_surface *shsurf)
++shell_surface_activate(struct shell_surface *shsurf)
+ {
+ 	if (shsurf->focus_count++ == 0)
+ 		weston_desktop_surface_set_activated(shsurf->desktop_surface, true);
+@@ -1885,22 +1951,6 @@ shell_surface_gain_keyboard_focus(struct shell_surface *shsurf)
+ static void
+ handle_keyboard_focus(struct wl_listener *listener, void *data)
+ {
+-	struct weston_keyboard *keyboard = data;
+-	struct shell_seat *seat = get_shell_seat(keyboard->seat);
+-
+-	if (seat->focused_surface) {
+-		struct shell_surface *shsurf = get_shell_surface(seat->focused_surface);
+-		if (shsurf)
+-			shell_surface_lose_keyboard_focus(shsurf);
+-	}
+-
+-	seat->focused_surface = weston_surface_get_main_surface(keyboard->focus);
+-
+-	if (seat->focused_surface) {
+-		struct shell_surface *shsurf = get_shell_surface(seat->focused_surface);
+-		if (shsurf)
+-			shell_surface_gain_keyboard_focus(shsurf);
+-	}
+ }
+ 
+ /* The surface will be inserted into the list immediately after the link
+@@ -1915,28 +1965,28 @@ shell_surface_calculate_layer_link (struct shell_surface *shsurf)
+ 	    !shsurf->state.lowered) {
+ 		return &shsurf->shell->fullscreen_layer.view_list;
+ 	}
+-
+-        weston_log("Recalculating layer for surface \n");
++        weston_log("Recalculating layer for surface on output [%s]: ",
++                   (shsurf->output == NULL) ? "NULL" : shsurf->output->name);
+         const char *id = weston_desktop_surface_get_app_id(shsurf->desktop_surface);
+         if (id && (strncmp(id, "se.flir.background", 32) == 0)) {
+-                weston_log_continue(STAMP_SPACE "%s (background)\n", id);
++                weston_log_continue("%s (background)\n", id);
+                 return &shsurf->shell->background_layer.view_list;
+         } else if (id && (strncmp(id, "waylandsink", 32) == 0)) {
+-                weston_log_continue(STAMP_SPACE "%s (background)\n", id);
++                weston_log_continue("%s (background)\n", id);
+                 return &shsurf->shell->background_layer.view_list;
+         } else if (id && (strncmp(id, "facet", 32) == 0)) {
+-                weston_log_continue(STAMP_SPACE "%s (overlay)\n", id);
++                weston_log_continue("%s (overlay)\n", id);
+                 return &shsurf->shell->overlay_layer.view_list;
+-        } else if (id && (strncmp(id, "progressapp", 32) == 0)) {
+-                weston_log_continue(STAMP_SPACE "%s (progressapp)\n", id);
++        } else if (id && (strncmp(id, "se.flir.progressapp", 32) == 0)) {
++                weston_log_continue("%s (progressapp)\n", id);
+                 return &shsurf->shell->progress_layer.view_list;
+         } else if (id && (strncmp(id, "chargeapp", 32) == 0)) {
+-                weston_log_continue(STAMP_SPACE "%s (chargeapp)\n", id);
++                weston_log_continue("%s (chargeapp)\n", id);
+                 return &shsurf->shell->charge_layer.view_list;
+         } else if (id) {
+-                weston_log_continue(STAMP_SPACE "%s (default)\n", id);
++                weston_log_continue("%s (default)\n", id);
+         } else {
+-                weston_log_continue(STAMP_SPACE "<no id> (default)\n");
++                weston_log_continue("<no id> (default)\n");
+         }
+ 
+ 	/* Move the surface to a normal workspace layer so that surfaces
+@@ -2475,8 +2525,6 @@ desktop_surface_added(struct weston_desktop_surface *desktop_surface,
+ 	wl_list_init(&shsurf->children_link);
+ 
+ 	weston_desktop_surface_set_user_data(desktop_surface, shsurf);
+-	weston_desktop_surface_set_activated(desktop_surface,
+-					     shsurf->focus_count > 0);
+ }
+ 
+ static void
+@@ -2488,6 +2536,7 @@ desktop_surface_removed(struct weston_desktop_surface *desktop_surface,
+ 	struct shell_surface *shsurf_child, *tmp;
+ 	struct weston_surface *surface =
+ 		weston_desktop_surface_get_surface(desktop_surface);
++        struct weston_seat *seat;
+ 
+ 	if (!shsurf)
+ 		return;
+@@ -2498,6 +2547,18 @@ desktop_surface_removed(struct weston_desktop_surface *desktop_surface,
+ 	}
+ 	wl_list_remove(&shsurf->children_link);
+ 
++        wl_list_for_each(seat, &shsurf->shell->compositor->seat_list, link) {
++		struct shell_seat *shseat = get_shell_seat(seat);
++		/* activate() controls the focused surface activation and
++		 * removal of a surface requires invalidating the
++		 * focused_surface to avoid activate() use a stale (and just
++		 * removed) surface when attempting to de-activate it. It will
++		 * also update the focused_surface once it has a chance to run.
++		 */
++		if (surface == shseat->focused_surface)
++			shseat->focused_surface = NULL;
++	}
++
+ 	wl_signal_emit(&shsurf->destroy_signal, shsurf);
+ 
+ 	if (shsurf->fullscreen.black_view)
+@@ -2526,6 +2587,8 @@ desktop_surface_removed(struct weston_desktop_surface *desktop_surface,
+ 
+ 		free(shsurf);
+ 	}
++
++        surface_autofocus(shell);
+ }
+ 
+ static void
+@@ -3359,10 +3422,21 @@ resume_desktop(struct desktop_shell *shell)
+ 				  WESTON_LAYER_POSITION_FULLSCREEN);
+ 	weston_layer_set_position(&shell->panel_layer,
+ 				  WESTON_LAYER_POSITION_UI);
+-	weston_layer_set_position(&ws->layer, WESTON_LAYER_POSITION_NORMAL);
++	weston_layer_set_position(&ws->layer,
++                                  WESTON_LAYER_POSITION_NORMAL);
++        weston_layer_set_position(&shell->overlay_layer,
++                                  WESTON_LAYER_POSITION_PROGRESS);
++        weston_layer_set_position(&shell->overlay_layer,
++                                  WESTON_LAYER_POSITION_OVERLAY);
++        weston_layer_set_position(&shell->charge_layer,
++                                  WESTON_LAYER_POSITION_CHARGE);
++	weston_layer_set_position(&shell->background_layer,
++				  WESTON_LAYER_POSITION_BACKGROUND);
+ 
+ 	restore_focus_state(shell, get_current_workspace(shell));
+ 
++        surface_autofocus(shell);
++
+ 	shell->locked = false;
+ 	shell_fade(shell, FADE_IN);
+ 	weston_compositor_damage_all(shell->compositor);
+@@ -3923,6 +3997,7 @@ activate(struct desktop_shell *shell, struct weston_view *view,
+ 	struct workspace *ws;
+ 	struct weston_surface *old_es;
+ 	struct shell_surface *shsurf, *shsurf_child;
++        struct shell_seat *shseat = get_shell_seat(seat);
+         bool refocus = true;
+ 
+ 	main_surface = weston_surface_get_main_surface(es);
+@@ -3943,6 +4018,16 @@ activate(struct desktop_shell *shell, struct weston_view *view,
+ 
+ 	weston_view_activate(view, seat, flags | WESTON_ACTIVATE_FLAG_NO_FOCUS);
+ 
++        if (shseat->focused_surface) {
++		struct shell_surface *current_focus =
++			get_shell_surface(shseat->focused_surface);
++		assert(current_focus);
++		shell_surface_deactivate(current_focus);
++	}
++
++	shseat->focused_surface = main_surface;
++	shell_surface_activate(shsurf);
++
+ 	state = ensure_focus_state(shell, seat);
+ 	if (state == NULL)
+ 		return;
+@@ -4322,6 +4407,8 @@ wake_handler(struct wl_listener *listener, void *data)
+ 		container_of(listener, struct desktop_shell, wake_listener);
+ 
+ 	unlock(shell);
++
++        surface_autofocus(shell);
+ }
+ 
+ static void
+@@ -4408,7 +4495,7 @@ weston_view_set_initial_position(struct weston_view *view,
+                 if (appid &&
+                     ((strcmp(appid, "se.flir.background") == 0) ||
+                      (strcmp(appid, "waylandsink") == 0) ||
+-                     (strcmp(appid, "progressapp") == 0))) {
++                     (strcmp(appid, "se.flir.progressapp") == 0))) {
+                         weston_view_set_position(view, 0, 0);
+                         return;
+                 } else if (appid && (strcmp(appid, "facet") == 0)) {
+@@ -5315,12 +5402,12 @@ wet_shell_init(struct weston_compositor *ec,
+ 				  WESTON_LAYER_POSITION_FULLSCREEN);
+ 	weston_layer_set_position(&shell->panel_layer,
+ 				  WESTON_LAYER_POSITION_UI);
+-        weston_layer_set_position(&shell->overlay_layer,
++        weston_layer_set_position(&shell->charge_layer,
++                                  WESTON_LAYER_POSITION_CHARGE);
++        weston_layer_set_position(&shell->progress_layer,
+                                   WESTON_LAYER_POSITION_PROGRESS);
+         weston_layer_set_position(&shell->overlay_layer,
+                                   WESTON_LAYER_POSITION_OVERLAY);
+-        weston_layer_set_position(&shell->charge_layer,
+-                                  WESTON_LAYER_POSITION_CHARGE);
+ 	weston_layer_set_position(&shell->background_layer,
+ 				  WESTON_LAYER_POSITION_BACKGROUND);
+ 
+diff --git a/libweston/backend-fbdev/fbdev.c b/libweston/backend-fbdev/fbdev.c
+index 01367460..c2b1a893 100644
+--- a/libweston/backend-fbdev/fbdev.c
++++ b/libweston/backend-fbdev/fbdev.c
+@@ -954,6 +954,18 @@ session_notify(struct wl_listener *listener, void *data)
+ 		weston_compositor_damage_all(compositor);
+ 
+ 		udev_input_enable(&backend->input);
++                /*
++                  In the drm backend, weston_compositor_wake is called
++                  here, emitting the wake_signal. For some reason it's
++                  not called by the fbdev backend (DPMS?). We emit the
++                  signal directly to allow the shell to know we are
++                  waking up so that we can handle things like focus.
++                 */
++                if (compositor->state == WESTON_COMPOSITOR_ACTIVE) {
++                    wl_signal_emit(&compositor->wake_signal, compositor);
++                } else {
++                    weston_log("Not emitting wake_signal\n");
++                }
+ 	} else {
+ 		weston_log("leaving VT\n");
+ 		udev_input_disable(&backend->input);
+-- 
+2.25.1
+

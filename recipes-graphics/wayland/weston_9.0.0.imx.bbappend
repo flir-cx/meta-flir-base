@@ -7,4 +7,5 @@ SRC_URI_append += "\
 	file://0004-copy-frame-buffer-for-external-display.patch \
 	file://0005-selective-focus-for-new-surfaces.patch \
 	file://0006-weston-z-ordering-for-chargeapp.patch \
+	file://0007-weston-fixes-for-focus-on-suspend-and-remove.patch \
 "
