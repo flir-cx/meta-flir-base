@@ -15,6 +15,7 @@ SYSTEMD_SERVICE_${PN} = "wlanload.service"
 
 # Keep service disabled as default if not stated otherwise
 SYSTEMD_AUTO_ENABLE_${PN} ?= "disable"
+SYSTEMD_AUTO_ENABLE_${PN}_eoco = "enable"
 SYSTEMD_AUTO_ENABLE_${PN}_evco = "disable"
 SYSTEMD_AUTO_ENABLE_${PN}_ec501 = "disable"
 SYSTEMD_AUTO_ENABLE_${PN}_roco = "enable"
