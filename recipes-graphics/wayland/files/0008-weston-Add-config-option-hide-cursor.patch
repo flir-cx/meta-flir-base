@@ -1,0 +1,89 @@
+From 2bce5d1d1dd3bb7646dc824aa44d69b9c2037e9a Mon Sep 17 00:00:00 2001
+From: Edwin Oster <edwin.oster@teledyneflir.com>
+Date: Wed, 31 Aug 2022 13:43:26 +0200
+Subject: [PATCH] [PATCH] Add config option "hide-cursor" Defaults to true
+ which hides to cursor. Based on
+ https://gitlab.freedesktop.org/daniels/weston/-/commit/f964b59c8af8505422cac79de2466e0a31702a0d
+
+---
+ compositor/main.c             | 4 ++++
+ include/libweston/libweston.h | 3 +++
+ libweston/input.c             | 3 +++
+ man/weston.ini.man            | 5 +++++
+ weston.ini.in                 | 1 +
+ 5 files changed, 16 insertions(+)
+
+diff --git a/compositor/main.c b/compositor/main.c
+index 542ebc0d..019cc30e 100644
+--- a/compositor/main.c
++++ b/compositor/main.c
+@@ -1114,6 +1114,10 @@ weston_compositor_init_config(struct weston_compositor *ec,
+ 	weston_log("Output repaint window is %d ms maximum.\n",
+ 		   ec->repaint_msec);
+ 
++	weston_config_section_get_bool(s, "hide-cursor", &ec->hide_cursor, true);
++	if (ec->hide_cursor)
++		weston_log("input: Hiding cursor pointer\n");
++
+ 	/* weston.ini [libinput] */
+ 	s = weston_config_get_section(config, "libinput", NULL, NULL);
+ 	weston_config_section_get_bool(s, "touchscreen_calibrator", &cal, 0);
+diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
+index ca385dc8..709f7ed4 100644
+--- a/include/libweston/libweston.h
++++ b/include/libweston/libweston.h
+@@ -1111,6 +1111,9 @@ struct weston_compositor {
+ 	/* Whether to let the compositor run without any input device. */
+ 	bool require_input;
+ 
++	/* Do not show client cursors. */
++	bool hide_cursor;
++
+ 	/* Signal for a backend to inform a frontend about possible changes
+ 	 * in head status.
+ 	 */
+diff --git a/libweston/input.c b/libweston/input.c
+index efbbaa2c..0c1bf0f6 100644
+--- a/libweston/input.c
++++ b/libweston/input.c
+@@ -2732,6 +2732,9 @@ pointer_set_cursor(struct wl_client *client, struct wl_resource *resource,
+ 		return;
+ 
+ 	if (!pointer->sprite || pointer->sprite->surface != surface) {
++		if (pointer->seat->compositor->hide_cursor)
++			return;
++
+ 		if (weston_surface_set_role(surface, "wl_pointer-cursor",
+ 					    resource,
+ 					    WL_POINTER_ERROR_ROLE) < 0)
+diff --git a/man/weston.ini.man b/man/weston.ini.man
+index e1364c63..a15e356f 100644
+--- a/man/weston.ini.man
++++ b/man/weston.ini.man
+@@ -207,6 +207,11 @@ Enables pixman-based rendering for all outputs on backends that support it.
+ Boolean, defaults to
+ .BR false .
+ There is also a command line option to do the same.
++.TP 7
++.BI "hide=cursor=" true
++Hide the visible pointer cursor.
++Boolean, defaults to
++.BR true .
+ 
+ .SH "LIBINPUT SECTION"
+ The
+diff --git a/weston.ini.in b/weston.ini.in
+index a3c5b241..097c39e1 100644
+--- a/weston.ini.in
++++ b/weston.ini.in
+@@ -6,6 +6,7 @@ idle-time=0
+ #drm-device=card0
+ #repaint-window=16
+ #enable-overlay-view=1
++#hide-cursor=true
+ 
+ #[shell]
+ #size=1920x1080
+-- 
+2.25.1
+
