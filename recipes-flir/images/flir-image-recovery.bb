@@ -30,7 +30,16 @@ IMAGE_INSTALL = "bash \
                  u-boot-default-env-pingu \
 "
 
-NOT = " \
+IMAGE_INSTALL_append_ec401w = " \
+                 rng-tools \
+                 kernel-module-ci-hdrc \
+                 kernel-module-ci-hdrc-imx \
+                 kernel-module-udc-core \
+                 kernel-module-usbmisc-imx \
+                 kernel-module-u-ether \
+"
+
+IMAGE_INSTALL_append_ec201 = " \
                  kernel-module-ci-hdrc \
                  kernel-module-ci-hdrc-imx \
                  kernel-module-udc-core \
