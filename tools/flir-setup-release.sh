@@ -70,7 +70,7 @@ done
 shift $((OPTIND-1))
 if [ $# -ne 0 ]; then
     fsl_setup_error=true
-    echo -e "Invalid command line ending: '$@'"
+    echo -e "Invalid command line ending: '$*'"
 fi
 OPTIND=$OLD_OPTIND
 if test $fsl_setup_help; then
