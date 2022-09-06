@@ -1,0 +1,10 @@
+[Unit]
+Description=Skylab ZIP files generation management
+Before=skylab-cmd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/skylab-files-mgmt.sh
+
+[Install]
+WantedBy=multi-user.target

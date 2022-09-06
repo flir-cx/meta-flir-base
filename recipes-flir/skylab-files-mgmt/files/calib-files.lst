@@ -1,0 +1,6 @@
+calib.rsc				/FLIR/system			CameraFiles/system
+ds_we_ap_fi_leFOL2_LCFMap.fff		/FLIR/system/maps		CameraFiles/system/maps
+DistMap_Lepton160.fff              	/FLIR/system			CameraFiles/system
+RotationMapCCW_Lepton160.fff		/FLIR/system			CameraFiles/system
+RotationMapCW_Lepton160.fff		/FLIR/system			CameraFiles/system
+ZoomMap_Lepton160.fff			/FLIR/system			CameraFiles/system

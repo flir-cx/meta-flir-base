@@ -8,7 +8,7 @@ IMAGE_INSTALL_append = " \
     bluez5 \
     brcm-patchram \
     btload \
-    calib-files-mgmt \
+    skylab-files-mgmt \
     data-collection-service \
     exfat-utils \
     firmware-qca9377 \
