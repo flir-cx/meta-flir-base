@@ -1,9 +1,15 @@
-# Copyright (C) 2013-2016 Freescale Semiconductor
-# Copyright 2018 (C) O.S. Systems Software LTDA.
-# Copyright 2017-2021 NXP
+DESCRIPTION = "FLIR U-Boot suppporting FLIR i.MX boards."
+
+LICENSE = "GPLv2+"
+LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 require recipes-bsp/u-boot/u-boot.inc
-require recipes-bsp/u-boot/u-boot-imx-common_2021.04.inc
+
+DEPENDS += "flex-native bison-native bc-native dtc-native"
+
+S = "${WORKDIR}/git"
+B = "${WORKDIR}/build"
+BOOT_TOOLS = "imx-boot-tools"
 
 #include u-boot-pingu_${MACHINE}.inc
 
@@ -16,9 +22,22 @@ UBOOT_SRC ?= "git://bitbucketcommercial.flir.com:7999/camos/uboot-pingu.git;prot
 #SRC_URI = "${UBOOT_SRC};branch=${SRCBRANCH}"
 # SRCREV = "75566f69610d33b79214fe32cf1c8d39acba213b"
 SRC_URI = "${UBOOT_SRC};nobranch=1"
+SRC_URI_append += "file://git/localversion.std"
+
 SRCREV = "863633afb54b14f8126076b9c97a2fc39f97a57b"
 
+
 LOCALVERSION = "-${SRCBRANCH}"
+
+# Add --dirty for -std version. Will show up if for local edits/developement
+SCMADD = "--dirty"
+
+do_compile_prepend() {
+        SCMVER=$(git -C ${S} describe ${SCMADD} --long --always)
+        echo " - ${SCMVER}" >${WORKDIR}/u-boot.version
+        echo " - ${SCMVER}" > ${S}/.scmversion
+        echo " - ${SCMVER}" > ${B}/.scmversion
+}
 
 do_deploy_append_mx8m() {
     # Deploy u-boot-nodtb.bin and fsl-imx8m*-XX.dtb for mkimage to generate boot binary
