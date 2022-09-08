@@ -27,7 +27,7 @@ inherit module
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
-SRCREV = "db087a2c7813c2bd9dc3f7b56687a342ae6b6681"
+SRCREV = "2e396c21692a41b2ecd9f106d2682069d7213a0e"
 
 SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-fad.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 SRC_URI += "file://fad.conf"
