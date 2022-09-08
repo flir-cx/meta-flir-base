@@ -29,6 +29,11 @@ AVAHI_PACKAGES = " \
     avahi-dnsconfd \
 "
 
+GPLV3_PACKAGES = " \
+    nano \
+    parted \
+"
+
 COMMON_PACKAGES = " \
     aufsrootfs \
     bash \
@@ -58,13 +63,11 @@ COMMON_PACKAGES = " \
     libzip \
     mtd-utils \
     mtd-utils-ubifs \
-    nano \
     ncurses-libpanelw \
     openssh \
     openssl \
     opkg \
     os-release \
-    parted \
     pciutils \
     sudo \
     sysfsutils \
@@ -82,11 +85,13 @@ COMMON_PACKAGES = " \
 RDEPENDS_${PN}-packages = "\
     ${COMMON_PACKAGES} \
     ${AVAHI_PACKAGES} \
+    ${GPLV3_PACKAGES} \
 "
 
 RDEPENDS_${PN}-packages_mx6 = "\
     ${COMMON_PACKAGES} \
     ${AVAHI_PACKAGES} \
+    ${GPLV3_PACKAGES} \
     ${GSTREAMER_PACKAGES} \
     imx-gpu-viv \
     imx-kobs \
@@ -96,6 +101,12 @@ RDEPENDS_${PN}-packages_mx6 = "\
 "
 
 RDEPENDS_${PN}-packages_mx7 = "\
+    ${COMMON_PACKAGES} \
+    ${GPLV3_PACKAGES} \
+    kernel-devicetree \
+"
+
+RDEPENDS_${PN}-packages_ec401w = "\
     ${COMMON_PACKAGES} \
     kernel-devicetree \
 "
