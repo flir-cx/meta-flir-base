@@ -57,6 +57,8 @@ set_paths () {
 		lcd2dp_sink_caps_path=/sys/bus/i2c/devices/i2c-2/2-000f/sink_caps
 		usbc_control_path=/sys/bus/i2c/devices/i2c-2/2-0022/control
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
+		battery_path=/sys/class/power_supply/bq27542-0
+		pmic_path=/sys/class/power_supply/bq24298-charger
 		;;
 	"$beco")
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
@@ -93,6 +95,7 @@ create_link() {
 }
 
 create_links () {
+	rm -rf $lnk_base_dir
 	mkdir -p $lnk_base_dir
 	create_link "$lcd2dp_sink_caps_path" "$lcd2dp_sink_caps_lnk"
 	create_link "$usbc_control_path" "$usbc_control_lnk"

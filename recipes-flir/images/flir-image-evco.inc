@@ -20,6 +20,7 @@ IMAGE_INSTALL_append = "\
     fliriptables \
     flirvcam \
     fliryildun \
+    flir-activity-monitor \
     gadgetload \
     haproxy \
     iputils-ping \
