@@ -20,6 +20,9 @@ SRC_URI = "\
 # Keep service disabled as default if not stated otherwise
 SYSTEMD_AUTO_ENABLE_${PN} ?= "disable"
 
+# Should be enabled by default on ec401w since app handles user approval
+SYSTEMD_AUTO_ENABLE_${PN}_ec401w ?= "enable"
+
 S = "${WORKDIR}"
 
 do_compile[noexec] = "1"

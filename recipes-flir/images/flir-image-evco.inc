@@ -38,6 +38,7 @@ IMAGE_INSTALL_append = "\
     php-cli \
     php-opcache \
     progressapp-service \
+    systemd-failure-notifier \
     ti-bt-firmware \
     ti-firmware \
     ti-nvs \

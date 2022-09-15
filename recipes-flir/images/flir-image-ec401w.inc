@@ -29,6 +29,7 @@ IMAGE_INSTALL_append = " \
     rng-tools \
     rpmsg-bifrost \
     skylab-service \
+    systemd-failure-notifier \
     sqlite3 \
     u-boot-fw-utils \
     u-boot-script \

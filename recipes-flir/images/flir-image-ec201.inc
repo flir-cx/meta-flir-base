@@ -32,6 +32,7 @@ IMAGE_INSTALL_append = "\
     rpmsg-bifrost \
     system-sleep-qca9377 \
     system-sleep-flir \
+    systemd-failure-notifier \
     ti-bt-firmware \
     ti-firmware \
     ti-nvs \
