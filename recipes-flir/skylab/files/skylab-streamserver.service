@@ -8,6 +8,7 @@ BusName=com.flir.skylab1.streamserver
 ExecStart=/usr/bin/skylab-streamserver
 Restart=on-failure
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
+ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
 
 [Install]
 WantedBy=multi-user.target

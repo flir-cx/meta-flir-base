@@ -7,6 +7,7 @@ Type=simple
 ExecStart=/usr/bin/skylab-cosw-adapter
 Restart=on-failure
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
+ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
 
 [Install]
 WantedBy=multi-user.target
