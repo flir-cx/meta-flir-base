@@ -9,4 +9,5 @@ SRC_URI_append += "\
 	file://0006-weston-z-ordering-for-chargeapp.patch \
 	file://0007-weston-fixes-for-focus-on-suspend-and-remove.patch \
 	file://0008-weston-Add-config-option-hide-cursor.patch \
+	file://0009-add-dynamic-screen-rotation.patch \
 "
