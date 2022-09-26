@@ -24,6 +24,7 @@ SYSTEMD_AUTO_ENABLE_${PN}_ec401w = "enable"
 SRC_URI += "file://wlanload.sh"
 SRC_URI += "file://wlanload.service"
 SRC_URI_append_ec401w = " file://udhcpd.conf"
+SRC_URI_append_ec401w = " file://testwlan.sh"
 
 S = "${WORKDIR}"
 
@@ -37,4 +38,6 @@ do_install_append() {
 do_install_append_ec401w() {
     install -d ${D}/etc/
     install -m 0644 ${WORKDIR}/udhcpd.conf ${D}/etc/udhcpd.conf
+    install -d ${D}${bindir}
+    install -m 0644 ${WORKDIR}/testwlan.sh ${D}${bindir}
 }
