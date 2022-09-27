@@ -36,5 +36,4 @@ IMAGE_INSTALL_append = " \
     u-boot-default-env-pingu \
     wlanload \
     wpa-supplicant \
-    zeromq \
 "
