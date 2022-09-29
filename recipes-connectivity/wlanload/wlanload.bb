@@ -39,5 +39,5 @@ do_install_append_ec401w() {
     install -d ${D}/etc/
     install -m 0644 ${WORKDIR}/udhcpd.conf ${D}/etc/udhcpd.conf
     install -d ${D}${bindir}
-    install -m 0644 ${WORKDIR}/testwlan.sh ${D}${bindir}
+    install -m 0744 ${WORKDIR}/testwlan.sh ${D}${bindir}
 }

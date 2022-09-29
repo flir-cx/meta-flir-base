@@ -1,6 +1,12 @@
 #!/bin/sh
 
-WLAN_STA_SSID="FLIR_Guest"
+if [ "$#" -ne 2 ]; then
+    echo "requires SSID and Strength (0-100)"
+    echo "testwlan.sh <SSID> <Strength>"
+fi
+
+WLAN_STA_SSID=$1
+REQUIRED_STRENGTH=$2
 
 echo "Starting wifi test"
 
@@ -16,7 +22,7 @@ sleep 1
 # Connman does not give correct return value... Check output
 connmanctl enable wifi | grep -q "Enabled wifi"
 if [ $? -ne 0 ]; then
-    echo "Unable to enable wifi"
+    echo "FAILED: Unable to enable wifi"
     connmanctl disable wifi
     systemctl stop connman
     exit 1
@@ -36,7 +42,7 @@ sleep 1
 
 connmanctl tether wifi on "$(hostname)" "12345678" | grep -q "Enabled tethering for wifi"
 if [ $? -ne 0 ]; then
-    echo "Unable to start tether"
+    echo "FAILED: Unable to start tether"
     connmanctl tether wifi off
     connmanctl disable wifi
     systemctl stop connman
@@ -52,11 +58,26 @@ echo " -- Test 2: STA"
 connmanctl scan wifi # Getting stuck here
 connmanctl services | grep -q $WLAN_STA_SSID
 if [ $? -ne 0 ]; then
-    echo "Did not find ${WLAN_STA_SSID}"
-    exit 1
+    echo "FAILED: Did not find ${WLAN_STA_SSID}"
     connmanctl disable wifi
     systemctl stop connman
+    exit 1
 else
+    echo "Found ${WLAN_STA_SSID}"
+    WLAN_KEY=$(connmanctl services | grep "${WLAN_STA_SSID}" | awk '{print $2}')
+    STRENGTH=$(connmanctl services $WLAN_KEY | grep "Strength" | awk '{print $3}')
+
+    if [ $STRENGTH -lt $REQUIRED_STRENGTH ];
+    then
+        echo "FAILED: Signal too weak (connman numbers in 0-100%) ${STRENGTH} - Required: ${REQUIRED_STRENGTH}"
+        connmanctl disable wifi
+        systemctl stop connman
+        exit 1
+    else
+        echo "Signal ok (connman numbers in 0-100%) ${STRENGTH} - Required: ${REQUIRED_STRENGTH}"
+    fi
+    
+
     echo " --- OK"
 fi
 
