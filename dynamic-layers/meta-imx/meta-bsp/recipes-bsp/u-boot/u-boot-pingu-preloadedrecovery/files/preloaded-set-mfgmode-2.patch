@@ -1,0 +1,9 @@
+--- a/include/configs/flir_mfgmode.h
++++ b/include/configs/flir_mfgmode.h
+@@ -8,4 +8,4 @@
+  *
+  */
+ 
+-#define CONFIG_FLIR_MFG 0
++#define CONFIG_FLIR_MFG 2
+
