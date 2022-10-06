@@ -1,12 +1,10 @@
 baudrate=115200
-bootcmd=setmac;bootstate;if recoverytrigger; then run ${triggercommand};else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
+bootcmd=setmac;bootstate;factorydefault_bootarg=;if recoverytrigger; then run recoveryboot;else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
 bootdelay=0
 btaddr=00:04:f3:ff:ff:fc
 console=ttyLP0
 copyM4=cp.b ${tempaddr} ${m4_addr} ${filesize}
 extra_bootargs=quiet
-factorydefaultboot=echo Booting from mmc factory default;run selectrecfdtfile; run fdefargs; setenv bootargs_linux ${bootargs}; setenv mmcpart 1; run loadfdt; run loadinitrd; run loadimage; bootz ${loadaddr} ${initrd_addr} ${fdt_addr};
-fdefargs=setenv bootargs console=${console},${baudrate} root=/dev/ram0 factorydefault ethaddr=${ethaddr}
 fdt_addr=0x63000000
 fdt_file_default=imx7ulp-ec401w.dtb
 fdt_high=0xffffffff
@@ -27,7 +25,7 @@ loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}
 m4_addr=0x1ffd2000
 m4_bin_size=ext4size mmc ${mmcdev}:${mmcpart} boot/${m4_image}
 m4_image=imx7ulpm4.bin
-mmcargs=setenv bootargs console=${console},${baudrate} ${rootfs} rootwait rw ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} ${bootargs_once} ${extra_bootargs} 
+mmcargs=setenv bootargs console=${console},${baudrate} ${rootfs} rootwait ${factorydefault_bootarg} rw ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} ${bootargs_once} ${extra_bootargs}
 mmcargs_sdcard=setenv bootargs console=${console},${baudrate} root=${mmcroot_sdcard}
 mmcboot_sdcard=echo Booting from mmc ...; if run loadimage; then run mmcargs_sdcard; if run loadfdt; then bootz ${loadaddr} - ${fdt_addr}; fi;fi;
 mmcbootflir=echo Booting from mmc (flir)...;run setup_boot;run update-fdt; run selectfdtfile; run hw_start;run mmcargs;if run loadimage4; then if run loadfdt4; then bootz ${loadaddr} - ${fdt_addr}; else echo WARN: Cannot load the DT; fi; else echo ERR: Cannot load the kernel; fi;
