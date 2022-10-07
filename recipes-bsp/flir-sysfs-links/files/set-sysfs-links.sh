@@ -14,6 +14,7 @@ beco=3
 roco=4
 ec201=5
 ec401w=6
+eoco=7
 
 compat_path=/proc/device-tree/compatible
 lnk_base_dir=/etc/sysfs-links
@@ -46,6 +47,7 @@ find_out_model () {
 	grep -q -- 'digi' $compat_path && return $roco
 	grep -q -- '-ec201' $compat_path && return $ec201
 	grep -q -- '-ec401w' $compat_path && return $ec401w
+	grep -q -- '-eoco' $compat_path && return $eoco
         return $unknown
 }
 
@@ -85,6 +87,9 @@ set_paths () {
 		coverleds_led2_path=/sys/class/leds/led-2
 		coverleds_led3_path=/sys/class/leds/led-3
 		coverleds_ledred_path=/sys/class/leds/led-3
+		;;
+	"$eoco")
+		torch_path=/sys/class/leds/torch
 		;;
 	esac
 }
