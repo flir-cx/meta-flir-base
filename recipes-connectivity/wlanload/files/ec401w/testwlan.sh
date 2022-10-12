@@ -1,5 +1,9 @@
 #!/bin/sh
 
+export LD_LIBRARY_PATH=/FLIR/usr/lib
+export PATH=$PATH:/usr/bin:/bin:/sbin:/FLIR/usr/bin
+
+
 if [ "$#" -ne 2 ]; then
     echo "requires SSID and Strength (0-100)"
     echo "testwlan.sh <SSID> <Strength>"
@@ -23,6 +27,7 @@ sleep 1
 connmanctl enable wifi | grep -q "Enabled wifi"
 if [ $? -ne 0 ]; then
     echo "FAILED: Unable to enable wifi"
+    rset prodagent.log.comment "WLAN Failed to enable wifi"
     connmanctl disable wifi
     systemctl stop connman
     exit 1
@@ -43,6 +48,8 @@ sleep 1
 connmanctl tether wifi on "$(hostname)" "12345678" | grep -q "Enabled tethering for wifi"
 if [ $? -ne 0 ]; then
     echo "FAILED: Unable to start tether"
+    rset prodagent.log.comment "WLAN Failed to start AP (tether)"
+
     connmanctl tether wifi off
     connmanctl disable wifi
     systemctl stop connman
@@ -59,6 +66,7 @@ connmanctl scan wifi # Getting stuck here
 connmanctl services | grep -q $WLAN_STA_SSID
 if [ $? -ne 0 ]; then
     echo "FAILED: Did not find ${WLAN_STA_SSID}"
+    rset prodagent.log.comment "WLAN Failed - Did not find ${WLAN_STA_SSID}"
     connmanctl disable wifi
     systemctl stop connman
     exit 1
@@ -67,8 +75,12 @@ else
     WLAN_KEY=$(connmanctl services | grep "${WLAN_STA_SSID}" | awk '{print $2}')
     STRENGTH=$(connmanctl services $WLAN_KEY | grep "Strength" | awk '{print $3}')
 
+    rset prodagent.log.comment "WLAN signal strength(%) SSID: ${WLAN_STA_SSID} Required: ${REQUIRED_STRENGTH} Strength: ${STRENGTH}"
+
     if [ $STRENGTH -lt $REQUIRED_STRENGTH ];
     then
+        rset prodagent.log.comment "WLAN Failed - Signal too weak"
+
         echo "FAILED: Signal too weak (connman numbers in 0-100%) ${STRENGTH} - Required: ${REQUIRED_STRENGTH}"
         connmanctl disable wifi
         systemctl stop connman
