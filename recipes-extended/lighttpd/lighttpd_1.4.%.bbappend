@@ -1,6 +1,6 @@
 RDEPENDS_${PN} += "bash"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 SRC_URI += " \
        file://lighttpd.conf \
