@@ -4,6 +4,7 @@ After=network.target bluetooth.target
 
 [Service]
 Type=simple
+ExecCondition=/bin/bash -c '! grep -q "factorydefault" /proc/cmdline'
 ExecStart=/usr/bin/skylab-cmd
 Restart=on-failure
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib

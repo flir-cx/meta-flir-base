@@ -6,6 +6,7 @@ After=wpa_supplicant.service
 Type=forking
 # SIGINT doesn't leave the service in failed state
 KillSignal=SIGINT
+ExecCondition=/bin/bash -c '! grep -q "factorydefault" /proc/cmdline'
 ExecStartPre=-/sbin/wlanload
 ExecStart=/usr/sbin/udhcpd -I192.168.87.1
 
