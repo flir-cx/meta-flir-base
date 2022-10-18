@@ -10,4 +10,5 @@ SRC_URI_append += "\
 	file://0007-weston-fixes-for-focus-on-suspend-and-remove.patch \
 	file://0008-weston-Add-config-option-hide-cursor.patch \
 	file://0009-add-dynamic-screen-rotation.patch \
+	file://0010-improve-screen-rotation-query.patch \
 "

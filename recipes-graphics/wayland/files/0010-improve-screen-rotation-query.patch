@@ -1,0 +1,372 @@
+From 4552808a6180285acd839a74526bdb7e53673dab Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Wed, 19 Oct 2022 13:44:26 +0200
+Subject: [PATCH] weston: Improve dynamic screen rotation
+
+Extended weston-rotator protocol to handle querying of
+rotation and improved client with regards to output
+identification.
+
+%% original patch: 0010-improve-screen-rotation-query.patch
+---
+ clients/rotate.c            | 181 ++++++++++++++++++------------------
+ compositor/rotator.c        |  37 ++++----
+ protocol/weston-rotator.xml |  10 +-
+ 3 files changed, 120 insertions(+), 108 deletions(-)
+
+diff --git a/clients/rotate.c b/clients/rotate.c
+index c3994b3d..17f8b1f4 100644
+--- a/clients/rotate.c
++++ b/clients/rotate.c
+@@ -41,20 +41,22 @@
+ #include "shared/os-compatibility.h"
+ #include "shared/xalloc.h"
+ 
+-static struct weston_rotator *rotator;
+-static struct wl_list output_list;
++static struct rotator_client {
++	struct weston_rotator *rotator;
++	struct wl_list output_list;
++} client;
+ 
+ struct rotator_output {
+-	struct wl_output *output;
++	struct wl_output *wl_output;
+ 	struct wl_list link;
++	char make[256];
++	char model[256];
+ };
+ 
+ struct config {
+ 	struct wl_array allowed_rotations;
+ };
+ 
+-#define MAX_CAPTURE_BUFFER_LENGTH 16
+-
+ static const struct {
+ 	const char *name;
+ 	int token;
+@@ -80,77 +82,89 @@ parse_transform(const char *transform, int *out)
+ 	return false;
+ }
+ 
+-static struct config *
+-read_configuration(void)
++static void
++display_handle_geometry(void *data,
++			struct wl_output *wl_output,
++			int x,
++			int y,
++			int physical_width,
++			int physical_height,
++			int subpixel,
++			const char *make,
++			const char *model,
++			int transform)
+ {
+-	struct config *configuration;
+-	const char *config_file;
+-	struct weston_config *config;
+-	struct weston_config_section *s;
+-
+-	char *allowed_rotations, *p;
+-	int transform, *array_items;
+-	int i;
+-
+-	configuration = calloc(1, sizeof *configuration);
+-	if (!configuration)
+-		return NULL;
+-
+-	config_file = weston_config_get_name_from_env();
+-	config = weston_config_parse(config_file);
+-	s = weston_config_get_section(config, "rotator", NULL, NULL);
+-	weston_config_section_get_string(s, "allowed_rotations",
+-					 &allowed_rotations, NULL);
+-	weston_config_destroy(config);
+-
+-	wl_array_init(&configuration->allowed_rotations);
+-	if (allowed_rotations) {
+-		p = allowed_rotations;
+-		for (i = 0; i < 4; ++i) {
+-			if (!parse_transform(p, &transform))
+-				break;
+-			array_items = wl_array_add(&configuration->allowed_rotations,
+-						   sizeof(int));
+-			*array_items = transform;
+-			for (; *p != ' ' && *p != '\0'; p++);
+-			if (*p++ == '\0')
+-				break;
+-		}
+-		free(allowed_rotations);
+-	} else {
+-		array_items = wl_array_add(&configuration->allowed_rotations,
+-					   sizeof(int));
+-		array_items[0] = WESTON_ROTATOR_TRANSFORM_NORMAL;
+-		array_items[1] = WESTON_ROTATOR_TRANSFORM_90;
+-		array_items[2] = WESTON_ROTATOR_TRANSFORM_180;
+-		array_items[3] = WESTON_ROTATOR_TRANSFORM_270;
+-	}
++	struct rotator_output *output = data;
+ 
+-	return configuration;
++	if (wl_output == output->wl_output) {
++		strcpy(output->make, make);
++		strcpy(output->model, model);
++	}
+ }
+ 
+ static void
+-destroy_configuration(struct config *config)
++display_handle_mode(void *data,
++		    struct wl_output *wl_output,
++		    uint32_t flags,
++		    int width,
++		    int height,
++		    int refresh)
+ {
+-	wl_array_release(&config->allowed_rotations);
+-	free(config);
++	struct rotator_output *output = data;
++	(void)output;
++}
++
++static const struct wl_output_listener output_listener = {
++	display_handle_geometry,
++	display_handle_mode
++};
++
++static void rotator_done(void *data, struct weston_rotator *weston_rotator) {
++	fprintf(stdout, "Rotator done\n");
++	return;
+ }
+ 
++static void rotator_state(void *data,
++			  struct weston_rotator *weston_rotator,
++			  struct wl_output *wl_output,
++			  int32_t transform) {
++
++	struct rotator_client *client = data;
++	struct rotator_output *output;
++
++	wl_list_for_each(output, &client->output_list, link) {
++		if (wl_output == output->wl_output) {
++			fprintf(stdout, "Rotator state\n  output: %s, rotation: %s\n",
++				output->model, transforms[transform].name);
++		}
++	}
++
++	return;
++}
++
++static struct weston_rotator_listener rotator_listener = {
++	rotator_done,
++	rotator_state
++};
++
+ static void
+ handle_global(void *data, struct wl_registry *registry,
+ 	      uint32_t name, const char *interface, uint32_t version)
+ {
+-	static struct rotator_output *output;
++	struct rotator_client *client = data;
++	struct rotator_output *output = NULL;
+ 
+ 	if (strcmp(interface, "wl_output") == 0) {
+ 		output = xmalloc(sizeof *output);
+-		output->output = wl_registry_bind(registry, name,
+-						  &wl_output_interface, 1);
+-		wl_list_insert(&output_list, &output->link);
++		output->wl_output = wl_registry_bind(registry, name,
++						     &wl_output_interface, 1);
++		wl_list_insert(&client->output_list, &output->link);
++		wl_output_add_listener(output->wl_output, &output_listener, output);
++
+ 	} else if (strcmp(interface, "weston_rotator") == 0) {
+-		rotator = wl_registry_bind(registry, name,
+-					   &weston_rotator_interface,
+-					   1);
++		client->rotator = wl_registry_bind(registry, name,
++						   &weston_rotator_interface, 1);
++		weston_rotator_add_listener(client->rotator, &rotator_listener, client);
+ 	}
+ }
+ 
+@@ -170,49 +184,41 @@ int main(int argc, char *argv[])
+ 	struct wl_display *display;
+ 	struct wl_registry *registry;
+ 	struct rotator_output *output;
+-	struct config *config;
+ 	int transform;
+ 	int n = 0;
+ 
+-#if 0
+-	if (getenv("WAYLAND_SOCKET") == NULL) {
+-		fprintf(stderr, "%s must be launched by weston.\n",
+-			program_invocation_short_name);
+-		return -1;
+-	}
+-#endif
+-
+ 	display = wl_display_connect(NULL);
+ 	if (display == NULL) {
+ 		fprintf(stderr, "failed to create display: %m\n");
+ 		return -1;
+ 	}
+ 
+-	wl_list_init(&output_list);
++	wl_list_init(&client.output_list);
+ 	registry = wl_display_get_registry(display);
+-	wl_registry_add_listener(registry, &registry_listener, NULL);
++	wl_registry_add_listener(registry, &registry_listener, &client);
+ 	wl_display_dispatch(display);
+ 	wl_display_roundtrip(display);
+-	if (rotator == NULL) {
+-		fprintf(stderr, "display doesn't support rotator\n");
+-		free(registry);
+-		wl_display_disconnect(display);
+-		return -1;
+-	}
+ 
+-	config = read_configuration();
+-	if (!config) {
+-		fprintf(stderr, "failed to read configuration\n");
++	/* Compositor doesn't support the rotator interface/protocol */
++	if (client.rotator == NULL) {
++	       fprintf(stderr, "Rotator not supported\n");
+ 		free(registry);
+ 		wl_display_disconnect(display);
+ 		return -1;
+ 	}
+ 
+ 	if (argc < 2) {
+-		fprintf(stderr, "No transform provided\n");
++		/* Query state */
++		wl_list_for_each(output, &client.output_list, link) {
++			weston_rotator_query_rotation(client.rotator, output->wl_output);
++		}
++
++		wl_display_roundtrip(display);
++		wl_display_disconnect(display);
+ 		return -1;
+ 	}
+ 
++       /* Convert to transform according to API */
+ 	if (!parse_transform(argv[1], &transform)) {
+ 		fprintf(stderr, "Couldn't parse transform %s\n", argv[1]);
+ 		return -1;
+@@ -220,19 +226,18 @@ int main(int argc, char *argv[])
+ 
+ 	fprintf(stdout, "Using transform %d\n", transform);
+ 
+-	wl_list_for_each(output, &output_list, link) {
+-		fprintf(stdout, "Rotating output %d\n", n);
++	/* Transform all outputs */
++	wl_list_for_each(output, &client.output_list, link) {
++		fprintf(stdout, "Rotating output %d (%s)\n", n, output->model);
+ 		n++;
+-		weston_rotator_rotate(rotator,
+-				      output->output,
+-				      transform);
++		weston_rotator_rotate(client.rotator,
++				     output->wl_output,
++				     transform);
+ 	}
+ 
+ 	wl_display_roundtrip(display);
+ 
+ 	wl_display_disconnect(display);
+ 
+-	destroy_configuration(config);
+-
+ 	return 0;
+ }
+diff --git a/compositor/rotator.c b/compositor/rotator.c
+index 8571616b..7024b205 100644
+--- a/compositor/rotator.c
++++ b/compositor/rotator.c
+@@ -67,43 +67,42 @@ rotator_rotate(struct wl_client *client,
+ 	output->transform = transform;
+ 	output->dirty = 1;
+ 	weston_output_damage(output);
++
++       weston_rotator_send_done(resource);
++}
++
++static void
++rotator_query(struct wl_client *client,
++	      struct wl_resource *resource,
++	      struct wl_resource *output_resource)
++{
++	struct weston_output *output =
++		weston_head_from_resource(output_resource)->output;
++
++	weston_rotator_send_rotator_state(resource, output_resource, output->transform);
+ }
+ 
+ struct weston_rotator_interface rotator_implementation = {
+-       rotator_rotate
++	rotator_rotate,
++	rotator_query
+ };
+ 
+ static void
+ bind_rotator(struct wl_client *client,
+ 	     void *data, uint32_t version, uint32_t id)
+ {
+-	struct rotator *rotator = data;
+ 	struct wl_resource *resource;
+ 
++	/* If we would like to block an external client from binding
++	   to the rotator interface, this would be the place to do it. */
++
+ 	resource = wl_resource_create(client,
+ 				     &weston_rotator_interface, 1, id);
+ 
+-#if 0
+-	if (client != rotator->client) {
+-		wl_resource_post_error(resource,
+-				       WL_DISPLAY_ERROR_INVALID_OBJECT,
+-				       "rotator failed: permission denied");
+-		return;
+-	}
+-#endif
+         wl_resource_set_implementation(resource, &rotator_implementation,
+ 				       data, NULL);
+ }
+ 
+-static void
+-rotator_sigchld(struct weston_process *process, int status)
+-{
+-	struct rotator *rotator =
+-		container_of(process, struct rotator, process);
+-
+-	rotator->client = NULL;
+-}
+-
+ static void
+ rotator_destroy(struct wl_listener *listener, void *data)
+ {
+diff --git a/protocol/weston-rotator.xml b/protocol/weston-rotator.xml
+index 752cf17e..954267e3 100644
+--- a/protocol/weston-rotator.xml
++++ b/protocol/weston-rotator.xml
+@@ -21,7 +21,15 @@
+ 
+     <event name="done"/>
+ 
++    <request name="query_rotation">
++      <arg name="output" type="object" interface="wl_output"/>
++    </request>
++
++    <event name="rotator_state">
++      <arg name="output" type="object" interface="wl_output"/>
++      <arg name="transform" type="int" enum="transform"/>
++    </event>
++
+   </interface>
+ 
+ </protocol>
+-
+-- 
+2.25.1
+
