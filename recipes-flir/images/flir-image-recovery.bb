@@ -30,6 +30,10 @@ IMAGE_INSTALL = "bash \
                  u-boot-default-env-pingu \
 "
 
+IMAGE_INSTALL_append_eoco = " \
+                 firmware-imx-sdma-imx6q \
+"
+
 IMAGE_INSTALL_append_ec401w = " \
                  rng-tools \
                  kernel-module-ci-hdrc \
