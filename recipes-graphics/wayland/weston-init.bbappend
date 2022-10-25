@@ -26,7 +26,7 @@ do_install_append_eoco() {
     echo "
 [output]
 name=fbdev
-transform=rotate-180
+#transform=rotate-180
 
 " >> ${WESTON_INI}
 }
