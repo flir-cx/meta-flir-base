@@ -1,0 +1,354 @@
+From 599b01a5cf6f996092260203afb3b34398e57660 Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Tue, 25 Oct 2022 16:12:03 +0200
+Subject: [PATCH] weston: Enable fine-grained clone and rotation control
+
+Adds fine-grained control of cloning of multiple outputs along
+with rotation control of the clones with respect to the outputs
+using the --clone-descr and --counter-rotate-clones.
+---
+ compositor/main.c                     |  28 +++++--
+ include/libweston/backend-fbdev.h     |   2 +
+ libweston/backend-fbdev/fbdev.c       | 106 ++++++++++++++++++++------
+ libweston/renderer-g2d/g2d-renderer.c |  42 +++++++++-
+ libweston/renderer-g2d/g2d-renderer.h |  11 ++-
+ 5 files changed, 155 insertions(+), 34 deletions(-)
+
+diff --git a/compositor/main.c b/compositor/main.c
+index 019cc30e..9c2aa0fa 100644
+--- a/compositor/main.c
++++ b/compositor/main.c
+@@ -704,11 +704,24 @@ usage(int error_code)
+                "  --use-g2d=1\t\tUse the G2D renderer (default: GL rendering)\n"
+ #endif
+ #if defined(ENABLE_IMXG2D)
+-               "  --device=DEVICE[,DEVICE]...\n"
+-               "  \t\t\tG2D-only: The framebuffer device(s) to use\n"
+-               "  --clone-mode\t\tG2D-only: Duplicate the display on the specified devices\n"
++		"  --device=DEVICE[,DEVICE]...\n"
++		"  \t\t\tG2D-only: The framebuffer device(s) to use\n"
++		"  --clone-mode\t\tG2D-only: Duplicate the display on the specified devices\n"
++		"  --clone-descr=descr...\n"
++		"  \t\t\tG2D-only: More advanced way to specify cloning, describing\n"
++		"  \t\t\tclones per output.\n"
++		"  \t\t\tIf --device is \"/dev/fb0,/dev/fb1\", and one clone\n"
++		"  \t\t\tper output is desired (on fb5 and fb6), descr\n"
++		"  \t\t\tshould describe the clones like this:\n"
++		"  \t\t\t--clone-descr=\"/dev/fb0,/dev/fb5;/dev/fb1,/dev/fb6\"\n"
++		"  --counter-rotate-clones=m...\n"
++		"  \t\t\tG2D-only: When output is rotated, counter-rotate clones\n"
++		"  \t\t\t m=0: Don't counter-rotate clones\n"
++		"  \t\t\t m=1: If output is rotated, clones are not rotated\n"
++		"  \t\t\t m=2: If output is not rotated, clones are rotated\n"
+ #endif
+-               "  --local-alpha-device\t\tConfigure this device to use local alpha (IMX)\n"
++		"  --local-alpha-device=DEVICE\n"
++		"  \t\t\tConfigure DEVICE to use local alpha (IMX)\n"
+ #endif
+ 		"  --seat=SEAT\t\tThe seat that weston should run on, instead of the seat defined in XDG_SEAT\n"
+ 		"\n");
+@@ -2861,8 +2874,10 @@ load_fbdev_backend(struct weston_compositor *c,
+ #endif
+ #if defined(ENABLE_IMXG2D)
+ 		{ WESTON_OPTION_BOOLEAN, "clone-mode", 0, &config.clone_mode },
+-        { WESTON_OPTION_STRING, "clone-from", 0, &config.clone_from },
+-        { WESTON_OPTION_STRING, "clone-to", 0, &config.clone_to },
++		{ WESTON_OPTION_STRING, "clone-from", 0, &config.clone_from },
++		{ WESTON_OPTION_STRING, "clone-to", 0, &config.clone_to },
++		{ WESTON_OPTION_STRING, "clone-descr", 0, &config.clone_descr },
++		{ WESTON_OPTION_INTEGER, "counter-rotate-clones", 0, &config.counter_rotate_clones },
+ #endif
+                 { WESTON_OPTION_STRING, "local-alpha-device", 0, &config.local_alpha_device },
+ #endif
+@@ -2895,6 +2910,7 @@ load_fbdev_backend(struct weston_compositor *c,
+ 	free(config.device);
+ 	free(config.clone_from);
+ 	free(config.clone_to);
++	free(config.clone_descr);
+ 	return ret;
+ }
+ 
+diff --git a/include/libweston/backend-fbdev.h b/include/libweston/backend-fbdev.h
+index de3942a1..301e5748 100644
+--- a/include/libweston/backend-fbdev.h
++++ b/include/libweston/backend-fbdev.h
+@@ -49,6 +49,8 @@ struct weston_fbdev_backend_config {
+ 	int clone_mode;
+ 	char *clone_from;
+ 	char *clone_to;
++	char *clone_descr;
++	int counter_rotate_clones;
+ #endif
+ 	uint32_t output_transform;
+ 
+diff --git a/libweston/backend-fbdev/fbdev.c b/libweston/backend-fbdev/fbdev.c
+index fe929627..17196271 100644
+--- a/libweston/backend-fbdev/fbdev.c
++++ b/libweston/backend-fbdev/fbdev.c
+@@ -88,6 +88,8 @@ struct fbdev_backend {
+ 	char clone_device[50];
+ 	char clone_from[50];
+ 	char clone_to[50];
++	char clone_descr[128];
++	int counter_rotate_clones;
+ #endif
+ 	char local_alpha_device[50];
+ #endif
+@@ -598,6 +600,45 @@ fbdev_output_attach_head(struct weston_output *output_base,
+ static void fbdev_output_destroy(struct weston_output *base);
+ static int fbdev_output_disable(struct weston_output *base);
+ 
++/*
++  outputdev is the name of an output.
++  clones describes which clones every output should have.
++
++  clones is a string of the format: "a,i;b,j,k", where
++  "a" and "b" are outputs and "i", "j" and "k" are clones.
++
++  If the clones string contains "a,i;b,j,k", we want to return either:
++  "a,i" if outputdev is a, or
++  "b,j,k" if outputdev is b
++
++  In reality, the names are likely not "a" but probably something like
++  "/dev/fb0".
++ */
++static char *get_clones_for_output(const char *outputdev, const char *clones)
++{
++	/* strtok modifies argument, so duplicate it */
++	char *dup = strdup(clones);
++	const char *token;
++	const char *separator = ";";
++	char *remainder = NULL;
++	char *requested = NULL;
++
++	/* Tokenize the duplicated clones string with separator */
++	for (token = strtok_r(dup, separator, &remainder);
++		token != NULL;
++		token = strtok_r(NULL, separator, &remainder)) {
++		/* Check if token starts with outputdev */
++		if (strncmp(token, outputdev, strlen(outputdev)) == 0) {
++			/* This is the string we want for this outputdev */
++			requested = strdup(token);
++			free(dup);
++			return requested;
++		}
++	}
++	free(dup);
++	return NULL;
++}
++
+ static int
+ fbdev_output_enable(struct weston_output *base)
+ {
+@@ -633,21 +674,35 @@ fbdev_output_enable(struct weston_output *base)
+ #if defined(ENABLE_IMXG2D)
+ 	} else if (backend->use_g2d) {
+ 		const char *g2d_device = head->device;
+-        char dev_list[50] = { 0 };
+-		if (backend->clone_mode)
++		char dev_list[50] = { 0 };
++
++		struct g2d_renderer_output_options options = {
++			.counter_rotate_clones = backend->counter_rotate_clones,
++		};
++
++		if (backend->clone_mode) {
+ 			g2d_device = &(backend->clone_device[0]);
+-		else if (backend->clone_from[0] && backend->clone_to[0]) {
+-            if (strcmp(head->device, backend->clone_from) == 0) {
+-			    strcpy(dev_list, backend->clone_from);
+-			    strcat(dev_list, ",");
+-			    strcat(dev_list, backend->clone_to);
+-    			g2d_device = &(dev_list[0]);
+-            }
+-        }
++		} else if (backend->clone_from[0] && backend->clone_to[0]) {
++			if (strcmp(head->device, backend->clone_from) == 0) {
++				strcpy(dev_list, backend->clone_from);
++				strcat(dev_list, ",");
++				strcat(dev_list, backend->clone_to);
++				g2d_device = &(dev_list[0]);
++			}
++		} else if (backend->clone_descr[0]) {
++			g2d_device = get_clones_for_output(head->device, &backend->clone_descr[0]);
++			weston_log("g2d_device: %s\n", g2d_device);
++			if (g2d_device == NULL) {
++				weston_log("Error parsing clone_descr\n");
++				goto out;
++			}
++			weston_log("g2d_renderer: Using clones: %s for output %s\n", g2d_device, head->device);
++		}
+ 
+ 		if (g2d_renderer->fbdev_output_create(&output->base,
+ 					backend->compositor->wl_display,
+-					g2d_device) < 0) {
++					g2d_device,
++					&options) < 0) {
+ 			weston_log("g2d_renderer_output_create failed.\n");
+ 			goto out;
+ 		}
+@@ -1125,18 +1180,21 @@ fbdev_backend_create(struct weston_compositor *compositor,
+ 	backend->use_g2d = param->use_g2d;
+ 	backend->clone_mode = param->clone_mode;
+ 	memcpy(&backend->clone_device[0], param->device, strlen(param->device));
+-    if (param->clone_from)
+-    	memcpy(&backend->clone_from[0], param->clone_from, strlen(param->clone_from));
+-    if (param->clone_to)
+-    	memcpy(&backend->clone_to[0], param->clone_to, strlen(param->clone_to));
++	if (param->clone_from)
++		memcpy(&backend->clone_from[0], param->clone_from, strlen(param->clone_from));
++	if (param->clone_to)
++		memcpy(&backend->clone_to[0], param->clone_to, strlen(param->clone_to));
++	if (param->clone_descr)
++		memcpy(&backend->clone_descr, param->clone_descr, strlen(param->clone_descr));
++        backend->counter_rotate_clones = param->counter_rotate_clones;
+ #endif
+ #if defined(ENABLE_IMXGPU)
+-        if (param->local_alpha_device) {
+-            memcpy(&backend->local_alpha_device[0], param->local_alpha_device,
+-                   strlen(param->local_alpha_device));
+-        } else {
+-            backend->local_alpha_device[0] = '\0';
+-        }
++	if (param->local_alpha_device) {
++		memcpy(&backend->local_alpha_device[0], param->local_alpha_device,
++		       strlen(param->local_alpha_device));
++	} else {
++		backend->local_alpha_device[0] = '\0';
++	}
+ #endif
+ 	backend->output_transform = param->output_transform;
+ 
+@@ -1282,8 +1340,10 @@ config_init_to_defaults(struct weston_fbdev_backend_config *config)
+ 	config->use_g2d = 0;
+ #endif
+ 	config->clone_mode = 0;
+-    config->clone_from = NULL;
+-    config->clone_to = NULL;
++	config->clone_from = NULL;
++	config->clone_to = NULL;
++	config->clone_descr = NULL;
++	config->counter_rotate_clones = 0;
+ #endif
+ 	config->seat_id = NULL;
+ }
+diff --git a/libweston/renderer-g2d/g2d-renderer.c b/libweston/renderer-g2d/g2d-renderer.c
+index 7fc9700c..f7d9c1a3 100644
+--- a/libweston/renderer-g2d/g2d-renderer.c
++++ b/libweston/renderer-g2d/g2d-renderer.c
+@@ -121,6 +121,7 @@ struct g2d_output_state {
+ 	int clone_display_num;
+ 	int width;
+ 	int height;
++	int counter_rotate_clones;
+ };
+ 
+ struct g2d_surface_state {
+@@ -582,13 +583,46 @@ copy_to_framebuffer(struct weston_output *output, pixman_region32_t* output_dama
+ 		{
+ 			g2dRECT srcRect  = {0, 0, go->renderSurf[go->activebuffer].base.width, go->renderSurf[go->activebuffer].base.height};
+ 			g2dRECT dstrect  = {0, 0, go->mirrorSurf[i].base.width, go->mirrorSurf[i].base.height};
++
+ 			if(go->directBlit || go->nNumBuffers > 1)
+ 			{
++				if (go->counter_rotate_clones == 1 &&
++				    output->transform == WL_OUTPUT_TRANSFORM_180) {
++					// Output rotated => Clone "counter-rotated"
++					go->renderSurf[go->activebuffer].base.rot = G2D_ROTATION_0;
++					go->mirrorSurf[i].base.rot = G2D_ROTATION_180;
++				} else if (go->counter_rotate_clones == 2 &&
++					   output->transform == WL_OUTPUT_TRANSFORM_NORMAL) {
++					// Output not rotated => Clone "counter-rotated"
++					go->renderSurf[go->activebuffer].base.rot = G2D_ROTATION_0;
++					go->mirrorSurf[i].base.rot = G2D_ROTATION_180;
++				} else {
++					// Clone not rotated
++					go->renderSurf[go->activebuffer].base.rot = G2D_ROTATION_0;
++					go->mirrorSurf[i].base.rot = G2D_ROTATION_0;
++				}
++
+ 				g2d_blit_surface(gr->handle, &go->renderSurf[go->activebuffer],
+ 				&go->mirrorSurf[i], &srcRect, &dstrect);
+ 			}
+ 			else
+ 			{
++				if (go->counter_rotate_clones == 1 &&
++				    output->transform == WL_OUTPUT_TRANSFORM_180) {
++					// Output rotated => Clone "counter-rotated"
++					go->offscreenSurface.base.rot = G2D_ROTATION_0;
++					go->mirrorSurf[i].base.rot = G2D_ROTATION_180;
++				} else if (go->counter_rotate_clones == 2 &&
++					   output->transform == WL_OUTPUT_TRANSFORM_NORMAL) {
++					// Output not rotated => Clone "counter-rotated"
++					go->offscreenSurface.base.rot = G2D_ROTATION_0;
++					go->mirrorSurf[i].base.rot = G2D_ROTATION_180;
++				} else {
++					// Clone not rotated
++					go->offscreenSurface.base.rot = G2D_ROTATION_0;
++					go->mirrorSurf[i].base.rot = G2D_ROTATION_0;
++				}
++
+ 				g2d_blit_surface(gr->handle, &go->offscreenSurface,
+ 					&go->mirrorSurf[i], &srcRect, &dstrect);
+ 			}
+@@ -2240,8 +2274,9 @@ g2d_renderer_surface_create(struct g2d_output_state *go,
+ 
+ static int
+ g2d_fbdev_renderer_output_create(struct weston_output *output,
+-		struct wl_display *wl_display,
+-		const char *device)
++				struct wl_display *wl_display,
++				const char *device,
++				const struct g2d_renderer_output_options *options)
+  {
+ 	struct g2d_renderer *gr = get_renderer(output->compositor);
+ 	struct g2d_output_state *go;
+@@ -2271,7 +2306,7 @@ g2d_fbdev_renderer_output_create(struct weston_output *output,
+ 		}
+ 		displays[dispCount][k] = '\0';
+ 		clone_display_num = dispCount++;
+-		weston_log("clone_display_num = %d\n", clone_display_num);
++		weston_log("dispCount = %d, clone_display_num = %d\n", dispCount, clone_display_num);
+ 	}
+ 	else
+ 	{
+@@ -2283,6 +2318,7 @@ g2d_fbdev_renderer_output_create(struct weston_output *output,
+ 	if (go == NULL)
+ 		return -1;
+ 	go->clone_display_num  = clone_display_num;
++        go->counter_rotate_clones = options->counter_rotate_clones;
+ 	output->renderer_state = go;
+ 
+ #ifdef ENABLE_EGL
+diff --git a/libweston/renderer-g2d/g2d-renderer.h b/libweston/renderer-g2d/g2d-renderer.h
+index e28afaae..afb388a8 100644
+--- a/libweston/renderer-g2d/g2d-renderer.h
++++ b/libweston/renderer-g2d/g2d-renderer.h
+@@ -50,6 +50,12 @@
+ #include <EGL/eglext.h>
+ #endif
+ 
++struct g2d_renderer_output_options {
++        /* If the output is rotated 180 degrees, counter-rotate all
++         * clones so that they are not rotated. */
++	int counter_rotate_clones;
++};
++
+ struct g2d_renderer_interface {
+ 	int (*create)(struct weston_compositor *ec);
+ 
+@@ -58,8 +64,9 @@ struct g2d_renderer_interface {
+ 	int (*drm_output_create)(struct weston_output *output);
+ 
+ 	int (*fbdev_output_create)(struct weston_output *output,
+-				 struct wl_display *wl_display,
+-				 const char *device);
++				struct wl_display *wl_display,
++				const char *device,
++				struct g2d_renderer_output_options *options);
+ 
+ 	int (*create_g2d_image)(struct g2d_surfaceEx* g2dSurface,
+ 				enum g2d_format g2dFormat,
+-- 
+2.25.1
+

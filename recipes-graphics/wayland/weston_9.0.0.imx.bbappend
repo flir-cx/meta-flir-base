@@ -11,4 +11,5 @@ SRC_URI_append += "\
 	file://0008-weston-Add-config-option-hide-cursor.patch \
 	file://0009-add-dynamic-screen-rotation.patch \
 	file://0010-improve-screen-rotation-query.patch \
+	file://0011-weston-fine-grained-clone-and-rotation.patch \
 "
