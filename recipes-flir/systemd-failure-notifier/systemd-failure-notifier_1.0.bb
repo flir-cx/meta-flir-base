@@ -15,6 +15,9 @@ PACKAGES = "${PN}"
 RDEPENDS_${PN} += "bash"
 RRECOMMENDS_${PN} += "data-collection"
 
+# ec401w uploads through app - collect-statistics is still available
+RRECOMMENDS_${PN}_ec401w += "data-collection-noupload"
+
 SRC_URI = "file://systemd-failure-notifier"
 
 do_compile[noexec] = "1"

@@ -4,7 +4,7 @@ AUTHOR = "Mathias Båge <mathias.bage@flir.com>"
 SECTION = "flir/applications"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
-DEPENDS += "zeromq data-collection cppzmq dbus glib-2.0 dbus-glib bluez5"
+DEPENDS += "zeromq data-collection-noupload cppzmq dbus glib-2.0 dbus-glib bluez5"
 PR = "r0"
 
 inherit systemd pkgconfig cmake
