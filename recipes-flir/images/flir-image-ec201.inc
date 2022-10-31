@@ -42,6 +42,7 @@ IMAGE_INSTALL_append = "\
     u-boot-default-env-pingu \
     u-boot-script \
     umtp-responder \
+    qrencode \
     videorender-service \
     \
     packagegroup-flir-lighttpd \
