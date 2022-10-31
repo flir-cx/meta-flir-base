@@ -109,6 +109,7 @@ IMAGE_INSTALL = " \
     udev \
     udev-extraconf \
     umtp-responder \
+    qrencode \
     ${WEB_PACKAGES} \
     videorender-service \
     progressapp-service \
