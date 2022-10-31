@@ -12,4 +12,5 @@ SRC_URI_append += "\
 	file://0009-add-dynamic-screen-rotation.patch \
 	file://0010-improve-screen-rotation-query.patch \
 	file://0011-weston-fine-grained-clone-and-rotation.patch \
+	file://0012-weston-fix-input-focus-on-new-surfaces.patch \
 "

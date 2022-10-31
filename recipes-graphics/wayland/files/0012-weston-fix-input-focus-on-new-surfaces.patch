@@ -1,0 +1,59 @@
+From b813c03f03ddb54f0c47faa990689a8d887c1ae9 Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Fri, 28 Oct 2022 15:57:04 +0200
+Subject: [PATCH] weston: [EOWYN-3156] Fix input focus on new surfaces
+
+---
+ desktop-shell/shell.c | 22 ++++++++++++++--------
+ 1 file changed, 14 insertions(+), 8 deletions(-)
+
+diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
+index 13a20d9b..6663ea28 100644
+--- a/desktop-shell/shell.c
++++ b/desktop-shell/shell.c
+@@ -3997,8 +3997,8 @@ activate(struct desktop_shell *shell, struct weston_view *view,
+ 	struct workspace *ws;
+ 	struct weston_surface *old_es;
+ 	struct shell_surface *shsurf, *shsurf_child;
+-        struct shell_seat *shseat = get_shell_seat(seat);
+-        bool refocus = true;
++	struct shell_seat *shseat = get_shell_seat(seat);
++	bool refocus = true;
+ 
+ 	main_surface = weston_surface_get_main_surface(es);
+ 	shsurf = get_shell_surface(main_surface);
+@@ -4018,7 +4018,16 @@ activate(struct desktop_shell *shell, struct weston_view *view,
+ 
+ 	weston_view_activate(view, seat, flags | WESTON_ACTIVATE_FLAG_NO_FOCUS);
+ 
+-        if (shseat->focused_surface) {
++	refocus = shell_surface_meets_refocus_criteria(main_surface,
++						       shseat->focused_surface);
++	if (!refocus) {
++		char label[128] = "Unnamed";
++		shell_surface_get_label(main_surface, label, sizeof(label));
++		weston_log("Aborting activate of %s\n", label);
++		return;
++	}
++
++	if (shseat->focused_surface) {
+ 		struct shell_surface *current_focus =
+ 			get_shell_surface(shseat->focused_surface);
+ 		assert(current_focus);
+@@ -4034,11 +4043,8 @@ activate(struct desktop_shell *shell, struct weston_view *view,
+ 
+ 	old_es = state->keyboard_focus;
+ 
+-        refocus = shell_surface_meets_refocus_criteria(es, old_es);
+-        if (refocus) {
+-                focus_state_set_focus(state, es);
+-                weston_view_activate(view, seat, flags);
+-        }
++	focus_state_set_focus(state, es);
++	weston_view_activate(view, seat, flags);
+ 
+ 	if (weston_desktop_surface_get_fullscreen(shsurf->desktop_surface) &&
+ 	    flags & WESTON_ACTIVATE_FLAG_CONFIGURE)
+-- 
+2.25.1
+
