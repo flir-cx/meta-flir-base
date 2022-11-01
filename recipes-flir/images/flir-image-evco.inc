@@ -30,6 +30,7 @@ IMAGE_INSTALL_append = "\
     mmc7mounter-intnl \
     mmc7prepare \
     mtd-utils-jffs2 \
+    qrencode \
     qtbase \
     qtgraphicaleffects \
     php \

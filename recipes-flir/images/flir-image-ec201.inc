@@ -28,6 +28,7 @@ IMAGE_INSTALL_append = "\
     php-cli \
     php-opcache \
     progressapp-service \
+    qrencode \
     rpmsg-bifrost \
     system-sleep-qca9377 \
     system-sleep-flir \
@@ -42,7 +43,6 @@ IMAGE_INSTALL_append = "\
     u-boot-default-env-pingu \
     u-boot-script \
     umtp-responder \
-    qrencode \
     videorender-service \
     \
     packagegroup-flir-lighttpd \
