@@ -4,6 +4,7 @@ require flir-image-base.inc
 
 IMAGE_INSTALL_append = " \
     autofs \
+    factoryreset-service \
     firmware-imx-vpu-imx6d \
     fliriptables \
     flir-sysfs-links-service \
