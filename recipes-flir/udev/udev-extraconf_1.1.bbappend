@@ -3,7 +3,6 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 SRC_URI += " \
             file://accelerometer.rules \
             file://10-imx.rules \
-            file://libinput.rules \
            "
 
 do_install_append() {
@@ -19,7 +18,3 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/accelerometer.rules ${D}${sysconfdir}/udev/rules.d/accelerometer.rules
 }
 
-do_install_append_eoco() {
-    # Add default rotation for eoco touch
-    install -m 0644 ${WORKDIR}/libinput.rules ${D}${sysconfdir}/udev/rules.d/libinput.rules
-}
