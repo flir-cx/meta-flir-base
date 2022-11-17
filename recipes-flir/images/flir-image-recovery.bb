@@ -8,25 +8,26 @@ IMAGE_FSTYPES = "recovery.vfat tar.bz2"
 # Support jenkings job using old image name
 # PROVIDES += "flir-image-recovery"
 
-IMAGE_INSTALL = "bash \
-                 base-files \
+IMAGE_INSTALL = "base-files \
                  base-files-recovery \
+                 bash \
                  dosfstools \
                  e2fsprogs \
                  exfat-utils \ 
-                 i2c-tools \
+                 flirmisc \
                  gadgetload \
+                 i2c-tools \
                  kernel-module-libcomposite \
                  kernel-module-usb-f-rndis \
                  libstdc++ \
+                 libubootenv-bin \
                  mmc-utils \
                  openssh \
                  opkg \
                  os-release \
                  packagegroup-core-boot \
                  parted \
-                 libubootenv-bin \
-                 flirmisc \
+                 prodtest-api \
                  u-boot-default-env-pingu \
 "
 
