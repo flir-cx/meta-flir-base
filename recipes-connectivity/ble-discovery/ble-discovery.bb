@@ -9,7 +9,7 @@ PR = "r0"
 
 inherit systemd pkgconfig cmake
 
-SRCREV = "8e49c5cdee6658e548579c0a65661024ed926f2b"
+SRCREV = "2ec7b6f69afce9070dfd44678d8f8a50e5c22532"
 
 RPROVIDES_${PN} += "${PN}-systemd"
 RREPLACES_${PN} += "${PN}-systemd"
