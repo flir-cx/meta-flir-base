@@ -10,7 +10,7 @@ PR = "r1"
 
 inherit module
 
-SRC_URI = "${FLIRSE_DRV_MIRROR}/bifrost_module.git${FLIRSE_DRV_PROTOCOL};subpath=bifrost;nobranch=1 \
+SRC_URI = "${FLIRSE_DRV_MIRROR}/bifrost_module.git${FLIRSE_DRV_PROTOCOL};nobranch=1 \
            file://Makefile \
            file://bifrost.conf \
 	   file://bifrost_opt.conf \
@@ -19,13 +19,13 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/bifrost_module.git${FLIRSE_DRV_PROTOCOL};subpath
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
 # Bump PV when changing SRCREV
-PV = "1.3"
-SRCREV = "0e886e087ce26ec2487ace73fb1725fef958c6f0"
+PV = "1.4"
+SRCREV = "71d3ff348f9ff2094e0f2eef5346b0f99c7e7610"
 #SRCREV = "${AUTOREV}"
 
 EXTRA_OEMAKE += "KERNELDIR=${STAGING_KERNEL_DIR} KCFLAGS=-Werror"
 
-S = "${WORKDIR}/bifrost"
+S = "${WORKDIR}/git/bifrost"
 
 # Makefile in repo is dependent on higher level Makefile. Use one tailored
 # for bifrost module only
