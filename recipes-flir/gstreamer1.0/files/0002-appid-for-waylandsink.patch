@@ -1,5 +1,14 @@
+From 22dc05403a1532af3f727e6a54176b5fb6d06a3f Mon Sep 17 00:00:00 2001
+From: Erik Jansson <Erik.Jansson@teledyneflir.com>
+Date: Mon, 7 Mar 2022 08:50:22 +0100
+Subject: [PATCH] Add app_id to waylandsink (gst)
+
+---
+ ext/wayland/wlwindow.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
 diff --git a/ext/wayland/wlwindow.c b/ext/wayland/wlwindow.c
-index a5fadffb0..a469f16d3 100644
+index 71a0288a1..1ea88e8dd 100644
 --- a/ext/wayland/wlwindow.c
 +++ b/ext/wayland/wlwindow.c
 @@ -507,6 +507,8 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
@@ -10,4 +19,4 @@ index a5fadffb0..a469f16d3 100644
 +
      /* Finally, commit the xdg_surface state as toplevel */
      window->configured = FALSE;
-     wl_surface_commit (window->video_surface);
+     wl_surface_commit (window->area_surface);
