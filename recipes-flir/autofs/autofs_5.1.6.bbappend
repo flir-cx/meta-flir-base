@@ -15,6 +15,7 @@ SRC_URI += " \
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 CFLAGS_evco += "-DLEDCTRL_LEDS_ATTR=sdcard-led -DLEDCTRL_TRIGGER=mmc1"
+CFLAGS_eoco += "-DLEDCTRL_LEDS_ATTR=sdcard-led -DLEDCTRL_TRIGGER=mmc1"
 
 do_install_append() {
     install -d ${D}${sysconfdir}/udev/scripts
