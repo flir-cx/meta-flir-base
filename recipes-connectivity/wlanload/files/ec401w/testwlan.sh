@@ -9,8 +9,8 @@ if [ "$#" -ne 2 ]; then
     echo "testwlan.sh <SSID> <Strength>"
 fi
 
-WLAN_STA_SSID=$1
-REQUIRED_STRENGTH=$2
+WLAN_STA_SSID="$1"
+REQUIRED_STRENGTH="$2"
 
 echo "Starting wifi test"
 
@@ -63,7 +63,7 @@ connmanctl tether wifi off
 echo " -- Test 2: STA"
 
 connmanctl scan wifi # Getting stuck here
-connmanctl services | grep -q $WLAN_STA_SSID
+connmanctl services | grep -q "$WLAN_STA_SSID"
 if [ $? -ne 0 ]; then
     echo "FAILED: Did not find ${WLAN_STA_SSID}"
     rset prodagent.log.comment "WLAN Failed - Did not find ${WLAN_STA_SSID}"
