@@ -147,6 +147,9 @@ function datacollection_files() {
     rm -f "$MINIDUMP_STORAGE_PATH/"$DATACOLLECTION_UUID_FILENAME_GLOB "$STATISTICS_STORAGE_PATH/"$DATACOLLECTION_UUID_FILENAME_GLOB
 }
 
+# .fuf files now end up in /tmp - clean out any remaining .fuf files
+rm -f /FLIR/images/skylab/*.fuf
+
 # Create a directory in volatile storage and make it accessible to
 # skylab.
 [ -d "$VOLATILE_STORAGE" ] || mkdir "$VOLATILE_STORAGE"
