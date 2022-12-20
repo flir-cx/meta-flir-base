@@ -11,7 +11,7 @@ FLIR_LEPTON_M4_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR
 PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
 
 
-SRCREV = "6dea0e4f6f541ff4bfd88ee9035aba292999ec2b"
+SRCREV = "26ba31d8bd6c8cbed10dd0834b6364f47a107245"
 PV = "0.${SRCPV}"
 PR = "r1"
 
