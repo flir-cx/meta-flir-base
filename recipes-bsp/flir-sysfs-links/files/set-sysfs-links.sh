@@ -15,6 +15,7 @@ roco=4
 ec201=5
 ec401w=6
 eoco=7
+ec302=8
 
 compat_path=/proc/device-tree/compatible
 lnk_base_dir=/etc/sysfs-links
@@ -48,6 +49,7 @@ find_out_model () {
 	grep -q -- '-ec201' $compat_path && return $ec201
 	grep -q -- '-ec401w' $compat_path && return $ec401w
 	grep -q -- '-eoco' $compat_path && return $eoco
+	grep -q -- '-ec302' $compat_path && return $ec302
         return $unknown
 }
 
@@ -91,6 +93,14 @@ set_paths () {
 	"$eoco")
 		battery_path=/sys/class/power_supply/bq40z50
 		torch_path=/sys/class/leds/torch
+		;;
+	"$ec302")
+		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
+		battery_path=/sys/class/power_supply/battery
+		pmic_path=/sys/class/power_supply/pf1550-charger
+		backlight_lcd_path=/sys/class/backlight/backlight_lcd
+		torch_path=/sys/class/leds/torch
+		flash_path=/sys/class/leds/flash
 		;;
 	esac
 }

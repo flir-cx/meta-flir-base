@@ -35,16 +35,8 @@ IMAGE_INSTALL_append_eoco = " \
                  firmware-imx-sdma-imx6q \
 "
 
-IMAGE_INSTALL_append_ec401w = " \
+IMAGE_INSTALL_append_mx7 = " \
                  rng-tools \
-                 kernel-module-ci-hdrc \
-                 kernel-module-ci-hdrc-imx \
-                 kernel-module-udc-core \
-                 kernel-module-usbmisc-imx \
-                 kernel-module-u-ether \
-"
-
-IMAGE_INSTALL_append_ec201 = " \
                  kernel-module-ci-hdrc \
                  kernel-module-ci-hdrc-imx \
                  kernel-module-udc-core \

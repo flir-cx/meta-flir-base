@@ -12,7 +12,7 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "1a7249425226c999f1a709e68faa3f7eaba07c69"
+SRCREV = "153cf73a82b90a72805a1a2d4c1b9d9b88269bd8"
 PV="4.14-git${SRCPV}"
 PR="12"
 
@@ -24,7 +24,7 @@ SRC_URI_append = "\
              file://defconfig \
 "
 
-COMPATIBLE_MACHINE = "ec201|ec401w|rebb"
+COMPATIBLE_MACHINE = "ec201|ec401w|rebb|ec302"
 
 # Set an external linux source, prevents Yocto from deleting your local changes
 #inherit externalsrc

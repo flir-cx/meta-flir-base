@@ -13,6 +13,10 @@ do_install_append_ec201() {
     install -m 0755 -d ${D}/FLIR/images
 }
 
+do_install_append_ec302() {
+    install -m 0755 -d ${D}/FLIR/images
+}
+
 do_install_append_ec501() {
     install -m 0755 -d ${D}/FLIR/images
 }
