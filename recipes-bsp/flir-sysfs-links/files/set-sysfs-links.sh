@@ -89,6 +89,7 @@ set_paths () {
 		coverleds_ledred_path=/sys/class/leds/led-3
 		;;
 	"$eoco")
+		battery_path=/sys/class/power_supply/bq40z50
 		torch_path=/sys/class/leds/torch
 		;;
 	esac
