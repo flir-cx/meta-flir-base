@@ -9,7 +9,7 @@ EnvironmentFile=-/etc/default/autofs
 ExecStart=/usr/sbin/automount $OPTIONS --systemd-service --dont-check-daemon
 ExecReload=/usr/bin/kill -HUP $MAINPID
 KillMode=process
-TimeoutSec=180
+TimeoutSec=30
 
 [Install]
 WantedBy=multi-user.target
