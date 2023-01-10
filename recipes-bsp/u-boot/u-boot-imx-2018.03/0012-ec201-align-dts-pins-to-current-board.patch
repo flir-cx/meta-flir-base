@@ -1,0 +1,42 @@
+From 5536bfe94e884f8082eff98e527d1efe6e5f70cc Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <Erik.Bengtsson@teledyneflir.com>
+Date: Tue, 10 Jan 2023 15:34:41 +0100
+Subject: [PATCH] ec201: align dts pins to current board
+
+---
+ arch/arm/dts/imx7ulp-ec201.dts | 12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm/dts/imx7ulp-ec201.dts b/arch/arm/dts/imx7ulp-ec201.dts
+index 095ae08fea..2375305897 100644
+--- a/arch/arm/dts/imx7ulp-ec201.dts
++++ b/arch/arm/dts/imx7ulp-ec201.dts
+@@ -32,14 +32,6 @@
+ 
+ &iomuxc1 {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_hog_1>;
+-
+-	pinctrl_hog_1: hoggrp-1 {
+-		fsl,pins = <
+-			IMX7ULP_PAD_PTC0__PTC0 0x30100  //SHUTTER_IN
+-			IMX7ULP_PAD_PTC1__PTC1 0x30100  //SHUTTER_OUT
+-		>;
+-	};
+ 
+ 	pinctrl_usdhc0: usdhc0grp {
+ 		fsl,pins = <
+@@ -85,8 +77,8 @@
+ 
+ 	pinctrl_lpi2c7: lpi2c7grp {
+ 		fsl,pins = <
+-			IMX7ULP_PAD_PTC12__LPI2C7_SCL  0x27
+-			IMX7ULP_PAD_PTC13__LPI2C7_SDA  0x27
++			IMX7ULP_PAD_PTE12__LPI2C7_SCL   0x27
++			IMX7ULP_PAD_PTE13__LPI2C7_SDA   0x27
+ 		>;
+ 	};
+ 
+-- 
+2.17.1
+

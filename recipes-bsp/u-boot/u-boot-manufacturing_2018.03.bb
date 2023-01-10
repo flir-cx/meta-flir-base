@@ -14,6 +14,7 @@ LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a
 
 SRC_URI_append_ec201  += "file://0010-disable-env_is_in_mmc-for-ec201.patch"
 SRC_URI_append        += "file://0011-Choose-manufacturing-mode.patch"
+SRC_URI_append        += "file://0012-ec201-align-dts-pins-to-current-board.patch"
 
 S = "${WORKDIR}/git"
 
