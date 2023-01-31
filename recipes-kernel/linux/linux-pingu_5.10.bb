@@ -9,7 +9,7 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "6708ba45741eae98e3b61dcc99fbd11d17b941a8"
+SRCREV = "f043cb15504209d8621bfcd37f07b88ff40ccd2c"
 
 PV="5.10-git${SRCPV}"
 PR="13"
