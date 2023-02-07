@@ -14,7 +14,7 @@ SRC_URI[conf.md5sum] = "5afd422403d747fc4edbb9bc004a1c8f"
 SRC_URI[conf.sha256sum] = "c4ff2f4f6f15df025e2ee05b965ff0626e05ffdfd616be9eb018c0a66491224a"
 SRC_URI = " \
 	file://backports-laird-5.0.0.22.tar.bz2 \
-	http://se-arn-dev5/conf;name=conf \
+	http://se-arn-dev5.zone2.flir.net/conf;name=conf \
 	file://0001-Removed-building-of-conf.patch \
 "
 
