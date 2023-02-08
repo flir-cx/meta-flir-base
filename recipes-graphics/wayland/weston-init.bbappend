@@ -5,7 +5,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 do_install_append_mx6() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
 
-	echo "	
+	echo "
 [shell]
 panel-position=\"\"
 background-color=0x00ffffff
@@ -27,6 +27,18 @@ do_install_append_eoco() {
 [output]
 name=fbdev
 #transform=rotate-180
+
+" >> ${WESTON_INI}
+}
+
+# weston.ini mods for mx7 (ec302 and ec201)
+do_install_append_mx7() {
+    WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
+
+	echo "
+[shell]
+panel-position=\"none\"
+background-color=0xff000000
 
 " >> ${WESTON_INI}
 }
