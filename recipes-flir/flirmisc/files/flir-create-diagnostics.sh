@@ -6,41 +6,128 @@
 # Useful when reporting bugs, automated sw test faults, suspected sw production problems etc.
 
 SCRIPT_VER=1
-FOLDER_PATH=$1
-TMP_PATH=/tmp/diag-tmp
-SERIAL=$(camserial)
-DATE=$(date +%Y-%m-%d_%H%M%S)
+VERBOSE=
+SKIP_VERSION=
 
-if [ -z "${FOLDER_PATH}" ]; then
-    echo "missing folder path, ex:"
-    echo "flir-diagnostics-create /FLIR/images"
+output()
+{
+    if [ -n "${VERBOSE}" ]
+    then
+        echo "$@"
+    fi
+}
+
+limit_logs()
+{
+    folder=$1
+    n=0
+
+    # shellcheck disable=SC2045
+    for fil in $(ls -1t "${folder}"/FLIRdump_*)
+    do
+        n=$((n+1))
+#       echo $fil;
+        if [ $n -gt 5 ]
+        then
+           output deletes old "$fil"
+           rm -f "$fil"
+        fi
+    done
+}
+
+usage()
+{
+    echo "Script to dump diagnostics info to file"
+    echo "Usage: $(basename "$0") [<options>] <result folder>"
+    echo "<result folder>:  Typically /FLIR/images"
+    echo
+    echo "options:"
+    echo "-s              Skip calling \"version\" (as it might hang/crash)"
+    echo "-v              Verbose output"
+    echo "-h              Show this help text and exit"
+}
+
+while getopts "h:sv" arg
+do
+     case $arg in
+         s)
+             SKIP_VERSION="true"
+             ;;
+         v)
+             VERBOSE="true"
+             ;;
+         h)
+             usage
+             exit 0
+             ;;
+         *)
+             echo "unknown option"
+             exit 1
+             ;;
+     esac
+done
+
+shift $((OPTIND - 1))
+
+if [ $# -eq 0 ]
+then
+    echo "missing <result folder> path"
+    usage
     exit 1
 fi
+
+FOLDER_PATH=$1
+
+output "start creating diagnostics"
+
+TMP_PATH=$(mktemp -d /tmp/diagXXXXXX)
+SERIAL=$(camserial)
+DATE=$(date +%Y-%m-%d_%H%M%S)
 
 if [ "${SERIAL}" = "*" ]; then
     SERIAL="star"
 fi
+# echo "TMP_PATH:$TMP_PATH"
+echo "Script version ${SCRIPT_VER}" > "${TMP_PATH}"/diag_script.txt
 
-rm -rf ${TMP_PATH}
-mkdir -p ${TMP_PATH}
+output "extracting journal"
+journalctl -n 10000 > "${TMP_PATH}"/journal.log
 
-echo "Script version ${SCRIPT_VER}" > ${TMP_PATH}/diag_script.txt
+output "running top -n 1"
+top -n 1 > "${TMP_PATH}"/top.log
 
-journalctl -n 10000 > ${TMP_PATH}/journal.log
-top -n 1 > ${TMP_PATH}/top.log
-/FLIR/usr/bin/version > ${TMP_PATH}/version.log
-dmesg > ${TMP_PATH}/dmesg.log
-flirversions -a > ${TMP_PATH}/flirversions.log
+if [ -z "${SKIP_VERSION}" ]
+then
+    output "running version" 
+    LD_LIBRARY_PATH=/FLIR/usr/lib:$LD_LIBRARY_PATH
+    /FLIR/usr/bin/version > "${TMP_PATH}"/version.log
+else
+    output "skips \"version\" call"
+fi
 
-cp -p /tmp/*.dmp ${TMP_PATH} 2>/dev/null
+output "running dmesg"
+dmesg > "${TMP_PATH}"/dmesg.log
 
-cd ${TMP_PATH}
+output "running flirversions"
+flirversions -a > "${TMP_PATH}"/flirversions.log
+
+output "copy any .dmp files to <result folder>"
+cp -p /tmp/*.dmp "${TMP_PATH}" 2>/dev/null
+
+cd "${TMP_PATH}" || exit 1
+output "generating .tar.gz file"
 FILEPATH=${FOLDER_PATH}/FLIRdump_${SERIAL}_${DATE}.tar.gz
-tar -zcvf ${FILEPATH} ./* 1>/dev/null
+tar -zcvf "${FILEPATH}" ./* 1>/dev/null
 
 echo "${FILEPATH}"
 
-rm -rf ${TMP_PATH}
+output rm -rf "${TMP_PATH}"
+rm -rf "${TMP_PATH}"
 
-echo "done"
+# limit logs to 5 (arbitrary selected number)
+output "limit logs"
+limit_logs "${FOLDER_PATH}"
+
+output "done"
+
 exit 0
