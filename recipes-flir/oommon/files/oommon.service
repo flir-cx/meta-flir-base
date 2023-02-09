@@ -1,0 +1,13 @@
+[Unit]
+Description=Monitor dmesg log for oom killer trigged
+DefaultDependencies=no
+After=flirapp.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/monitor-oom.sh
+
+[Install]
+WantedBy=multi-user.target
+
