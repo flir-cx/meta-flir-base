@@ -1,0 +1,1 @@
+*   -fstype=vfat,rw,nosuid,nodev :/dev/flirfs/&

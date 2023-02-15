@@ -6,6 +6,8 @@ IMAGE_INSTALL_append = " \
     autofs \
     factoryreset-service \
     firmware-imx-vpu-imx6d \
+    flirbifrost \
+    flirfvdk \
     fliriptables \
     flir-sysfs-links-service \
     gadgetload \
@@ -34,6 +36,7 @@ IMAGE_INSTALL_append = " \
     packagegroup-flir-gstreamer \
     packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
+    systemd-failure-notifier \
 "
 
 # The UNAVAILABLE_PACKAGES variable is just a placeholder for packages that 
