@@ -5,7 +5,7 @@
 # Purpose is to allow non-developer staff to generate and share system state of camera without help of developer
 # Useful when reporting bugs, automated sw test faults, suspected sw production problems etc.
 
-SCRIPT_VER=1
+SCRIPT_VER=1.2
 VERBOSE=
 SKIP_VERSION=
 
@@ -44,10 +44,11 @@ usage()
     echo "options:"
     echo "-s              Skip calling \"version\" (as it might hang/crash)"
     echo "-v              Verbose output"
+    echo "-V              show script version and exit"    
     echo "-h              Show this help text and exit"
 }
 
-while getopts "h:sv" arg
+while getopts "hsvV" arg
 do
      case $arg in
          s)
@@ -58,6 +59,10 @@ do
              ;;
          h)
              usage
+             exit 0
+             ;;
+         V)
+             echo "Script version ${SCRIPT_VER}"
              exit 0
              ;;
          *)
@@ -77,6 +82,12 @@ then
 fi
 
 FOLDER_PATH=$1
+
+if [ ! -d "${FOLDER_PATH}" ]
+then 
+     echo "${FOLDER_PATH} does not exist and/or is not a directory!"
+     exit 1
+fi
 
 output "start creating diagnostics"
 
