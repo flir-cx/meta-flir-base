@@ -42,10 +42,12 @@ ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb3 -g 640 480 640 480 32 -t 39683 48 
 # ENDHACK
 
 ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb1 -g 640 480 640 480 32'
+# Setup viewfinder to use triplebuffering for better cloning
+ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb2 -g 800 600 800 1800 32'
 ExecStartPre=/bin/bash -c '/bin/echo 0 > /sys/devices/platform/fb@0/graphics/fb1/blank'
 ExecStartPre=/bin/bash -c '/bin/echo 0 > /sys/devices/platform/fb@1/graphics/fb2/blank'
 ExecStartPre=/bin/bash -c '/bin/echo 0 > /sys/devices/platform/fb@2/graphics/fb3/blank'
-ExecStart=/usr/bin/weston --log=${XDG_RUNTIME_DIR}/weston.log --modules=systemd-notify.so --device=/dev/fb0,/dev/fb1 --local-alpha-device=/dev/fb1 --clone-descr=/dev/fb0,/dev/fb2,/dev/fb3;/dev/fb1 --counter-rotate-clones=1
+ExecStart=/usr/bin/weston --log=${XDG_RUNTIME_DIR}/weston.log --modules=systemd-notify.so --device=/dev/fb0,/dev/fb1 --local-alpha-device=/dev/fb1 --clone-descr=/dev/fb0,/dev/fb3
 
 # Optional watchdog setup
 TimeoutStartSec=60
