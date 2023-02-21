@@ -4,7 +4,7 @@ DefaultDependencies=no
 After=flirapp.service
 
 [Service]
-Type=oneshot
+Type=simple
 RemainAfterExit=yes
 ExecStart=/usr/sbin/monitor-oom.sh
 
