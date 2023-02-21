@@ -4,11 +4,15 @@ require flir-image-base.inc
 
 IMAGE_INSTALL_append = " \
     autofs \
+    bluez5 \
+    btload \
+    connman \
     factoryreset-service \
     firmware-imx-vpu-imx6d \
     flirbifrost \
     flirfvdk \
     fliriptables \
+    flirvcam \
     flir-sysfs-links-service \
     gadgetload \
     haproxy \
@@ -29,6 +33,8 @@ IMAGE_INSTALL_append = " \
     php \
     php-cgi \
     php-cli \
+    php-opcache \
+    ptpd \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
@@ -37,6 +43,11 @@ IMAGE_INSTALL_append = " \
     packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
     systemd-failure-notifier \
+    ti-calibrator \
+    ti-firmware \
+    ti-nvs \
+    ti-scripts \
+    ti-wlconf \
 "
 
 # The UNAVAILABLE_PACKAGES variable is just a placeholder for packages that 
