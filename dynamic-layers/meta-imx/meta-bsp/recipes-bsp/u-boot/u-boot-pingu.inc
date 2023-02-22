@@ -11,7 +11,7 @@ UBOOT_SRC ?= "git://bitbucketcommercial.flir.com:7999/camos/uboot-pingu.git;prot
 SRC_URI = "${UBOOT_SRC};nobranch=1"
 SRC_URI_append += "file://git/localversion.std"
 
-SRCREV = "6640c0903bf71b275097c714ab60da64cd7ab24c"
+SRCREV = "1dbb306f7c5c85a47ab74c4a313243bd857363df"
 
 LOCALVERSION = "-${SRCBRANCH}"
 
