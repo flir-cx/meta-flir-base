@@ -13,6 +13,11 @@ IMAGE_INSTALL_append = "\
     chargelogo \
     exfat-utils \
     gadgetload \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-base-app \
+    gstreamer1.0-plugins-base-tcp \
+    gstreamer1.0-plugins-base-videorate \
+    gstreamer1.0-rtsp-server \
     iputils-ping \
     kernel-modules \
     lepton-m4 \
@@ -40,4 +45,5 @@ IMAGE_INSTALL_append = "\
     umtp-responder \
     videorender-service \
     packagegroup-flir-lighttpd \
+    packagegroup-flir-gstreamer \
 "
