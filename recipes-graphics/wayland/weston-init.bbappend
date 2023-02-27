@@ -14,7 +14,14 @@ background-color=0x00ffffff
 }
 
 do_install_append_ec501() {
-    # (don't add anything)
+    WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
+
+	echo "
+[shell]
+panel-position=\"\"
+background-color=0x00ffffff
+
+" >> ${WESTON_INI}
 }
 
 do_install_append_eoco() {
