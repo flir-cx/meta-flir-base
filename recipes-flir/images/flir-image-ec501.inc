@@ -29,6 +29,9 @@ IMAGE_INSTALL_append = " \
     mmc-utils \
     mmc7mounter \
     mtd-utils-jffs2 \
+    net-snmp \
+    net-snmp-mibs \
+    net-snmp-server-snmpd \
     qtbase \
     qtgraphicaleffects \
     php \
