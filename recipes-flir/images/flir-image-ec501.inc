@@ -10,6 +10,7 @@ IMAGE_INSTALL_append = " \
     factoryreset-service \
     firmware-imx-vpu-imx6d \
     flirbifrost \
+    flirfad \
     flirfvdk \
     fliriptables \
     flirvcam \
@@ -42,6 +43,7 @@ IMAGE_INSTALL_append = " \
     packagegroup-flir-gstreamer \
     packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
+    rs485 \
     systemd-failure-notifier \
     ti-calibrator \
     ti-firmware \
