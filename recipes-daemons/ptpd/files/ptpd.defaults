@@ -1,0 +1,7 @@
+#
+# PTPD Default Configuration
+# 
+# See man ptpd2 for arguments.
+#
+# Example arguments
+PTPDARGS="-c /etc/ptpd.conf"

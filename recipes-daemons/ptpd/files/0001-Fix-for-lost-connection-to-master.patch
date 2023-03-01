@@ -1,0 +1,71 @@
+From 195b4d40ae4e047ff306c8632700955ec3371a81 Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@teledyneflir.com>
+Date: Tue, 13 Sep 2022 13:13:43 +0200
+Subject: [PATCH] Fix for lost connection to master
+
+Signed-off-by: Klas Malmborg <klas.malmborg@teledyneflir.com>
+---
+ src/dep/net.c | 31 ++++++++++++++++---------------
+ 1 file changed, 16 insertions(+), 15 deletions(-)
+
+diff --git a/src/dep/net.c b/src/dep/net.c
+index 2401c2a..7381fec 100644
+--- a/src/dep/net.c
++++ b/src/dep/net.c
+@@ -1015,23 +1015,18 @@ netInit(NetPath * netPath, RunTimeOpts * rtOpts, PtpClock * ptpClock)
+ 
+ 		int promisc = (rtOpts->transport == IEEE_802_3 ) ? 1 : 0;
+ 
+-		if ((netPath->pcapEvent = pcap_open_live(rtOpts->ifaceName,
+-							 PACKET_SIZE, promisc,
+-							 PCAP_TIMEOUT,
+-							 errbuf)) == NULL) {
+-			PERROR("failed to open event pcap");
++		netPath->pcapEvent = pcap_create(rtOpts->ifaceName, errbuf);
++		if (netPath->pcapEvent == NULL) {
++			PERROR("failed to create event pcap");
+ 			return FALSE;
+ 		}
+-
+-/* libpcap - new way - may be required for non-default buffer sizes  */
+-/*
+-		netPath->pcapEvent = pcap_create(rtOpts->ifaceName, errbuf);
+ 		pcap_set_promisc(netPath->pcapEvent, promisc);
+ 		pcap_set_snaplen(netPath->pcapEvent, PACKET_SIZE);
+ 		pcap_set_timeout(netPath->pcapEvent, PCAP_TIMEOUT);
++		pcap_set_immediate_mode(netPath->pcapEvent, 1);
+ 		pcap_set_buffer_size(netPath->pcapEvent, 1024 * 2 * UNICAST_MAX_DESTINATIONS);
+ 		pcap_activate(netPath->pcapEvent);
+-*/
++
+ 		if (pcap_compile(netPath->pcapEvent, &program, 
+ 				 ( rtOpts->transport == IEEE_802_3 ) ?
+ 				    "ether proto 0x88f7":
+@@ -1055,13 +1050,19 @@ netInit(NetPath * netPath, RunTimeOpts * rtOpts, PtpClock * ptpClock)
+ 			PERROR("failed to get pcap event fd");
+ 			return FALSE;
+ 		}		
+-		if ((netPath->pcapGeneral = pcap_open_live(rtOpts->ifaceName,
+-							   PACKET_SIZE, promisc,
+-							   PCAP_TIMEOUT,
+-							 errbuf)) == NULL) {
+-			PERROR("failed to open general pcap");
++
++		netPath->pcapGeneral = pcap_create(rtOpts->ifaceName, errbuf);
++		if (netPath->pcapGeneral == NULL) {
++			PERROR("failed to create general pcap");
+ 			return FALSE;
+ 		}
++		pcap_set_promisc(netPath->pcapGeneral, promisc);
++		pcap_set_snaplen(netPath->pcapGeneral, PACKET_SIZE);
++		pcap_set_timeout(netPath->pcapGeneral, PCAP_TIMEOUT);
++		pcap_set_immediate_mode(netPath->pcapGeneral, 1);
++		pcap_set_buffer_size(netPath->pcapGeneral, 1024 * 2 * UNICAST_MAX_DESTINATIONS);
++		pcap_activate(netPath->pcapGeneral);
++
+ 		if (rtOpts->transport != IEEE_802_3) {
+ 			if (pcap_compile(netPath->pcapGeneral, &program,
+ 					( rtOpts->ipMode == IPMODE_UNICAST ) ?
+-- 
+2.25.1
+
