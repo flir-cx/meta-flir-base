@@ -1,0 +1,44 @@
+From 249221702c8256fbcec944bdd22e360ee4b8dfc8 Mon Sep 17 00:00:00 2001
+From: Klas Malmborg <klas.malmborg@flir.com>
+Date: Tue, 3 Jan 2023 09:17:16 +0000
+Subject: [PATCH] Remove IPv6 management address
+
+Signed-off-by: Klas Malmborg <klas.malmborg@flir.com>
+---
+ src/daemon/protocols/lldp.c | 15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
+
+diff --git a/src/daemon/protocols/lldp.c b/src/daemon/protocols/lldp.c
+index b78e3a0..4ba7869 100644
+--- a/src/daemon/protocols/lldp.c
++++ b/src/daemon/protocols/lldp.c
+@@ -33,7 +33,7 @@ lldpd_af_to_lldp_proto(int af)
+ 	case LLDPD_AF_IPV4:
+ 		return LLDP_MGMT_ADDR_IP4;
+ 	case LLDPD_AF_IPV6:
+-		return LLDP_MGMT_ADDR_IP6;
++		return LLDP_MGMT_ADDR_NONE; // Avoid reporting IPv6 management address KLMA
+ 	default:
+ 		return LLDP_MGMT_ADDR_NONE;
+ 	}
+@@ -250,17 +250,6 @@ static int _lldp_send(struct lldpd *global,
+ #endif
+ 
+ #ifdef ENABLE_DOT3
+-	/* Aggregation status */
+-	if (!(
+-	      POKE_START_LLDP_TLV(LLDP_TLV_ORG) &&
+-	      POKE_BYTES(dot3, sizeof(dot3)) &&
+-	      POKE_UINT8(LLDP_TLV_DOT3_LA) &&
+-	      /* Bit 0 = capability ; Bit 1 = status */
+-	      POKE_UINT8((port->p_aggregid) ? 3:1) &&
+-	      POKE_UINT32(port->p_aggregid) &&
+-	      POKE_END_LLDP_TLV))
+-		goto toobig;
+-
+ 	/* MAC/PHY */
+ 	if (!(
+ 	      POKE_START_LLDP_TLV(LLDP_TLV_ORG) &&
+-- 
+2.7.4
+

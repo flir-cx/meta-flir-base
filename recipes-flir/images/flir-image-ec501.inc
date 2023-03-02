@@ -26,6 +26,7 @@ IMAGE_INSTALL_append = " \
     kernel-module-usb-f-ecm \
     kernel-module-usb-f-ecm-subset \
     libevdev \
+    lldpd \
     mmc-utils \
     mmc7mounter \
     mtd-utils-jffs2 \
