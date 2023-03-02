@@ -23,7 +23,7 @@ SRC_URI_append = "\
              file://defconfig \
 "
 
-COMPATIBLE_MACHINE = "evco|ec501|eoco|ec701|ec302"
+COMPATIBLE_MACHINE = "evco|ec501|eoco|ec701|ec302|ec201"
 
 # Set an external linux source, prevents Yocto from deleting your local changes
 #inherit externalsrc

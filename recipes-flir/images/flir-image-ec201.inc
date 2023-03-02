@@ -11,7 +11,6 @@ IMAGE_INSTALL_append = "\
     brcm-patchram \
     btload \
     chargelogo \
-    cjson \
     exfat-utils \
     gadgetload \
     iputils-ping \
@@ -28,11 +27,9 @@ IMAGE_INSTALL_append = "\
     php-cli \
     php-opcache \
     progressapp-service \
-    qca-tools \
     qrencode \
     rpmsg-bifrost \
     rng-tools \
-    system-sleep-qca9377 \
     system-sleep-flir \
     systemd-failure-notifier \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
@@ -42,6 +39,6 @@ IMAGE_INSTALL_append = "\
     u-boot-script \
     umtp-responder \
     videorender-service \
-    \
     packagegroup-flir-lighttpd \
+    packagegroup-flir-gstreamer \
 "
