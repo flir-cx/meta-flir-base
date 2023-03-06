@@ -7,6 +7,7 @@ set -o pipefail
 #   ExecStopPost=<path>/systemd-failure-notifier "%n" "%i"
 # The instance name (%i) is optional.
 
+export LD_LIBRARY_PATH=/FLIR/usr/lib
 COLLECT_STATISTICS=/FLIR/usr/bin/collect-statistics
 
 # Only log errors, and if collect-statistics is installed
