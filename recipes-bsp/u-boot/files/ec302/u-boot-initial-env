@@ -1,31 +1,36 @@
 baudrate=115200
 bootcmd=setmac;if recoverytrigger; then run recoveryboot;else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
 bootdelay=0
+bootlogo=bootlogo.bmp.gz
 btaddr=00:04:f3:ff:ff:fc
 console=ttyLP0
+copyM4=cp.b ${tempaddr} ${m4_addr} ${filesize}
+extra_bootargs=quiet
 fdt_addr=0x63000000
-fdt_file_default=imx7ulp-ec201.dtb
+fdt_file_default=imx7ulp-ec302.dtb
 fdt_high=0xffffffff
-fdtcontroladdr=7f776978
 hw_start=run startM4;
 image=zImage
 initrd_addr=0x63800000
 initrd_file=uRamdisk.img
 initrd_high=0xffffffff
 ipaddr=192.168.42.30
-loadM4=ext4load mmc ${mmcdev}:${mmcpart} ${m4_addr} boot/${m4_image}
+loadM4=if run loadM4_to_temp; then run copyM4;fi;
+loadM4_to_temp=ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} boot/${m4_image}
 loadaddr=0x60800000
 loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}
 loadfdt4=ext4load mmc ${mmcdev}:${mmcpart} ${fdt_addr} boot/${fdt_file}
 loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}
 loadimage4=ext4load mmc ${mmcdev}:${mmcpart} ${loadaddr} boot/${image}
 loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file}
+loadsplash=run select_boot; ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} /boot/${bootlogo};cp.w ${tempaddr} ${splashimage} ${filesize}
 m4_addr=0x1ffd2000
+m4_bin_size=ext4size mmc ${mmcdev}:${mmcpart} boot/${m4_image}
 m4_image=imx7ulpm4.bin
 mmcargs=setenv bootargs console=${console},${baudrate} ${rootfs} rootwait rw ethaddr=${ethaddr} wlanaddr=${wlanaddr} btaddr=${btaddr} ${bootargs_once} ${extra_bootargs} 
 mmcargs_sdcard=setenv bootargs console=${console},${baudrate} root=${mmcroot_sdcard}
 mmcboot_sdcard=echo Booting from mmc ...; if run loadimage; then run mmcargs_sdcard; if run loadfdt; then bootz ${loadaddr} - ${fdt_addr}; fi;fi;
-mmcbootflir=echo Booting from mmc (flir)...;bootstate;run setup_boot;run update-fdt; run selectfdtfile; run hw_start;run mmcargs;if run loadimage4; then if run loadfdt4; then bootz ${loadaddr} - ${fdt_a;
+mmcbootflir=echo Booting from mmc (flir)...;bootstate;run setup_boot;run update-fdt; run selectfdtfile; run hw_start;run mmcargs;if run loadimage4; then if run loadfdt4; then bootz ${loadaddr} - ${fdt_addr}; else echo WARN: Cannot load the DT; fi; else echo ERR: Cannot load the kernel; fi;
 mmcdev=0
 mmcpart=1
 mmcroot_sdcard=/dev/mmcblk0p2  rootwait rw
@@ -40,14 +45,14 @@ part6_uuid=3845c9fc-e581-49f3-999f-86c9bab515ef
 part7_uuid=3fcf7bf1-b6fe-419d-9a14-f87950727bc0
 part8_uuid=12c08a28-fb40-430a-a5bc-7b4f015b0b3c
 part9_uuid=dc83dea8-c467-45dc-84eb-5e913daec17e
-partition_mmc_flir=mmc rescan; if mmc dev ${mmcdev} 0; then gpt write mmc ${mmcdev} ${parts_flir}; mmc rescan; else if mmc dev ${mmcdev}; then gpt write mmc ${mmcdev} ${parts_flir}; mmc rescan; else; fi 
-parts_flir="uuid_disk=${uuid_disk};start=2MiB,name=recovery,size=40MiB,uuid=${part1_uuid};name=rootfs1,size=512MiB,uuid=${part2_uuid};name=rootfs2,size=512MiB,uuid=${part3_uuid};name=rootfsrw,size=128Mi"
+partition_mmc_flir=mmc rescan; if mmc dev ${mmcdev} 0; then gpt write mmc ${mmcdev} ${parts_flir}; mmc rescan; else if mmc dev ${mmcdev}; then gpt write mmc ${mmcdev} ${parts_flir}; mmc rescan; else; fi; fi; 
+parts_flir="uuid_disk=${uuid_disk};start=2MiB,name=recovery,size=40MiB,uuid=${part1_uuid};name=rootfs1,size=512MiB,uuid=${part2_uuid};name=rootfs2,size=512MiB,uuid=${part3_uuid};name=rootfsrw,size=128MiB,uuid=${part4_uuid};name=apps,size=512MiB,uuid=${part5_uuid};name=data,size=512MiB,uuid=${part6_uuid};name=storage,size=-,uuid=${part7_uuid};"
 recargs=setenv bootargs console=${console},${baudrate} root=/dev/ram0 ethaddr=${ethaddr}
-recboot=echo Booting preloaded recovery...; run recargs; bootz ${loadaddr} ${initrd_addr} ${fdt_addr};
-recoveryboot=echo Booting from mmc recovery;run selectrecfdtfile; run recargs; setenv bootargs_linux ${bootargs}; setenv mmcpart 1; run loadfdt; run loadinitrd; run loadimage; bootz ${loadaddr} ${initrd;
+recboot=echo Booting preloaded recovery...; run recargs; bootz ${loadaddr} ${initrd_addr} ${fdt_addr}; 
+recoveryboot=echo Booting from mmc recovery;run selectrecfdtfile; run recargs; setenv bootargs_linux ${bootargs}; setenv mmcpart 1; run loadfdt; run loadinitrd; run loadimage; bootz ${loadaddr} ${initrd_addr} ${fdt_addr};
 select_boot=if itest.s ${system_active} == system2; then setenv mmcpart 3; setenv rootfs root=/dev/mmcblk0p3; else setenv mmcpart 2; setenv rootfs root=/dev/mmcblk0p2; fi; 
 select_fdt_script=select-fdt.uscr
-selectfdtfile=if test -n ${fdt_file};then echo Devicetree file already selected;else if ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} /boot/${select_fdt_script}; then source ${tempaddr}; else;setenv fdti
+selectfdtfile=if test -n ${fdt_file};then echo Devicetree file already selected;else if ext4load mmc ${mmcdev}:${mmcpart} ${tempaddr} /boot/${select_fdt_script}; then source ${tempaddr}; else;setenv fdt_file ${fdt_file_default};fi; fi
 selectrecfdtfile=if fatload mmc ${mmcdev}:1 ${tempaddr} ${select_fdt_script}; then source ${tempaddr}; else;setenv fdt_file ${fdt_file_default};fi
 serverip=192.168.42.1
 setup_boot=bootargs_once=init=/sbin/preinit; run select_boot;
