@@ -42,6 +42,7 @@ COMMON_PACKAGES = " \
     connman-client \
     cpio \
     crda \
+    curl \
     dosfstools \
     e2fsprogs \
     firmwared \
