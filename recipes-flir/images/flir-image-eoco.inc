@@ -8,6 +8,7 @@ IMAGE_INSTALL_append = "\
     bluez5 \
     btload \
     chargelogo \
+    data-collection-service \
     firmware-imx-vpu-imx6d \
     flirbifrost \
     flirfad \
