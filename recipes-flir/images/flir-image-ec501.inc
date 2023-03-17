@@ -26,6 +26,7 @@ IMAGE_INSTALL_append = " \
     kernel-module-usb-f-ecm \
     kernel-module-usb-f-ecm-subset \
     libevdev \
+    libubootenv-bin \
     lldpd \
     mmc-utils \
     mmc7mounter \
@@ -44,6 +45,8 @@ IMAGE_INSTALL_append = " \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
     \
+    u-boot-default-env-pingu \
+    u-boot-script \
     packagegroup-flir-gstreamer \
     packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
@@ -79,7 +82,6 @@ UNAVAILABLE_PACKAGES = " \
     ti-uim \
     ti-wl18xx-modules \
     u-boot-fw-utils-pingu \
-    u-boot-script \
     packagegroup-flir-pulseaudio-packages \
 "
 
