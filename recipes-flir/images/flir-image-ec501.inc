@@ -57,6 +57,7 @@ IMAGE_INSTALL_append = " \
     ti-nvs \
     ti-scripts \
     ti-wlconf \
+    wlanload \
 "
 
 # The UNAVAILABLE_PACKAGES variable is just a placeholder for packages that 
