@@ -1,0 +1,15 @@
+[Unit]
+Description=Connection service
+After=wlanload.service
+Before=remote-fs.target
+
+[Service]
+Type=dbus
+BusName=net.connman
+Restart=on-failure
+ExecStartPre=-/usr/lib/connman/wired-setup
+ExecStart=/usr/sbin/connmand -n -I usb0 -I p2p0
+StandardOutput=null
+
+[Install]
+WantedBy=multi-user.target
