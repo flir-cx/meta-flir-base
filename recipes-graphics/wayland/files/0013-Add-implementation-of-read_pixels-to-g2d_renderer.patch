@@ -1,0 +1,262 @@
+From d99a09bcd31e22bd224d91d07a8328c25558a23f Mon Sep 17 00:00:00 2001
+From: Anton Persson <anton.persson@teledyneflir.com>
+Date: Wed, 22 Mar 2023 10:40:51 +0100
+Subject: [PATCH] Add implementation of read_pixels to g2d_renderer.
+
+---
+ include/libweston/libweston.h         |  1 +
+ libweston/renderer-g2d/g2d-renderer.c | 86 +++++++++++++++++++++++++++
+ libweston/renderer-g2d/g2d-renderer.h |  2 +
+ libweston/screenshooter.c             | 86 ++++++++++++++++++++-------
+ 4 files changed, 153 insertions(+), 22 deletions(-)
+
+diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
+index 3b8bfe98..40db2d34 100644
+--- a/include/libweston/libweston.h
++++ b/include/libweston/libweston.h
+@@ -905,6 +905,7 @@ struct weston_renderer {
+ 			       float blue, float alpha);
+ 	void (*destroy)(struct weston_compositor *ec);
+ 
++	int (*get_bpp_from_shm_format)(uint32_t format);
+ 
+ 	/** See weston_surface_get_content_size() */
+ 	void (*surface_get_content_size)(struct weston_surface *surface,
+diff --git a/libweston/renderer-g2d/g2d-renderer.c b/libweston/renderer-g2d/g2d-renderer.c
+index f7d9c1a3..19a8d195 100644
+--- a/libweston/renderer-g2d/g2d-renderer.c
++++ b/libweston/renderer-g2d/g2d-renderer.c
+@@ -818,6 +818,90 @@ g2d_clip_rects(enum wl_output_transform transform,
+ 	}
+ }
+ 
++/*
++ * Translates wl_shm_format to bpp.
++ */
++static int
++get_bpp_from_shm_format(uint32_t shm_format)
++{
++	int bpp;
++	switch (shm_format) {
++	case WL_SHM_FORMAT_XRGB8888:
++	case WL_SHM_FORMAT_ARGB8888:
++		bpp = 4;
++		break;
++	case WL_SHM_FORMAT_RGB565:
++		bpp = 2;
++		break;
++	default:
++		weston_log("warning: incorrect format: %08x\n", shm_format);
++		return -1;
++	}
++	return bpp;
++}
++
++
++static int
++g2d_format_from_shm(uint32_t shm_format, int *res)
++{
++	enum g2d_format format;
++	switch (shm_format) {
++	case WL_SHM_FORMAT_XRGB8888:
++		format = G2D_BGRX8888;
++		break;
++	case WL_SHM_FORMAT_ARGB8888:
++		format = G2D_BGRA8888;
++		break;
++	case WL_SHM_FORMAT_RGB565:
++		format = G2D_RGB565;
++		break;
++	default:
++		weston_log("warning: incorrect format: %08x\n", shm_format);
++		*res = -1;
++		return 0;
++	}
++	*res = 0;
++	return format;
++}
++
++static struct g2d_buf*
++g2d_create_buffer_and_setup_surface(enum g2d_format format,
++		  int height,
++		  int width,
++		  uint32_t stride,
++		  struct g2d_surfaceEx *surface)
++
++{
++	int buffer_length;
++	struct g2d_buf *buf;
++
++	buffer_length =  height * stride;
++
++	weston_log("Allocate a g2d buffer, size: %d kb\n", buffer_length/1024);
++
++	buf = g2d_alloc(buffer_length, 0);
++	if(buf == 0){
++		weston_log("Allocate g2d buffer failed\n");
++		return NULL;
++	}
++
++	surface->base.planes[0]  = buf->buf_paddr;
++	surface->base.planes[1]  = surface->base.planes[0] + width * height;
++	surface->base.planes[2]  = surface->base.planes[1] + width * height / 4;
++	surface->base.left       = 0;
++	surface->base.top        = 0;
++	surface->base.right	 = width;
++	surface->base.bottom     = height;
++	surface->base.stride     = width;
++	surface->base.width	 = width;
++	surface->base.height     = height;
++	surface->base.rot	 = G2D_ROTATION_0;
++	surface->base.clrcolor   = 0xFF400000;
++	surface->tiling          = G2D_LINEAR;
++	surface->base.format     = format;
++	return buf;
++}
++
+ static int
+ g2d_renderer_read_pixels(struct weston_output *output,
+ 				   pixman_format_code_t format, void *pixels,
+@@ -1968,6 +2052,7 @@ g2d_renderer_create(struct weston_compositor *ec)
+ 	if (gr == NULL)
+ 		return -1;
+ 
++	gr->base.get_bpp_from_shm_format = get_bpp_from_shm_format;
+ 	gr->base.read_pixels = g2d_renderer_read_pixels;
+ 	gr->base.repaint_output = g2d_renderer_repaint_output;
+ 	gr->base.flush_damage = g2d_renderer_flush_damage;
+@@ -2375,4 +2460,5 @@ g2d_fbdev_renderer_output_create(struct weston_output *output,
+ 	.output_set_buffer   = g2d_renderer_output_set_buffer,
+ 	.output_destroy      = g2d_renderer_output_destroy,
+ 	.get_surface_fence_fd = g2d_renderer_get_surface_fence_fd,
++	.get_bpp_from_shm_format = get_bpp_from_shm_format,
+ };
+diff --git a/libweston/renderer-g2d/g2d-renderer.h b/libweston/renderer-g2d/g2d-renderer.h
+index afb388a8..c0ea9ba4 100644
+--- a/libweston/renderer-g2d/g2d-renderer.h
++++ b/libweston/renderer-g2d/g2d-renderer.h
+@@ -80,6 +80,8 @@ struct g2d_renderer_interface {
+ 
+ 	void (*output_destroy)(struct weston_output *output);
+ 
++	int (*get_bpp_from_shm_format)(uint32_t format);
++
+ 	int (*get_surface_fence_fd)(struct g2d_surfaceEx *buffer);
+ };
+ 
+diff --git a/libweston/screenshooter.c b/libweston/screenshooter.c
+index 4ea519bd..d350d990 100644
+--- a/libweston/screenshooter.c
++++ b/libweston/screenshooter.c
+@@ -124,10 +124,35 @@ screenshooter_frame_notify(struct wl_listener *listener, void *data)
+ 	struct weston_compositor *compositor = output->compositor;
+ 	int32_t stride;
+ 	uint8_t *pixels, *d, *s;
++	int bpp;
++	uint32_t format;
+ 
+ 	weston_output_disable_planes_decr(output);
+ 	wl_list_remove(&listener->link);
+-	stride = l->buffer->width * (PIXMAN_FORMAT_BPP(compositor->read_format) / 8);
++
++	/*
++	 * compositor->read_format is not set for the
++	 * g2d_renderer. PIXMAN_FORMAT_BPP returns 0 in this case and
++	 * pixels is 0 bytes in size. In the case of g2d renderer use
++	 * the format associated to the shared buffer.
++	 */
++	if(!compositor->read_format){
++		format = wl_shm_buffer_get_format(l->buffer->shm_buffer);
++		bpp = compositor->renderer->get_bpp_from_shm_format(format) * 8;
++	}else{
++		format = compositor->read_format;
++		bpp=PIXMAN_FORMAT_BPP(compositor->read_format);
++	}
++
++	stride = l->buffer->width * (bpp / 8);
++
++	/*
++	 * pixels' size is calculated using the dimensions specified
++	 * in the shared buffer. The format used to determined the
++	 * stride is either the format from the shared buffer as in
++	 * the case when using g2d renderer or the format of the
++	 * screen.
++	 */
+ 	pixels = malloc(stride * l->buffer->height);
+ 
+ 	if (pixels == NULL) {
+@@ -136,10 +161,20 @@ screenshooter_frame_notify(struct wl_listener *listener, void *data)
+ 		return;
+ 	}
+ 
++	/*
++	 * read_pixels populates pixels with bytes from frame. Note,
++	 * the dimensions sent in as arguments are the screen
++	 * dimensions. The size of the frame read into pixels will be
++	 * of the same size only if the buffer dimensions are the same
++	 * as the screen dimensions.
++	 */
+ 	compositor->renderer->read_pixels(output,
+-			     compositor->read_format, pixels,
+-			     0, 0, output->current_mode->width,
+-			     output->current_mode->height);
++					format,
++					pixels,
++					0,
++					0,
++					output->current_mode->width,
++					output->current_mode->height);
+ 
+ 	stride = wl_shm_buffer_get_stride(l->buffer->shm_buffer);
+ 
+@@ -148,25 +183,32 @@ screenshooter_frame_notify(struct wl_listener *listener, void *data)
+ 
+ 	wl_shm_buffer_begin_access(l->buffer->shm_buffer);
+ 
+-	switch (compositor->read_format) {
+-	case PIXMAN_a8r8g8b8:
+-	case PIXMAN_x8r8g8b8:
+-		if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
+-			copy_bgra_yflip(d, s, output->current_mode->height, stride);
+-		else
+-			copy_bgra(d, pixels, output->current_mode->height, stride);
+-		break;
+-	case PIXMAN_x8b8g8r8:
+-	case PIXMAN_a8b8g8r8:
+-		if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
+-			copy_rgba_yflip(d, s, output->current_mode->height, stride);
+-		else
+-			copy_rgba(d, pixels, output->current_mode->height, stride);
+-		break;
+-	default:
+-		break;
++	/*
++	 * If g2d renderer, just copy over pixels to shared
++	 * buffer.
++	 */
++	if(!compositor->read_format){
++		memcpy(d, pixels, l->buffer->height * stride);
++	}else{
++		switch (compositor->read_format) {
++		case PIXMAN_a8r8g8b8:
++		case PIXMAN_x8r8g8b8:
++			if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
++				copy_bgra_yflip(d, s, output->current_mode->height, stride);
++			else
++				copy_bgra(d, pixels, output->current_mode->height, stride);
++			break;
++		case PIXMAN_x8b8g8r8:
++		case PIXMAN_a8b8g8r8:
++			if (compositor->capabilities & WESTON_CAP_CAPTURE_YFLIP)
++				copy_rgba_yflip(d, s, output->current_mode->height, stride);
++			else
++				copy_rgba(d, pixels, output->current_mode->height, stride);
++			break;
++		default:
++			break;
++		}
+ 	}
+-
+ 	wl_shm_buffer_end_access(l->buffer->shm_buffer);
+ 
+ 	l->done(l->data, WESTON_SCREENSHOOTER_SUCCESS);

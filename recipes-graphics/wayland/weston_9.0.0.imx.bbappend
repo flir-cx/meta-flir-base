@@ -13,4 +13,6 @@ SRC_URI_append += "\
 	file://0010-improve-screen-rotation-query.patch \
 	file://0011-weston-fine-grained-clone-and-rotation.patch \
 	file://0012-weston-fix-input-focus-on-new-surfaces.patch \
+	file://0013-Add-implementation-of-read_pixels-to-g2d_renderer.patch \
+	file://0014-Add-streaming-functionality-to-Weston.patch \
 "

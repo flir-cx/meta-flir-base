@@ -1,0 +1,684 @@
+From c1b9f93130105c17095ec1d0ef1c701497401038 Mon Sep 17 00:00:00 2001
+From: Anton Persson <anton.persson@teledyneflir.com>
+Date: Fri, 24 Mar 2023 10:17:28 +0100
+Subject: [PATCH] Add streaming functionality to Weston.
+
+diff --git a/compositor/weston-screenshooter.c b/compositor/weston-screenshooter.c
+index ed354b0c..6abf8102 100644
+--- a/compositor/weston-screenshooter.c
++++ b/compositor/weston-screenshooter.c
+@@ -41,6 +41,7 @@ struct screenshooter {
+ 	struct weston_process process;
+ 	struct wl_listener destroy_listener;
+ 	struct weston_recorder *recorder;
++	struct weston_streamer *streamer;
+ };
+ 
+ static void
+@@ -55,6 +56,15 @@ screenshooter_done(void *data, enum weston_screenshooter_outcome outcome)
+ 	case WESTON_SCREENSHOOTER_NO_MEMORY:
+ 		wl_resource_post_no_memory(resource);
+ 		break;
++	case WESTON_STREAMER_NOTIFY_FAIL:
++		weston_streamer_send_fail(resource);
++		break;
++	case WESTON_STREAMER_NOTIFY_SUCCESS:
++		weston_streamer_send_done(resource);
++		break;
++	case WESTON_STREAMER_NOTIFY_FRAME:
++		weston_streamer_send_frame(resource);
++		break;
+ 	default:
+ 		break;
+ 	}
+@@ -79,8 +89,89 @@ screenshooter_shoot(struct wl_client *client,
+ 	weston_screenshooter_shoot(output, buffer, screenshooter_done, resource);
+ }
+ 
++static void
++streamer_stop(struct wl_client *client,
++	      struct wl_resource *resource)
++{
++	/*
++	 * This is a method defined in the weston-screenshooter's
++	 * protocol xml as an event for the streamer.
++	 */
++	struct screenshooter *shooter = wl_resource_get_user_data(resource);
++
++	if (shooter->streamer) {
++		weston_streamer_stop(shooter->streamer);
++		shooter->streamer = NULL;
++	}
++	weston_streamer_send_done(resource);
++}
++
++static void
++streamer_start(struct wl_client *client, /* Client (owner of the
++					     resource) that is issuing
++					     the request. */
++		struct wl_resource *resource, /* The resource instance calling. */
++		struct wl_resource *output_resource, /* Argument from client */
++		struct wl_resource *buffer_resource)
++{
++	/*
++	 * The screenshooter struct is assigned as "user data" when
++	 * creating the streamer resource. We can therefore get it
++	 * through the resource now.
++	 */
++	struct screenshooter *shooter = wl_resource_get_user_data(resource);
++
++	struct weston_output *output =
++		weston_head_from_resource(output_resource)->output;
++
++	struct weston_buffer *buffer =
++		weston_buffer_from_resource(buffer_resource);
++
++	shooter->streamer = weston_streamer_start(output,
++						  buffer,
++						  screenshooter_done,
++						  resource);
++
++	if(shooter->streamer == NULL){
++	  weston_log("Failed to start stream \n");
++	}
++}
++
++struct weston_streamer_interface streamer_implementation = {
++	.start = streamer_start,
++	.stop = streamer_stop
++};
++
++static void
++screenshooter_get_streamer(struct wl_client *client,
++			   struct wl_resource *resource, /* screenshooter resource */
++			   uint32_t id)
++{
++	struct wl_resource *streamer_resource;
++	struct screenshooter *shooter = wl_resource_get_user_data(resource);
++	streamer_resource = wl_resource_create(client,
++					       &weston_streamer_interface,
++					       1, /* version */
++					       id);
++
++	if (streamer_resource == NULL) {
++		wl_client_post_no_memory(client);
++		return;
++	}
++
++	/*
++	 * The screenshooter structure is assigned as "user data" on
++	 * the streamer resource instance.
++	 */
++	wl_resource_set_implementation(streamer_resource,
++				       &streamer_implementation,
++				       shooter, /* User data */
++				       NULL);
++}
++
+ struct weston_screenshooter_interface screenshooter_implementation = {
+-	screenshooter_shoot
++	.shoot = screenshooter_shoot,
++	.get_streamer = screenshooter_get_streamer
+ };
+ 
+ static void
+@@ -95,6 +186,7 @@ bind_shooter(struct wl_client *client,
+ 	resource = wl_resource_create(client,
+ 				      &weston_screenshooter_interface, 1, id);
+ 
++/* This check is removed to let us run the videoserver without --debug on weston
+ 	if (!debug_enabled && !shooter->client) {
+ 		wl_resource_post_error(resource, WL_DISPLAY_ERROR_INVALID_OBJECT,
+ 				       "screenshooter failed: permission denied. "\
+@@ -105,7 +197,7 @@ bind_shooter(struct wl_client *client,
+ 				       "screenshooter failed: permission denied.");
+ 		return;
+ 	}
+-
++*/
+ 	wl_resource_set_implementation(resource, &screenshooter_implementation,
+ 				       data, NULL);
+ }
+diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
+index 40db2d34..95a0ce61 100644
+--- a/include/libweston/libweston.h
++++ b/include/libweston/libweston.h
+@@ -896,6 +896,12 @@ struct weston_renderer {
+ 			       pixman_format_code_t format, void *pixels,
+ 			       uint32_t x, uint32_t y,
+ 			       uint32_t width, uint32_t height);
++
++	int (*read_pixels_streaming)(struct weston_output *output,
++			   pixman_format_code_t format, void *pixels,
++			   uint32_t x, uint32_t y,
++			   uint32_t width, uint32_t height);
++
+ 	void (*repaint_output)(struct weston_output *output,
+ 			       pixman_region32_t *output_damage);
+ 	void (*flush_damage)(struct weston_surface *surface);
+@@ -1856,8 +1862,13 @@ weston_log_continue(const char *fmt, ...)
+ 
+ enum weston_screenshooter_outcome {
+ 	WESTON_SCREENSHOOTER_SUCCESS,
++	WESTON_SCREENSHOOTER_FAIL,
++	WESTON_SCREENSHOOTER_FRAME,
+ 	WESTON_SCREENSHOOTER_NO_MEMORY,
+-	WESTON_SCREENSHOOTER_BAD_BUFFER
++	WESTON_SCREENSHOOTER_BAD_BUFFER,
++	WESTON_STREAMER_NOTIFY_SUCCESS,
++	WESTON_STREAMER_NOTIFY_FAIL,
++	WESTON_STREAMER_NOTIFY_FRAME
+ };
+ 
+ typedef void (*weston_screenshooter_done_func_t)(void *data,
+@@ -1870,6 +1881,14 @@ weston_recorder_start(struct weston_output *output, const char *filename);
+ void
+ weston_recorder_stop(struct weston_recorder *recorder);
+ 
++struct weston_streamer *
++weston_streamer_start(struct weston_output *output,
++		      struct weston_buffer *buffer,
++		      weston_screenshooter_done_func_t done,
++		      void *data);
++void
++weston_streamer_stop(struct weston_streamer *streamer);
++
+ struct weston_view_animation;
+ typedef	void (*weston_view_animation_done_func_t)(struct weston_view_animation *animation, void *data);
+ 
+diff --git a/libweston/meson.build b/libweston/meson.build
+index a7147253..c94d2cf1 100644
+--- a/libweston/meson.build
++++ b/libweston/meson.build
+@@ -25,6 +25,7 @@ srcs_libweston = [
+ 	'pixman-renderer.c',
+ 	'plugin-registry.c',
+ 	'screenshooter.c',
++	'streamer.c',
+ 	'timeline.c',
+ 	'touch-calibration.c',
+ 	'weston-log-wayland.c',
+diff --git a/libweston/renderer-g2d/g2d-renderer.c b/libweston/renderer-g2d/g2d-renderer.c
+index 19a8d195..778610e6 100644
+--- a/libweston/renderer-g2d/g2d-renderer.c
++++ b/libweston/renderer-g2d/g2d-renderer.c
+@@ -109,6 +109,11 @@ struct g2d_output_state {
+ 	int current_buffer;
+ 	pixman_region32_t buffer_damage[BUFFER_DAMAGE_COUNT];
+ 	struct g2d_surfaceEx *renderSurf;
++	/*
++	 * Surface and buffer used when streaming
++	 */
++	struct g2d_surfaceEx stream_surf;
++	struct g2d_buf *stream_buf;
+ 	int nNumBuffers;
+ 	int activebuffer;
+ 	struct g2d_surfaceEx offscreenSurface;
+@@ -831,10 +836,11 @@ get_bpp_from_shm_format(uint32_t shm_format)
+ 		bpp = 4;
+ 		break;
+ 	case WL_SHM_FORMAT_RGB565:
++	case WL_SHM_FORMAT_YUYV:
+ 		bpp = 2;
+ 		break;
+ 	default:
+-		weston_log("warning: incorrect format: %08x\n", shm_format);
++		weston_log("Error: incorrect format: %08x\n", shm_format);
+ 		return -1;
+ 	}
+ 	return bpp;
+@@ -855,8 +861,11 @@ g2d_format_from_shm(uint32_t shm_format, int *res)
+ 	case WL_SHM_FORMAT_RGB565:
+ 		format = G2D_RGB565;
+ 		break;
++       case WL_SHM_FORMAT_YUYV:
++               format = G2D_YUYV;
++               break;
+ 	default:
+-		weston_log("warning: incorrect format: %08x\n", shm_format);
++		weston_log("Error: incorrect format: %08x\n", shm_format);
+ 		*res = -1;
+ 		return 0;
+ 	}
+@@ -958,6 +967,63 @@ g2d_renderer_read_pixels(struct weston_output *output,
+ 	return 0;
+ }
+ 
++static int
++g2d_renderer_read_pixels_streaming(struct weston_output *output,
++				   uint32_t shm_format,
++				   void **pixels,
++				   uint32_t x,
++				   uint32_t y,
++				   uint32_t width,
++				   uint32_t height)
++{
++	int bpp, stride, res, size;
++	enum g2d_format format;
++
++	struct g2d_renderer *gr = get_renderer(output->compositor);
++	struct g2d_output_state *go = get_output_state(output);
++
++	if((bpp = get_bpp_from_shm_format(shm_format)) == -1){
++		weston_log("Failed to calculate bpp from format\n");
++		return -1;
++	}
++
++	stride = width * bpp;
++	size = height * stride;
++
++	if(go->stream_buf && (go->stream_buf->buf_size) < size){
++		weston_log("Expanding size of g2d buffer\n");
++		g2d_free(go->stream_buf);
++		go->stream_buf = NULL;
++	}
++
++	if(!go->stream_buf){
++		format = g2d_format_from_shm(shm_format, &res);
++		if(res == -1){
++			weston_log("Failed translating shm_format to g2d format\n");
++			return -1;
++		}
++
++		go->stream_buf = g2d_create_buffer_and_setup_surface(format,
++								     height,
++								     width,
++								     stride,
++								     &go->stream_surf);
++	}
++
++	if(go->stream_buf == NULL)
++		return -1;
++
++	if(g2d_blitEx(gr->handle,&go->renderSurf[go->activebuffer], &go->stream_surf))
++	{
++		weston_log("Bit blit g2d surface failed\n");
++		return -1;
++	}
++
++	g2d_finish(gr->handle);
++	*pixels = go->stream_buf->buf_vaddr;
++	return 0;
++}
++
+ static int g2d_int_from_double(double d)
+ {
+ 	return wl_fixed_to_int(wl_fixed_from_double(d));
+@@ -1988,6 +2054,12 @@ g2d_renderer_output_destroy(struct weston_output *output)
+ 		go->offscreen_buf = NULL;
+ 	}
+ 
++	if(go->stream_buf)
++	{
++		g2d_free(go->stream_buf);
++		go->stream_buf = NULL;
++	}
++
+ 	if(go->fb_info.fb_fd)
+ 	{
+ 		close(go->fb_info.fb_fd);
+@@ -2053,6 +2125,7 @@ g2d_renderer_create(struct weston_compositor *ec)
+ 		return -1;
+ 
+ 	gr->base.get_bpp_from_shm_format = get_bpp_from_shm_format;
++	gr->base.read_pixels_streaming = g2d_renderer_read_pixels_streaming;
+ 	gr->base.read_pixels = g2d_renderer_read_pixels;
+ 	gr->base.repaint_output = g2d_renderer_repaint_output;
+ 	gr->base.flush_damage = g2d_renderer_flush_damage;
+diff --git a/libweston/screenshooter.c b/libweston/screenshooter.c
+index d350d990..e650e2dc 100644
+--- a/libweston/screenshooter.c
++++ b/libweston/screenshooter.c
+@@ -51,6 +51,19 @@ struct screenshooter_frame_listener {
+ 	void *data;
+ };
+ 
++struct weston_recorder {
++	struct weston_output *output;
++	uint32_t *frame, *rect;
++	uint32_t *tmpbuf;
++	uint32_t total;
++	int fd;
++	struct wl_listener frame_listener;
++	int count, destroying;
++};
++
++static void
++weston_recorder_destroy(struct weston_recorder *recorder);
++
+ static void
+ copy_bgra_yflip(uint8_t *dst, uint8_t *src, int height, int stride)
+ {
+@@ -216,6 +229,24 @@ screenshooter_frame_notify(struct wl_listener *listener, void *data)
+ 	free(l);
+ }
+ 
++static void
++weston_recorder_free(struct weston_recorder *recorder)
++{
++	if (recorder == NULL)
++		return;
++
++	if(recorder->tmpbuf)
++		free(recorder->tmpbuf);
++
++	if(recorder->rect)
++		free(recorder->rect);
++
++	if(recorder->frame)
++		free(recorder->frame);
++
++	free(recorder);
++}
++
+ WL_EXPORT int
+ weston_screenshooter_shoot(struct weston_output *output,
+ 			   struct weston_buffer *buffer,
+@@ -256,16 +287,6 @@ weston_screenshooter_shoot(struct weston_output *output,
+ 	return 0;
+ }
+ 
+-struct weston_recorder {
+-	struct weston_output *output;
+-	uint32_t *frame, *rect;
+-	uint32_t *tmpbuf;
+-	uint32_t total;
+-	int fd;
+-	struct wl_listener frame_listener;
+-	int count, destroying;
+-};
+-
+ static uint32_t *
+ output_run(uint32_t *p, uint32_t delta, int run)
+ {
+@@ -297,9 +318,6 @@ component_delta(uint32_t next, uint32_t prev)
+ 	return (dr << 16) | (dg << 8) | (db << 0);
+ }
+ 
+-static void
+-weston_recorder_destroy(struct weston_recorder *recorder);
+-
+ static void
+ weston_recorder_frame_notify(struct wl_listener *listener, void *data)
+ {
+@@ -410,18 +428,6 @@ weston_recorder_frame_notify(struct wl_listener *listener, void *data)
+ 		weston_recorder_destroy(recorder);
+ }
+ 
+-static void
+-weston_recorder_free(struct weston_recorder *recorder)
+-{
+-	if (recorder == NULL)
+-		return;
+-
+-	free(recorder->tmpbuf);
+-	free(recorder->rect);
+-	free(recorder->frame);
+-	free(recorder);
+-}
+-
+ static struct weston_recorder *
+ weston_recorder_create(struct weston_output *output, const char *filename)
+ {
+@@ -501,8 +507,12 @@ err_recorder:
+ static void
+ weston_recorder_destroy(struct weston_recorder *recorder)
+ {
++	weston_log("Destroying recorder\n");
+ 	wl_list_remove(&recorder->frame_listener.link);
+-	close(recorder->fd);
++
++	if(recorder->fd)
++		close(recorder->fd);
++
+ 	weston_output_disable_planes_decr(recorder->output);
+ 	weston_recorder_free(recorder);
+ }
+diff --git a/libweston/streamer.c b/libweston/streamer.c
+new file mode 100644
+index 00000000..85106a04
+--- /dev/null
++++ b/libweston/streamer.c
+@@ -0,0 +1,199 @@
++/*
++ * Copyright © 2008-2011 Kristian Høgsberg
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining
++ * a copy of this software and associated documentation files (the
++ * "Software"), to deal in the Software without restriction, including
++ * without limitation the rights to use, copy, modify, merge, publish,
++ * distribute, sublicense, and/or sell copies of the Software, and to
++ * permit persons to whom the Software is furnished to do so, subject to
++ * the following conditions:
++ *
++ * The above copyright notice and this permission notice (including the
++ * next paragraph) shall be included in all copies or substantial
++ * portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
++ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
++ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++ * SOFTWARE.
++ */
++
++#include "config.h"
++
++#include <stdlib.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++#include <linux/input.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <sys/uio.h>
++
++#include <libweston/libweston.h>
++#include "shared/helpers.h"
++#include "shared/timespec-util.h"
++#include "wcap/wcap-decode.h"
++
++struct weston_streamer {
++	struct weston_output *output;
++	uint32_t *frame, *rect;
++	uint32_t *tmpbuf;
++
++	struct wl_listener frame_listener;
++	int destroying;
++
++	weston_screenshooter_done_func_t done;
++	void *data;
++	struct weston_buffer *buffer;
++};
++
++static void
++weston_streamer_destroy(struct weston_streamer *streamer);
++
++static void
++weston_streamer_free(struct weston_streamer *streamer)
++{
++	if(streamer)
++		free(streamer);
++}
++
++static void
++streamer_frame_notify(struct wl_listener *listener, void *data)
++{
++	struct weston_streamer *streamer =
++		container_of(listener, struct weston_streamer, frame_listener);
++
++	struct weston_output *output = streamer->output;
++	struct weston_compositor *compositor = output->compositor;
++
++	int32_t shm_stride;
++	uint8_t *pixels, *destination;
++	uint32_t shm_format;
++
++	/*
++	 * Check if client has asked for the streaming to stop.
++	 */
++	if (streamer->destroying){
++		weston_streamer_destroy(streamer);
++		return;
++	}
++
++	shm_format = wl_shm_buffer_get_format(streamer->buffer->shm_buffer);
++	shm_stride = wl_shm_buffer_get_stride(streamer->buffer->shm_buffer);
++
++	if(compositor->renderer->read_pixels_streaming(output,
++					     shm_format,
++					     &pixels,
++					     0,
++					     0,
++					     streamer->buffer->width,
++					     streamer->buffer->height) == -1){
++		weston_log("Could not read pixels\n");
++		streamer->done(streamer->data, WESTON_STREAMER_NOTIFY_FAIL);
++		weston_streamer_destroy(streamer);
++		return;
++	}
++
++	destination = wl_shm_buffer_get_data(streamer->buffer->shm_buffer);
++
++	wl_shm_buffer_begin_access(streamer->buffer->shm_buffer);
++	memcpy(destination, pixels, streamer->buffer->height * shm_stride);
++	wl_shm_buffer_end_access(streamer->buffer->shm_buffer);
++
++	/* Signal client that frame is available. */
++	streamer->done(streamer->data, WESTON_STREAMER_NOTIFY_FRAME);
++}
++
++struct weston_streamer*
++weston_streamer_create(struct weston_output *output,
++			   struct weston_buffer *buffer,
++			   weston_screenshooter_done_func_t done,
++			   void *data)
++{
++	struct weston_streamer *streamer;
++	streamer = zalloc(sizeof *streamer);
++
++	if (streamer == NULL) {
++		weston_log("%s: out of memory\n", __func__);
++		return NULL;
++	}
++
++	if (!wl_shm_buffer_get(buffer->resource)) {
++		done(data, WESTON_SCREENSHOOTER_BAD_BUFFER);
++		goto err_streamer;
++	}
++
++	buffer->shm_buffer = wl_shm_buffer_get(buffer->resource);
++	buffer->width = wl_shm_buffer_get_width(buffer->shm_buffer);
++	buffer->height = wl_shm_buffer_get_height(buffer->shm_buffer);
++
++	/* Add data to be retrieved in streamer_frame_notify. */
++	streamer->output = output;
++	streamer->buffer = buffer;
++	streamer->done = done;
++	streamer->data = data;
++
++	/* Specify callback for signal */
++	streamer->frame_listener.notify = streamer_frame_notify;
++
++	/* Add listener to frame_signal on output. */
++	wl_signal_add(&output->frame_signal, &streamer->frame_listener);
++
++	streamer->output->disable_planes++;
++	weston_output_schedule_repaint(streamer->output);
++	return streamer;
++
++err_streamer:
++	weston_streamer_free(streamer);
++	done(data, WESTON_STREAMER_NOTIFY_FAIL);
++	return NULL;
++}
++
++static void
++weston_streamer_destroy(struct weston_streamer *streamer)
++{
++	wl_list_remove(&streamer->frame_listener.link);
++	streamer->output->disable_planes--;
++	weston_streamer_free(streamer);
++}
++
++/*
++ * Check if a stream is already on before starting.
++ */
++WL_EXPORT struct weston_streamer *
++weston_streamer_start(struct weston_output *output,
++			   struct weston_buffer *buffer,
++			   weston_screenshooter_done_func_t done,
++			   void *data)
++{
++	struct wl_listener *listener;
++
++	/*
++	 * Listener is identified by the frame_signal on output and
++	 * the callback associated to it.
++	 */
++	listener = wl_signal_get(&output->frame_signal,
++				 streamer_frame_notify);
++	if (listener) {
++		weston_log("A stream on %s is already running\n",
++			   output->name);
++		return NULL;
++	}
++
++	return weston_streamer_create(output,
++				      buffer,
++				      done,
++				      data);
++}
++
++WL_EXPORT void
++weston_streamer_stop(struct weston_streamer *streamer)
++{
++	streamer->destroying = 1;
++	weston_output_schedule_repaint(streamer->output);
++}
+diff --git a/protocol/meson.build b/protocol/meson.build
+index ca220dbd..0cc12b5c 100644
+--- a/protocol/meson.build
++++ b/protocol/meson.build
+@@ -8,6 +8,7 @@ install_data(
+ 	[
+ 		'weston-debug.xml',
+ 		'weston-direct-display.xml',
++		'weston-screenshooter.xml',
+ 	],
+ 	install_dir: join_paths(dir_data, dir_protocol_libweston)
+ )
+diff --git a/protocol/weston-screenshooter.xml b/protocol/weston-screenshooter.xml
+index 8c4486c3..fb461986 100644
+--- a/protocol/weston-screenshooter.xml
++++ b/protocol/weston-screenshooter.xml
+@@ -1,12 +1,22 @@
+ <protocol name="weston_screenshooter">
+-
+   <interface name="weston_screenshooter" version="1">
+     <request name="shoot">
+       <arg name="output" type="object" interface="wl_output"/>
+       <arg name="buffer" type="object" interface="wl_buffer"/>
+     </request>
+-    <event name="done">
+-    </event>
++    <request name="get_streamer">
++      <arg name="id" type="new_id" interface="weston_streamer"/>
++    </request>
++    <event name="done"/>
++  </interface>
++  <interface name="weston_streamer" version="1">
++    <request name="start">
++      <arg name="output" type="object" interface="wl_output"/>
++      <arg name="buffer" type="object" interface="wl_buffer"/>
++    </request>
++    <request name="stop"/>
++    <event name="done"/>
++    <event name="frame"/>
++    <event name="fail"/>
+   </interface>
+-
+ </protocol>
