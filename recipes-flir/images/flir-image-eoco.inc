@@ -7,6 +7,7 @@ IMAGE_INSTALL_append = "\
     autofs \
     bluez5 \
     btload \
+    cooler-service \
     chargelogo \
     data-collection-service \
     firmware-imx-vpu-imx6d \

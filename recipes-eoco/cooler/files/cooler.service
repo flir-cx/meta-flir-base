@@ -1,0 +1,11 @@
+[Unit]
+Description=The cooler FLIR service 
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStop=/bin/bash -c 'echo 128 >/sys/class/gpio/export; echo high >/sys/class/gpio/gpio128/direction'
+
+[Install]
+WantedBy=multi-user.target
+
