@@ -12,6 +12,7 @@ IMAGE_INSTALL_append = "\
     btload \
     chargelogo \
     exfat-utils \
+    flir-activity-monitor \
     gadgetload \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-plugins-base-app \
