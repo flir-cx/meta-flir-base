@@ -4,7 +4,8 @@ Description=The cooler FLIR service
 [Service]
 Type=oneshot
 RemainAfterExit=true
-ExecStop=/bin/bash -c 'echo 128 >/sys/class/gpio/export; echo high >/sys/class/gpio/gpio128/direction'
+ExecStart=/bin/bash -c 'i2ctransfer -y  2 w3@0x72 0x05 0x01 0x01'
+ExecStop=/bin/bash -c 'i2ctransfer -y  2 w3@0x72 0x05 0x01 0x00'
 
 [Install]
 WantedBy=multi-user.target
