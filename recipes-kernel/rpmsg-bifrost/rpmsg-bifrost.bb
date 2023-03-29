@@ -20,7 +20,7 @@ FLIR_RPMSG_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_IMX
 
 PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
 
-SRCREV = "37af16c653a55454708309d9305df4bb9e65f35c"
+SRCREV = "33ae7f9d1180b23cd2987b1ec88a9178ec994945"
 
 SRC_URI = "${FLIR_RPMSG_URI};protocol=${PROTO};nobranch=1"
 
