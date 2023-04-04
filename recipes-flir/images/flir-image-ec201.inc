@@ -30,6 +30,7 @@ IMAGE_INSTALL_append = "\
     qrencode \
     rpmsg-bifrost \
     rng-tools \
+    system-sleep-qca9377 \
     system-sleep-flir \
     systemd-failure-notifier \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
