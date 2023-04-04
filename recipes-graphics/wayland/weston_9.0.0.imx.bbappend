@@ -15,4 +15,5 @@ SRC_URI_append += "\
 	file://0012-weston-fix-input-focus-on-new-surfaces.patch \
 	file://0013-Add-implementation-of-read_pixels-to-g2d_renderer.patch \
 	file://0014-Add-streaming-functionality-to-Weston.patch \
+	file://0015-Remove-blue-screen-blink.patch \
 "
