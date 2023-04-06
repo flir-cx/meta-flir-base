@@ -16,6 +16,7 @@ IMAGE_INSTALL_append = " \
     flirvcam \
     flir-sysfs-links-service \
     gadgetload \
+    gupnp \
     haproxy \
     iputils-ping \
     kernel-module-bh1750 \
