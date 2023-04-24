@@ -15,11 +15,6 @@ IMAGE_INSTALL_append = "\
     exfat-utils \
     flir-activity-monitor \
     gadgetload \
-    gstreamer1.0-plugins-bad \
-    gstreamer1.0-plugins-base-app \
-    gstreamer1.0-plugins-base-tcp \
-    gstreamer1.0-plugins-base-videorate \
-    gstreamer1.0-rtsp-server \
     iputils-ping \
     kernel-modules \
     kernel-module-qca9377 firmware-qca9377 \

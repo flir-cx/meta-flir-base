@@ -11,7 +11,9 @@ IMAGE_INSTALL_append = "\
     brcm-patchram \
     btload \
     chargelogo \
+    data-collection-service \
     exfat-utils \
+    flir-activity-monitor \
     gadgetload \
     iputils-ping \
     kernel-modules \

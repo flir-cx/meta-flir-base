@@ -104,6 +104,7 @@ RDEPENDS_${PN}-packages_mx6 = "\
 RDEPENDS_${PN}-packages_mx7 = "\
     ${COMMON_PACKAGES} \
     ${GPLV3_PACKAGES} \
+    ${GSTREAMER_PACKAGES} \
     kernel-devicetree \
 "
 
