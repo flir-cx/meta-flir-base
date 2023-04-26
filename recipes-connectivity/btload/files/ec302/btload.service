@@ -2,6 +2,7 @@
 Description=Bluetooth loader
 After=connman.service dbus.service
 Before=bluetooth.service dbus-org.bluez.service
+After=flirapp.service
 
 [Service]
 Type=oneshot

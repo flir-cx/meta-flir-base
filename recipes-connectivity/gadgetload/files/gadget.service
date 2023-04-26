@@ -1,6 +1,7 @@
 [Unit]
 Description=Configure gadget on usb0
 Before=network.target
+After=flirapp.service
 
 [Service]
 Type=oneshot
