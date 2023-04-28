@@ -1,6 +1,6 @@
 [Unit]
 Description=Configure gadget on usb0
-Before=network.target
+After=flirapp.service
 
 [Service]
 Type=oneshot
@@ -9,4 +9,4 @@ ExecStop=/sbin/gadget.sh unload
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target charge.target
+WantedBy=graphical.target

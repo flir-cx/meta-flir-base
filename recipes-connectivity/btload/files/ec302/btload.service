@@ -12,4 +12,4 @@ ExecStart=/sbin/btload
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=graphical.target
