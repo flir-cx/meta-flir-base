@@ -12,6 +12,10 @@ SRC_URI_append += "file://files/preloaded-set-mfgmode-2.patch \
                    file://git/localversion.preloaded \
 "
 
+do_install () {
+    # Skip this step as it conflicts with mfg
+}
+
 do_deploy () {
    install -d ${DEPLOYDIR}
    install ${B}/u-boot.imx \
