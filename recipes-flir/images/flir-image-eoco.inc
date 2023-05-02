@@ -20,6 +20,7 @@ IMAGE_INSTALL_append = "\
     haproxy \
     iputils-ping \
     kernel-modules \
+    kernel-sysfs-helpers \
     libevdev \
     libubootenv-bin \
     mmc-utils \

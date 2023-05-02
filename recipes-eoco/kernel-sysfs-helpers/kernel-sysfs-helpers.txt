@@ -1,0 +1,39 @@
+FLIR Kernel Sysfs Layer Helper applications
+
+This package is intended to be used as a abstraction layer between the
+userspace and the kernel.
+
+It is implemented in the form of shell scripts, which the userspace
+can call to perform certain functions
+
+- fb_setoverlay.sh
+  Select which framebuffer to have 2-layer-fb
+
+  Toggle framebuffers between "1-layer-fb" mode and "2-layer-fb"
+  (bg/fg) mode, set which framebuffer shows the record symbol overlay.
+
+  Takes one argument, 'viewfinder' or 'lcd'
+
+  example: fb_setoverlay.sh lcd
+  result: toggles the lcd framebuffer to be in mode "2-layer-fb-bg"
+
+- display_enable.sh
+  Set display in active mode
+
+  Arguments: Takes display argument, allowed 'viewfinder', 'lcd'
+
+  - display_enable.sh viewfinder
+    Enables power and parallell data bus to the viewfinder, enables
+    overlay on the viewfinder, adjust position of the viewfinder
+    overlay due to resolution differences between overlay and
+    viewfinder.
+
+  - display_enable.sh lcd
+    turn off the power and parallell data bus to the viewfinder
+    enables overlay on the LCD.
+
+- fb_alpha.c
+  A utility from
+  http://www.armadeus.org/wiki/index.php?title=I.MX6_Framebuffer_Overlay
+  Which controls the imx framebuffer using IOCTL calls.
+  Used by display_enable.sh to adjust overlay framebuffer position

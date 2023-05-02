@@ -1,0 +1,10 @@
+/*
+ * Utilities to adapt Linux sysfs to userspace
+ *
+ * Tools to play with i.MX6 framebuffer overlay and alpha channels.
+ *
+ * Theis program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
