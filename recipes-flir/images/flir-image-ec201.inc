@@ -17,6 +17,8 @@ IMAGE_INSTALL_append = "\
     gadgetload \
     iputils-ping \
     kernel-modules \
+    firmware-qca9377 \
+    kernel-module-qca9377 \
     lepton-m4 \
     libevdev \
     libubootenv-bin \
