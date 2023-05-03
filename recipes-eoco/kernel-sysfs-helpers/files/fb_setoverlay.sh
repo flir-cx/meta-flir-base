@@ -1,4 +1,6 @@
 #!/bin/sh
+# Stop the script if any commands fail
+set -euo pipefail
 
 help()
 {

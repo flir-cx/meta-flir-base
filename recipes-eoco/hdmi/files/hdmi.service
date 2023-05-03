@@ -1,0 +1,11 @@
+[Unit]
+Description=FLIR Service to force start the HDMI interface on Eowyn cameras
+After=weston.service
+Before=flirapp.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '/usr/bin/display_enable.sh hdmi'
+
+[Install]
+WantedBy=multi-user.target

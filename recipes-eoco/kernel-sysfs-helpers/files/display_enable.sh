@@ -1,4 +1,6 @@
 #!/bin/sh
+# Stop the script if any commands fail
+set -euo pipefail
 
 help() {
     echo "$0"
@@ -24,6 +26,13 @@ then
     echo 0 > /sys/devices/platform/soc/2100000.bus/21a0000.i2c/i2c-0/0-0032/pwr_on
     echo 0 > /sys/devices/platform/lcd@0/control/enablebus
     fb_setoverlay.sh lcd
+elif [ "$1" = "3" ] || [ "$1" = "hdmi" ]
+then
+    #enabling HDMI output requires toggling
+    #the HDMI output to a higher resolution
+    #before setting 640x480 resolution
+    fbset -fb /dev/fb3 -g 1024 768 1024 768 32
+    fbset -fb /dev/fb3 -g 640 480 640 480 32
 else
     help
 fi

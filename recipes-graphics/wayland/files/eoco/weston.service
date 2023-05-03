@@ -35,12 +35,6 @@ ConditionPathExists=/dev/tty0
 Type=notify
 EnvironmentFile=/etc/default/weston
 
-# THIS IS A (TEMPORARY) HACK TO ENABLE HDMI
-# Consider solving issue EOWYN-3191
-ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb3 -g 1280 720 1280 720 32'
-ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb3 -g 640 480 640 480 32 -t 39683 48 16 33 10 96 2'
-# ENDHACK
-
 ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb1 -g 640 480 640 480 32'
 # Setup viewfinder to use triplebuffering for better cloning
 ExecStartPre=/bin/bash -c 'fbset -fb /dev/fb2 -g 800 600 800 1800 32'

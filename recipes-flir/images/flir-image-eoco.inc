@@ -18,6 +18,7 @@ IMAGE_INSTALL_append = "\
     flirvcam \
     gadgetload \
     haproxy \
+    hdmi-service \
     iputils-ping \
     kernel-modules \
     kernel-sysfs-helpers \
