@@ -1,0 +1,15 @@
+[Unit]
+Description=Bluetooth loader
+After=connman.service dbus.service
+Before=bluetooth.service dbus-org.bluez.service
+After=flirapp.service
+
+[Service]
+Type=oneshot
+# We need to give bluetooth.service some time to get started to avoid failures (https://github.com/RPi-Distro/pi-bluetooth/issues/8)
+# ExecStartPre=/bin/sleep 2 
+ExecStart=/sbin/btload
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical.target
