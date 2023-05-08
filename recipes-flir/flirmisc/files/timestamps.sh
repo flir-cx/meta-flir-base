@@ -80,17 +80,22 @@ done
 
 output "runs, STARTPATTERN: $STARTPATTERN"
 
-mypattern="$STARTPATTERN.*boottime"
-sedpattern="/$STARTPATTERN/q"
+mypattern="$STARTPATTERN .*boottime"
+sedpattern="/${STARTPATTERN} /q"
 
 output mypattern="$mypattern"
+output sedpattern="$sedpattern"
 
 offset=$(dmesg | tac | grep -m 1 "$mypattern" | grep -oE '[^ ]+$')
 output offset:"$offset"
 if [ -z "$offset" ]
 then
-    echo "boottime for \"$STARTPATTERN\" not found in dmesg output"
+    echo "boottime for \"$STARTPATTERN\" not found in dmesg output (and not -b)"
     exit 1
+
+elif [ -n "$ABSOLUTE" ]
+then
+    sedpattern=""
 fi
 
 dmesg | grep boottime | tac | sed "$sedpattern" | showline "$offset"
