@@ -16,6 +16,7 @@ help() {
 if [ "$1" = "1" ] || [ "$1" = "viewfinder" ] || [ "$1" = "vf" ]
 then
     echo 1 > /sys/devices/platform/soc/2100000.bus/21a0000.i2c/i2c-0/0-0032/pwr_on
+    echo "1 2" > /sys/devices/platform/fb@0/graphics/fb0/clone_to
     echo 1 > /sys/devices/platform/lcd@0/control/enablebus
     fb_setoverlay.sh viewfinder
     #center the overlay on the viewfinder,
@@ -24,6 +25,7 @@ then
 elif [ "$1" = "0" ] || [ "$1" = "lcd" ]
 then
     echo 0 > /sys/devices/platform/soc/2100000.bus/21a0000.i2c/i2c-0/0-0032/pwr_on
+    echo "0 2" > /sys/devices/platform/fb@0/graphics/fb0/clone_to
     echo 0 > /sys/devices/platform/lcd@0/control/enablebus
     fb_setoverlay.sh lcd
 elif [ "$1" = "3" ] || [ "$1" = "hdmi" ]
