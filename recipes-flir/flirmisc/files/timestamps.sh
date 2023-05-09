@@ -88,7 +88,7 @@ output sedpattern="$sedpattern"
 
 offset=$(dmesg | tac | grep -m 1 "$mypattern" | grep -oE '[^ ]+$')
 output offset:"$offset"
-if [ -z "$offset" ]
+if [ -z "$offset" ] && [ -z "$ABSOLUTE" ]
 then
     echo "boottime for \"$STARTPATTERN\" not found in dmesg output (and not -b)"
     exit 1
