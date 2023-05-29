@@ -1,5 +1,5 @@
 baudrate=115200
-bootcmd=setmac;if recoverykey && kbd_secret; then run recoveryboot;else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
+bootcmd=setmac;if recoverytrigger; then run recoveryboot;else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
 bootdelay=0
 bootlogo=bootlogo.bmp.gz
 btaddr=00:04:f3:ff:ff:fc
