@@ -19,6 +19,7 @@ SYSTEMD_SERVICE_${PN} = "flirapp.service"
 SRC_URI += "file://flirapp.service"
 SRC_URI += "file://flirapp.conf"
 SRC_URI += "file://flirapp_env_check.sh"
+SRC_URI += "file://flirapp_reduce_speed.sh"
 SRC_URI += "file://flirapp_weston_add.conf"
 SRC_URI += "file://flirapp_dbus.conf"
 
@@ -38,6 +39,7 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/flirapp_comb.service ${D}${systemd_unitdir}/system/flirapp.service
     install -d ${D}${sbindir}
     install -m 0755 ${WORKDIR}/flirapp_env_check.sh ${D}${sbindir}
+    install -m 0755 ${WORKDIR}/flirapp_reduce_speed.sh ${D}${sbindir}    
     install -d ${D}/etc/dbus-1
     install -d ${D}/etc/dbus-1/system.d
     install -m 0755 ${WORKDIR}/flirapp_dbus.conf ${D}/etc/dbus-1/system.d/flirapp_dbus.conf
