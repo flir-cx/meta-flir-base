@@ -23,6 +23,7 @@ IMAGE_INSTALL_append = "\
     libubootenv-bin \
     mmc-utils \
     mmc7mounter \
+    okeanos \
     qtbase \
     qtgraphicaleffects \
     php \
