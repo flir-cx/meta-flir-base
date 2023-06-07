@@ -92,7 +92,7 @@ usage() {
 	echo "Usage: ${script_name} (load|unload)"
 }
 
-get_mode(){
+get_mode() {
 	# Workaround if stuck in MTP mode only.
 	if [ -f "/FLIR/images/.usbmode" ] ; then
 		usbmode=`cat /FLIR/images/.usbmode`
@@ -136,6 +136,140 @@ get_mode(){
 		usbmode_rndis=true
 	fi
 
+}
+
+setup_usbmode_rndis () {
+    # This is together with the ms additions in the rndis function
+    # is to make windows detect the RNDIS device and choose the 6.0
+    # RNDIS driver, even if FLIR Device Drivers are not installed.
+    echo "1"		> os_desc/use
+    echo "${ms_vendor_code}"    > os_desc/b_vendor_code
+    echo "${ms_qw_sign}"	    > os_desc/qw_sign
+
+    # Create the RNDIS function
+    # the first digit in the first number of the MAC address is important,
+    # the two first bits of that digit, b10 (d2) means it is reserved to
+    # locally assigned unicast adresses to avoid clashes with existing
+    # "external" MAC adresses
+    mac_base=`get_base_mac_addr`
+    mac_dev="02${mac_base}"
+    mac_host="12${mac_base}"
+
+    mkdir functions/rndis.usb0
+    echo "${mac_dev}"	    > functions/rndis.usb0/dev_addr
+    echo "${mac_host}"	    > functions/rndis.usb0/host_addr
+    echo "${ms_compat_id}"	    > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
+    echo "${ms_subcompat_id}"   > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
+
+    # Link everything up and bind the USB device
+    ln -s functions/rndis.usb0 configs/c.1
+}
+
+setup_usbmode_uvc () {
+    # Control endpoint packet size is 64 bytes.
+    echo 0x40 > bMaxPacketSize0
+
+    mkdir functions/uvc.usb0
+    echo 16 > functions/uvc.usb0/streaming_bulk_mult
+
+    mkdir -p functions/uvc.usb0/streaming/uncompressed/yuv/480p
+
+    echo -n -e 'UYVY\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
+
+    # Class-specific VS Frame Descriptor.
+    echo $yuv_width > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
+    echo $yuv_height > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wHeight
+
+    # echo 614400 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
+    echo $(( $yuv_width * $yuv_height * $yuv_bytes_per_pixel )) > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
+
+    echo 333333 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwDefaultFrameInterval
+
+    # Class-specifig VS Frame Descriptor.
+    cat <<EOF > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+
+    mkdir -p functions/uvc.usb0/streaming/mjpeg/frame/480p
+    echo $mjpg_width > functions/uvc.usb0/streaming/mjpeg/frame/480p/wWidth
+    echo $mjpg_height > functions/uvc.usb0/streaming/mjpeg/frame/480p/wHeight
+    echo 786432 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwMaxVideoFrameBufferSize
+    echo 333333 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwDefaultFrameInterval
+    cat <<EOF > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+
+    mkdir -p functions/uvc.usb0/streaming/framebased/mjls/480p
+    echo -n -e 'MJLS\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/mjls/guidFormat
+    echo 348 > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
+    echo 464 > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
+    echo 333333 > functions/uvc.usb0/streaming/framebased/mjls/480p/dwDefaultFrameInterval
+    cat <<EOF > functions/uvc.usb0/streaming/framebased/mjls/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+
+    mkdir -p functions/uvc.usb0/streaming/framebased/dfvi/480p
+    echo -n -e 'DFVI\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/dfvi/guidFormat
+    echo 348 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
+    echo 464 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
+    echo 333333 > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwDefaultFrameInterval
+    cat <<EOF > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+
+    mkdir -p functions/uvc.usb0/streaming/header/h
+    cd functions/uvc.usb0/streaming/header/h
+    ln -s ../../uncompressed/yuv
+    ln -s ../../mjpeg/frame
+    ln -s ../../framebased/mjls
+    ln -s ../../framebased/dfvi
+    cd ../../class/fs
+    ln -s ../../header/h
+    cd ../../class/hs
+    ln -s ../../header/h
+    cd ../../class/ss
+    ln -s ../../header/h
+    cd ../../../control
+    mkdir header/h
+    ln -s header/h class/fs
+    ln -s header/h class/ss
+    cd ../../../
+
+    # Link everything up and bind the USB device.
+    ln -s functions/uvc.usb0 configs/c.1
+}
+
+setup_usbmode_mtp () {
+		# create and link mtp
+		if mkdir -p functions/ffs.umtp ; then
+			ln -s functions/ffs.umtp configs/c.1
+
+			# Mount and start MTP
+			mkdir -p /dev/ffs-umtp && mount -t functionfs umtp /dev/ffs-umtp
+			if [ $? != 0 ]
+			then
+				printf "config_load: Failed to mount /dev/ffs-umtp\n"
+				exit 1
+			fi
+
+			systemctl start umtprd
+
+			if [ $? != 0 ]
+			then
+				printf "config_load: Failed to start umtprd\n"
+				exit 1
+			fi
+		else
+			echo "config_load: Unable to mount MTP"
+		fi
 }
 
 config_load() {
@@ -185,134 +319,15 @@ config_load() {
 	echo "$config_string" > configs/c.1/strings/0x409/configuration
 
 	if [ "$usbmode_rndis" = true ] ; then
-		# This is together with the ms additions in the rndis function
-		# is to make windows detect the RNDIS device and choose the 6.0
-		# RNDIS driver, even if FLIR Device Drivers are not installed.
-		echo "1"		    > os_desc/use
-		echo "${ms_vendor_code}"    > os_desc/b_vendor_code
-		echo "${ms_qw_sign}"	    > os_desc/qw_sign
-
-		# Create the RNDIS function
-		# the first digit in the first number of the MAC address is important,
-		# the two first bits of that digit, b10 (d2) means it is reserved to
-		# locally assigned unicast adresses to avoid clashes with existing
-		# "external" MAC adresses
-		mac_base=`get_base_mac_addr`
-		mac_dev="02${mac_base}"
-		mac_host="12${mac_base}"
-
-		mkdir functions/rndis.usb0
-		echo "${mac_dev}"	    > functions/rndis.usb0/dev_addr
-		echo "${mac_host}"	    > functions/rndis.usb0/host_addr
-		echo "${ms_compat_id}"	    > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
-		echo "${ms_subcompat_id}"   > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
-
-		# Link everything up and bind the USB device
-		ln -s functions/rndis.usb0 configs/c.1
+	    setup_usbmode_rndis
 	fi
 
 	if [ "$usbmode_uvc" = true ] ; then
-		# Control endpoint packet size is 64 bytes.
-		echo 0x40 > bMaxPacketSize0
-
-		mkdir functions/uvc.usb0
-		echo 16 > functions/uvc.usb0/streaming_bulk_mult
-
-		mkdir -p functions/uvc.usb0/streaming/uncompressed/yuv/480p
-
-		echo -n -e 'UYVY\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
-
-		# Class-specific VS Frame Descriptor.
-		echo $yuv_width > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
-		echo $yuv_height > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wHeight
-
-		# echo 614400 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
-		echo $(( $yuv_width * $yuv_height * $yuv_bytes_per_pixel )) > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
-
-		echo 333333 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwDefaultFrameInterval
-
-		# Class-specifig VS Frame Descriptor.
-		cat <<EOF > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwFrameInterval
-333333
-666666
-1000000
-EOF
-		mkdir -p functions/uvc.usb0/streaming/mjpeg/frame/480p
-		echo $mjpg_width > functions/uvc.usb0/streaming/mjpeg/frame/480p/wWidth
-		echo $mjpg_height > functions/uvc.usb0/streaming/mjpeg/frame/480p/wHeight
-		echo 786432 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwMaxVideoFrameBufferSize
-		echo 333333 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwDefaultFrameInterval
-		cat <<EOF > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwFrameInterval
-333333
-666666
-1000000
-EOF
-		mkdir -p functions/uvc.usb0/streaming/framebased/mjls/480p
-		echo -n -e 'MJLS\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/mjls/guidFormat
-		echo 464 > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
-		echo 348 > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
-		echo 333333 > functions/uvc.usb0/streaming/framebased/mjls/480p/dwDefaultFrameInterval
-		cat <<EOF > functions/uvc.usb0/streaming/framebased/mjls/480p/dwFrameInterval
-333333
-666666
-1000000
-EOF
-		mkdir -p functions/uvc.usb0/streaming/framebased/dfvi/480p
-		echo -n -e 'DFVI\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/dfvi/guidFormat
-		echo 464 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
-		echo 348 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
-		echo 333333 > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwDefaultFrameInterval
-		cat <<EOF > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwFrameInterval
-333333
-666666
-1000000
-EOF
-
-		mkdir -p functions/uvc.usb0/streaming/header/h
-		cd functions/uvc.usb0/streaming/header/h
-		ln -s ../../uncompressed/yuv
-		ln -s ../../mjpeg/frame
-		ln -s ../../framebased/mjls
-		ln -s ../../framebased/dfvi
-		cd ../../class/fs
-		ln -s ../../header/h
-		cd ../../class/hs
-		ln -s ../../header/h
-		cd ../../class/ss
-		ln -s ../../header/h
-		cd ../../../control
-		mkdir header/h
-		ln -s header/h class/fs
-		ln -s header/h class/ss
-		cd ../../../
-
-		# Link everything up and bind the USB device.
-		ln -s functions/uvc.usb0 configs/c.1
+	    setup_usbmode_uvc
 	fi
 
 	if [ "$usbmode_mtp" = true ] ; then
-		# create and link mtp
-		if mkdir -p functions/ffs.umtp ; then
-			ln -s functions/ffs.umtp configs/c.1
-
-			# Mount and start MTP
-			mkdir -p /dev/ffs-umtp && mount -t functionfs umtp /dev/ffs-umtp
-			if [ $? != 0 ]
-			then
-				printf "config_load: Failed to mount /dev/ffs-umtp\n"
-				exit 1
-			fi
-
-			systemctl start umtprd
-
-			if [ $? != 0 ]
-			then
-				printf "config_load: Failed to start umtprd\n"
-				exit 1
-			fi
-		else
-			echo "config_load: Unable to mount MTP"
-		fi
+	    setup_usbmode_mtp
 	fi
 
 	enable_gadget
