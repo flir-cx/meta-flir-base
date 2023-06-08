@@ -43,6 +43,7 @@ IMAGE_INSTALL_append = "\
     u-boot-script \
     umtp-responder \
     videorender-service \
+    wlanload \
     packagegroup-flir-lighttpd \
     packagegroup-flir-gstreamer \
 "
