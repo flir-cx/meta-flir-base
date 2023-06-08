@@ -20,6 +20,7 @@ www-data	ALL = NOPASSWD:\
                 /bin/systemctl disable fliriptables,\
 		/bin/systemctl stop sysmon,\
                 /FLIR/usr/bin/flirsvcctl,\
+                /FLIR/usr/bin/mccmd_spi,\
 		/usr/bin/flir-limited-update.sh,\
                 /usr/sbin/factorydefault.sh,\
                 /sbin/reboot,\
