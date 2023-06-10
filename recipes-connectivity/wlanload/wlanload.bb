@@ -20,6 +20,7 @@ SYSTEMD_AUTO_ENABLE_${PN}_evco = "disable"
 SYSTEMD_AUTO_ENABLE_${PN}_ec501 = "disable"
 SYSTEMD_AUTO_ENABLE_${PN}_roco = "enable"
 SYSTEMD_AUTO_ENABLE_${PN}_ec401w = "enable"
+SYSTEMD_AUTO_ENABLE_${PN}_ec302 = "enable"
 
 SRC_URI += "file://wlanload.sh"
 SRC_URI += "file://wlanload.service"
