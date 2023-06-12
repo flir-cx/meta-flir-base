@@ -80,7 +80,7 @@ get_base_mac_addr() {
 }
 
 get_default_usb_ip_addr() {
-	local ip_addr=""
+	ip_addr=""
 	if [ -f "/etc/usb_ip_addr" ]; then
 		ip_addr=`cat /etc/usb_ip_addr | grep -o -E '([0-9]{1,3}\.){3}[0-9]{1,3}'`
 	fi
