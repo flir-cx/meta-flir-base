@@ -58,6 +58,9 @@ yuv_bytes_per_pixel=2
 mjpg_width=640
 mjpg_height=480
 
+STREAM_HEIGHT=464
+STREAM_WIDTH=348
+
 get_base_mac_from_cmdline() {
 	cat /proc/cmdline | sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p"
 }
@@ -205,8 +208,8 @@ EOF
 
     mkdir -p functions/uvc.usb0/streaming/framebased/mjls/480p
     echo -n -e 'MJLS\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/mjls/guidFormat
-    echo 348 > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
-    echo 464 > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
+    echo ${STREAM_WIDTH} > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
+    echo ${STREAM_HEIGHT} > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
     echo 333333 > functions/uvc.usb0/streaming/framebased/mjls/480p/dwDefaultFrameInterval
     cat <<EOF > functions/uvc.usb0/streaming/framebased/mjls/480p/dwFrameInterval
 333333
@@ -216,8 +219,8 @@ EOF
 
     mkdir -p functions/uvc.usb0/streaming/framebased/dfvi/480p
     echo -n -e 'DFVI\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/dfvi/guidFormat
-    echo 348 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
-    echo 464 > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
+    echo ${STREAM_WIDTH} > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
+    echo ${STREAM_HEIGHT} > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
     echo 333333 > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwDefaultFrameInterval
     cat <<EOF > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwFrameInterval
 333333
