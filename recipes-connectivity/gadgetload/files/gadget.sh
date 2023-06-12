@@ -232,16 +232,16 @@ EOF
 
     mkdir -p functions/uvc.usb0/streaming/header/h
     cd functions/uvc.usb0/streaming/header/h || exit 1
-    ln -s ../../uncompressed/yuv
-    ln -s ../../mjpeg/frame
-    ln -s ../../framebased/mjls
-    ln -s ../../framebased/dfvi
+    ln -s ../../uncompressed/yuv .
+    ln -s ../../mjpeg/frame .
+    ln -s ../../framebased/mjls .
+    ln -s ../../framebased/dfvi .
     cd ../../class/fs || exit 1
-    ln -s ../../header/h
+    ln -s ../../header/h .
     cd ../../class/hs || exit 1
-    ln -s ../../header/h
+    ln -s ../../header/h .
     cd ../../class/ss || exit 1
-    ln -s ../../header/h
+    ln -s ../../header/h .
     cd ../../../control || exit 1
     mkdir header/h
     ln -s header/h class/fs
