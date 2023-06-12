@@ -119,7 +119,7 @@ get_mode() {
 			[ ! "$usbmode" = "UVC_MTP" ] &&
 			[ ! "$usbmode" = "RNDIS_UVC_MTP" ]
 	then
-		printf "Usb mode $usbmode is not supported, setting usbmode to default $usbmode_default\n"
+		printf "Usb mode '%s' is not supported, setting usbmode to default '%s'\n" "$usbmode" "$usbmode_default"
 		usbmode="${usbmode_default}"
 	fi
 
