@@ -179,7 +179,7 @@ setup_usbmode_uvc () {
 
     mkdir -p functions/uvc.usb0/streaming/uncompressed/yuv/480p
 
-    echo -n -e 'UYVY\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
+    echo -n 'UYVY\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
 
     # Class-specific VS Frame Descriptor.
     echo $yuv_width > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
@@ -209,7 +209,7 @@ EOF
 EOF
 
     mkdir -p functions/uvc.usb0/streaming/framebased/mjls/480p
-    echo -n -e 'MJLS\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/mjls/guidFormat
+    echo -n 'MJLS\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/mjls/guidFormat
     echo ${STREAM_WIDTH} > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
     echo ${STREAM_HEIGHT} > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
     echo 333333 > functions/uvc.usb0/streaming/framebased/mjls/480p/dwDefaultFrameInterval
@@ -220,7 +220,7 @@ EOF
 EOF
 
     mkdir -p functions/uvc.usb0/streaming/framebased/dfvi/480p
-    echo -n -e 'DFVI\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/dfvi/guidFormat
+    echo -n 'DFVI\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/dfvi/guidFormat
     echo ${STREAM_WIDTH} > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
     echo ${STREAM_HEIGHT} > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
     echo 333333 > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwDefaultFrameInterval
