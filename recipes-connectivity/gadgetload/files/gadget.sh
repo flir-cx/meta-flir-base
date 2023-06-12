@@ -1,7 +1,7 @@
 #!/bin/sh
 
 export LD_LIBRARY_PATH=/FLIR/usr/lib
-export PATH=$PATH:/usr/bin:/bin:/sbin:/FLIR/usr/bin
+export PATH="$PATH":/usr/bin:/bin:/sbin:/FLIR/usr/bin
 
 udc_device=`ls /sys/class/udc/ | head -n1`
 
@@ -102,7 +102,7 @@ get_mode() {
 	if [ -f "/FLIR/images/.usbmode" ] ; then
 		usbmode=$(cat /FLIR/images/.usbmode)
 		cp FLIR/images/.usbmode /etc/usbmode
-		echo .system.usbmode text \"${usbmode}\" >> /FLIR/system/journal.d/journal.rsc
+		echo .system.usbmode text "${usbmode}" >> /FLIR/system/journal.d/journal.rsc
 		rm /FLIR/images/.usbmode
 	elif [ -f "/etc/usbmode" ] ; then
 		usbmode=$(cat /etc/usbmode)
@@ -111,15 +111,15 @@ get_mode() {
 	echo "validate usbmode"
 
 	# Validate USB mode.
-	if [ ! $usbmode = "MTP" ] &&
-			[ ! $usbmode = "RNDIS" ] &&
-			[ ! $usbmode = "UVC" ] &&
-			[ ! $usbmode = "RNDIS_MTP" ] &&
-			[ ! $usbmode = "RNDIS_UVC" ] &&
-			[ ! $usbmode = "UVC_MTP" ] &&
-			[ ! $usbmode = "RNDIS_UVC_MTP" ]
+	if [ ! "$usbmode" = "MTP" ] &&
+			[ ! "$usbmode" = "RNDIS" ] &&
+			[ ! "$usbmode" = "UVC" ] &&
+			[ ! "$usbmode" = "RNDIS_MTP" ] &&
+			[ ! "$usbmode" = "RNDIS_UVC" ] &&
+			[ ! "$usbmode" = "UVC_MTP" ] &&
+			[ ! "$usbmode" = "RNDIS_UVC_MTP" ]
 	then
-		printf "Usb mode \"$usbmode\" is not supported, setting usbmode to default \"$usbmode_default\"\n"
+		printf "Usb mode $usbmode is not supported, setting usbmode to default $usbmode_default\n"
 		usbmode="${usbmode_default}"
 	fi
 
@@ -182,8 +182,8 @@ setup_usbmode_uvc () {
     echo 'UYVY\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
 
     # Class-specific VS Frame Descriptor.
-    echo $yuv_width > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
-    echo $yuv_height > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wHeight
+    echo "$yuv_width" > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
+    echo "$yuv_height" > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wHeight
 
     # echo 614400 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
     echo $(( $yuv_width * $yuv_height * $yuv_bytes_per_pixel )) > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
@@ -198,8 +198,8 @@ setup_usbmode_uvc () {
 EOF
 
     mkdir -p functions/uvc.usb0/streaming/mjpeg/frame/480p
-    echo $mjpg_width > functions/uvc.usb0/streaming/mjpeg/frame/480p/wWidth
-    echo $mjpg_height > functions/uvc.usb0/streaming/mjpeg/frame/480p/wHeight
+    echo "$mjpg_width" > functions/uvc.usb0/streaming/mjpeg/frame/480p/wWidth
+    echo "$mjpg_height" > functions/uvc.usb0/streaming/mjpeg/frame/480p/wHeight
     echo 786432 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwMaxVideoFrameBufferSize
     echo 333333 > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwDefaultFrameInterval
     cat <<EOF > functions/uvc.usb0/streaming/mjpeg/frame/480p/dwFrameInterval
@@ -210,8 +210,8 @@ EOF
 
     mkdir -p functions/uvc.usb0/streaming/framebased/mjls/480p
     echo 'MJLS\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/mjls/guidFormat
-    echo ${STREAM_WIDTH} > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
-    echo ${STREAM_HEIGHT} > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
+    echo "${STREAM_WIDTH}" > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
+    echo "${STREAM_HEIGHT}" > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
     echo 333333 > functions/uvc.usb0/streaming/framebased/mjls/480p/dwDefaultFrameInterval
     cat <<EOF > functions/uvc.usb0/streaming/framebased/mjls/480p/dwFrameInterval
 333333
@@ -221,8 +221,8 @@ EOF
 
     mkdir -p functions/uvc.usb0/streaming/framebased/dfvi/480p
     echo 'DFVI\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/dfvi/guidFormat
-    echo ${STREAM_WIDTH} > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
-    echo ${STREAM_HEIGHT} > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
+    echo "${STREAM_WIDTH}" > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
+    echo "${STREAM_HEIGHT}" > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
     echo 333333 > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwDefaultFrameInterval
     cat <<EOF > functions/uvc.usb0/streaming/framebased/dfvi/480p/dwFrameInterval
 333333
@@ -369,7 +369,7 @@ remove_if_exists() {
 }
 
 config_unload() {
-	if [ ! -d ${gadget_path} ]; then
+	if [ ! -d "${gadget_path}" ]; then
 		echo "Gadget not loaded."
 		exit 0 #This is not a failure.
 	fi
@@ -381,43 +381,43 @@ config_unload() {
 
 	# unbind usb device
 	# echo "" > ${gadget_path}/UDC 2>&1 /dev/null
-	echo "" > ${gadget_path}/UDC 2>/dev/null
+	echo "" > "${gadget_path}/UDC" 2>/dev/null
 
 	# Remove everything in reverse from creation order in config_load()
-	remove_if_exists ${gadget_path}/os_desc/c.1
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/control/class/ss/h
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/control/class/fs/h
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/control/header/h
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/ss/h
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/hs/h
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/fs/h
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/dfvi
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/mjls
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/frame
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/yuv
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/dfvi/480p
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/dfvi
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/mjls/480p
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/framebased/mjls
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/mjpeg/frame/480p
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/mjpeg/frame
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv/480p
-	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv
+	remove_if_exists "${gadget_path}/os_desc/c.1"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/control/class/ss/h"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/control/class/fs/h"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/control/header/h"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/class/ss/h"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/class/hs/h"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/class/fs/h"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/header/h/dfvi"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/header/h/mjls"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/header/h/frame"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/header/h/yuv"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/header/h"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/framebased/dfvi/480p"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/framebased/dfvi"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/framebased/mjls/480p"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/framebased/mjls"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/mjpeg/frame/480p"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/mjpeg/frame"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv/480p"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv"
 	
-	remove_if_exists ${gadget_path}/configs/c.1/rndis.usb0
-	remove_if_exists ${gadget_path}/configs/c.1/ffs.umtp
-	remove_if_exists ${gadget_path}/configs/c.1/uvc.usb0
+	remove_if_exists "${gadget_path}/configs/c.1/rndis.usb0"
+	remove_if_exists "${gadget_path}/configs/c.1/ffs.umtp"
+	remove_if_exists "${gadget_path}/configs/c.1/uvc.usb0"
+
+	remove_if_exists "${gadget_path}/functions/rndis.usb0"
+	remove_if_exists "${gadget_path}/functions/ffs.umtp"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0"
 	
-	remove_if_exists ${gadget_path}/functions/rndis.usb0
-	remove_if_exists ${gadget_path}/functions/ffs.umtp
-	remove_if_exists ${gadget_path}/functions/uvc.usb0
+	remove_if_exists "${gadget_path}/configs/c.1/strings/0x409"
+	remove_if_exists "${gadget_path}/configs/c.1"
 	
-	remove_if_exists ${gadget_path}/configs/c.1/strings/0x409
-	remove_if_exists ${gadget_path}/configs/c.1
-	
-	remove_if_exists ${gadget_path}/strings/0x409
-	remove_if_exists ${gadget_path}
+	remove_if_exists "${gadget_path}/strings/0x409"
+	remove_if_exists "${gadget_path}"
 
 	# Signal to fis to update RNDIS status
 	killall -USR1 fis 2>/dev/null
