@@ -231,22 +231,22 @@ EOF
 EOF
 
     mkdir -p functions/uvc.usb0/streaming/header/h
-    cd functions/uvc.usb0/streaming/header/h
+    cd functions/uvc.usb0/streaming/header/h || exit 1
     ln -s ../../uncompressed/yuv
     ln -s ../../mjpeg/frame
     ln -s ../../framebased/mjls
     ln -s ../../framebased/dfvi
-    cd ../../class/fs
+    cd ../../class/fs || exit 1
     ln -s ../../header/h
-    cd ../../class/hs
+    cd ../../class/hs || exit 1
     ln -s ../../header/h
-    cd ../../class/ss
+    cd ../../class/ss || exit 1
     ln -s ../../header/h
-    cd ../../../control
+    cd ../../../control || exit 1
     mkdir header/h
     ln -s header/h class/fs
     ln -s header/h class/ss
-    cd ../../../
+    cd ../../../ || exit 1
 
     # Link everything up and bind the USB device.
     ln -s functions/uvc.usb0 configs/c.1
@@ -288,7 +288,7 @@ config_load() {
 	fi
 
 	mkdir -p "$gadget_path"
-	cd "$gadget_path"
+	cd "$gadget_path" || exit 1
 
 	case "$usbmode" in
 	RNDIS) product_id="$product_id_rndis"; config_string="RNDIS" ;;
