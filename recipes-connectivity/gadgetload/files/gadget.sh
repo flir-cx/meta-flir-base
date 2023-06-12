@@ -348,7 +348,7 @@ enable_gadget() {
 
 	if [ "$usbmode_rndis" = true ] ; then
 		# Set ip adress to default adress
-		ifconfig usb0 `get_default_usb_ip_addr`
+		ifconfig usb0 "`get_default_usb_ip_addr`"
 
 		# Signal to fis to update RNDIS status
 		killall -USR1 fis 2>/dev/null
