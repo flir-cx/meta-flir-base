@@ -68,11 +68,11 @@ get_base_mac_from_cmdline() {
 }
 
 get_base_mac_addr() {
-	if [ -n "${ethaddr=`get_base_mac_from_cmdline ethaddr`}" ]; then
+	if [ -n "${ethaddr=$(get_base_mac_from_cmdline ethaddr)}" ]; then
 		echo "$ethaddr"
-	elif [ -n "${fec_mac=`get_base_mac_from_cmdline fec_mac`}" ]; then
+	elif [ -n "${fec_mac=$(get_base_mac_from_cmdline fec_mac)}" ]; then
 		echo "$fec_mac"
-	elif [ -n "${wlanaddr=`get_base_mac_from_cmdline wlanaddr`}" ]; then
+	elif [ -n "${wlanaddr=$(get_base_mac_from_cmdline wlanaddr)}" ]; then
 		echo "$wlanaddr"
 	else
 		echo ":40:7f:01:02:03"
@@ -82,7 +82,7 @@ get_base_mac_addr() {
 get_default_usb_ip_addr() {
 	ip_addr=""
 	if [ -f "/etc/usb_ip_addr" ]; then
-		ip_addr=`cat /etc/usb_ip_addr | grep -o -E '([0-9]{1,3}\.){3}[0-9]{1,3}'`
+		ip_addr=$(cat /etc/usb_ip_addr | grep -o -E '([0-9]{1,3}\.){3}[0-9]{1,3})')
 	fi
 
 	if [ -n "${ip_addr}" ]; then
@@ -93,19 +93,19 @@ get_default_usb_ip_addr() {
 }
 
 usage() {
-	script_name=`basename "$0"`
+	script_name=$(basename "$0")
 	echo "Usage: ${script_name} (load|unload)"
 }
 
 get_mode() {
 	# Workaround if stuck in MTP mode only.
 	if [ -f "/FLIR/images/.usbmode" ] ; then
-		usbmode=`cat /FLIR/images/.usbmode`
+		usbmode=$(cat /FLIR/images/.usbmode)
 		cp FLIR/images/.usbmode /etc/usbmode
 		echo .system.usbmode text \"${usbmode}\" >> /FLIR/system/journal.d/journal.rsc
 		rm /FLIR/images/.usbmode
 	elif [ -f "/etc/usbmode" ] ; then
-		usbmode=`cat /etc/usbmode`
+		usbmode=$(cat /etc/usbmode)
 	fi
 
 	echo "validate usbmode"
@@ -156,7 +156,7 @@ setup_usbmode_rndis () {
     # the two first bits of that digit, b10 (d2) means it is reserved to
     # locally assigned unicast adresses to avoid clashes with existing
     # "external" MAC adresses
-    mac_base=`get_base_mac_addr`
+    mac_base=$(get_base_mac_addr)
     mac_dev="02${mac_base}"
     mac_host="12${mac_base}"
 
@@ -348,7 +348,7 @@ enable_gadget() {
 
 	if [ "$usbmode_rndis" = true ] ; then
 		# Set ip adress to default adress
-		ifconfig usb0 "`get_default_usb_ip_addr`"
+		ifconfig usb0 "$(get_default_usb_ip_addr)"
 
 		# Signal to fis to update RNDIS status
 		killall -USR1 fis 2>/dev/null
