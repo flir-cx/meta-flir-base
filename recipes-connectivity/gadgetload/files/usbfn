@@ -27,7 +27,7 @@ if [ $# -eq 0 ]; then
     exit
 fi
 
-if [ "$1" == "--help" ]; then
+if [ "$1" = "--help" ]; then
     usage
     exit 0
 fi
@@ -49,7 +49,7 @@ logger -s "USB function driver changed to ${USBMODE}"
 
 if [ -d "/sys/kernel/config/usb_gadget/g1" ]; then
     CURRUSBMODE="$(cat /etc/usbmode  2>/dev/null)"
-    if [ "$CURRUSBMODE" == "$USBMODE" ]; then
+    if [ "$CURRUSBMODE" = "$USBMODE" ]; then
         echo "USBMODE ${USBMODE} already set"
         exit
     fi
