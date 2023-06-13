@@ -58,8 +58,10 @@ yuv_bytes_per_pixel=2
 mjpg_width=640
 mjpg_height=480
 
-STREAM_HEIGHT=464
-STREAM_WIDTH=348
+STREAM_HEIGHT=$(rls -o .image.flow.framebuffer.geom.height)
+STREAM_WIDTH=$(rls -o .image.flow.framebuffer.geom.width)
+STREAM_HEIGHT=${STREAM_HEIGHT:=464}
+STREAM_WIDTH=${STREAM_WIDTH:=348}
 
 get_base_mac_from_cmdline() {
 	cat /proc/cmdline | sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p"
