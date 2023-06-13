@@ -61,12 +61,6 @@ sync
 export LD_LIBRARY_PATH=/FLIR/usr/lib
 export PATH=$PATH:/usr/bin:/bin:/sbin:/FLIR/usr/bin
 
-CABLE_STATE="$(cat /etc/sysfs-links/usb2_control/state)"
-logger "CABLE_STATE ${CABLE_STATE}"
-
-USBFNDRV="$(lsmod | grep -o '^g_[a-z_]*')"
-logger "USB function driver loaded is ${USBFNDRV}"
-
 USBCMDRV="$(lsmod | grep -o '^usb_[a-z_]*')"
 logger "USB composite driver loaded is ${USBCMDRV}"
 
