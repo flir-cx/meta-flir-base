@@ -45,7 +45,7 @@ then
     usage
     exit 1
 fi
-logger "USB function driver changed to ${USBMODE}"
+logger -s "USB function driver changed to ${USBMODE}"
 
 if [ -d "/sys/kernel/config/usb_gadget/g1" ]; then
     CURRUSBMODE="$(cat /etc/usbmode  2>/dev/null)"
@@ -62,14 +62,14 @@ export LD_LIBRARY_PATH=/FLIR/usr/lib
 export PATH=$PATH:/usr/bin:/bin:/sbin:/FLIR/usr/bin
 
 USBCMDRV="$(lsmod | grep -o '^usb_[a-z_]*')"
-logger "USB composite driver loaded is ${USBCMDRV}"
+logger -s "USB composite driver loaded is ${USBCMDRV}"
 
 gadget.sh unload
 
 #indicate USB FN mode change
 touch /var/lock/ufnchange
 
-logger "New USB Composite driver is $usbmode"
+logger -s "New USB Composite driver is $USBMODE"
 
 #load desired USB function driver
 gadget.sh load
