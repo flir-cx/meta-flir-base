@@ -1,6 +1,6 @@
 # Sudo rules for WebAccess on EC501 target machine
 
-Defaults:www-data	!lecture
+Defaults:www-data	env_keep += "LD_LIBRARY_PATH", !lecture
 
 www-data	ALL = NOPASSWD:\
 		/bin/cp /FLIR/usr/Service/application/config/systemd/servicesocket.service\
