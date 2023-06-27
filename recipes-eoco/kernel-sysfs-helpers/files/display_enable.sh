@@ -22,21 +22,24 @@ then
     #center the overlay on the viewfinder,
     #the overlay is 640x480, the viewfinder is 800x600
     fb_alpha -x 80 -y 0
-    display_enable.sh hdmi
 elif [ "$1" = "0" ] || [ "$1" = "lcd" ]
 then
+    #Toggling to LCD disables viewfinder, but not HDMI
     echo 0 > /sys/devices/platform/soc/2100000.bus/21a0000.i2c/i2c-0/0-0032/pwr_on
     echo "0 2" > /sys/devices/platform/fb@0/graphics/fb0/clone_to
     echo 0 > /sys/devices/platform/lcd@0/control/enablebus
     fb_setoverlay.sh lcd
-    display_enable.sh hdmi
 elif [ "$1" = "3" ] || [ "$1" = "hdmi" ]
 then
+    #Toggling to HDMI forces resolution change (required on boot)
+    #Thus, HDMI will blink!
     #enabling HDMI output requires toggling
     #the HDMI output to a higher resolution
     #before setting 640x480 resolution
     fbset -fb /dev/fb3 -g 1024 768 1024 768 32
     fbset -fb /dev/fb3 -g 640 480 640 480 32
+    echo "1 3" > /sys/devices/platform/fb@0/graphics/fb0/clone_to
+    echo 0 > /sys/devices/platform/fb@2/graphics/fb3/blank
 else
     help
 fi

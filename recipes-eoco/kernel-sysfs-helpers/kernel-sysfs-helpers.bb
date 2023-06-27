@@ -11,6 +11,7 @@ PV = "1"
 
 SRC_URI += "file://fb_setoverlay.sh \
 	file://display_enable.sh \
+	file://display_disable.sh \
 	file://fb_alpha.c \
 	file://LICENSE"
 TARGET_CC_ARCH += "${LDFLAGS}"
@@ -24,5 +25,6 @@ do_install_append() {
     install -d ${D}/usr/bin
     install -m 0755 ${WORKDIR}/fb_setoverlay.sh ${D}/usr/bin/
     install -m 0755 ${WORKDIR}/display_enable.sh ${D}/usr/bin/
+    install -m 0755 ${WORKDIR}/display_disable.sh ${D}/usr/bin/
     install -m 0755 ${WORKDIR}/fb_alpha ${D}/usr/bin/
 }
