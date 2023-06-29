@@ -98,8 +98,8 @@ RDEPENDS_${PN}-packages_mx6 = "\
     imx-kobs \
     imx-lib \
     kernel-devicetree \
+    python-core \
     python3-core \
-    python-is-python3 \
 "
 
 RDEPENDS_${PN}-packages_mx7 = "\
