@@ -25,6 +25,7 @@ IMAGE_INSTALL_append = "\
     iputils-ping \
     kernel-modules \
     libevdev \
+    libsuinput \
     libubootenv-bin \
     mmc-utils \
     mmc7mounter-intnl \
