@@ -9,6 +9,7 @@ IMAGE_INSTALL_append = "\
     chargelogo \
     data-collection-service \
     firmware-imx-vpu-imx6d \
+    firmware-imx-sdma-imx6q \
     flirbifrost \
     flirfad \
     flirfvdk \

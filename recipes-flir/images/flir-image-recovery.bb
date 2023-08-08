@@ -35,6 +35,10 @@ IMAGE_INSTALL_append_eoco = " \
                  firmware-imx-sdma-imx6q \
 "
 
+IMAGE_INSTALL_append_ec701 = " \
+                 firmware-imx-sdma-imx6q \
+"
+
 IMAGE_INSTALL_append_mx7 = " \
                  rng-tools \
                  kernel-module-ci-hdrc \
