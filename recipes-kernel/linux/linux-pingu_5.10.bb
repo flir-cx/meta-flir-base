@@ -4,8 +4,16 @@
 
 require linux-pingu.inc
 
-#SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};branch=FLIR_lf-5.10.y"
-SRC_URI = "${FLIRSE_DRV_MIRROR}/linux-pingu54.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
+FLIR_IMX7_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_IMX7_GIT = "git://bitbucketcommercial.flir.com:7999/camos"
+
+FLIR_KERNEL_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_IMX7_GIT}/linux-pingu54.git", "${FLIR_IMX7_GITHUB_GIT}/linux-pingu.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
+#SRC_URI = "${FLIR_KERNEL_URI};protocol=${PROTO};branch=FLIR_lf-5.10.y"
+SRC_URI = "${FLIR_KERNEL_URI};protocol=${PROTO};nobranch=1"
+
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
