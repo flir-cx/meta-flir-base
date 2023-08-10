@@ -5,10 +5,17 @@ S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 BOOT_TOOLS = "imx-boot-tools"
 
-UBOOT_SRC ?= "git://bitbucketcommercial.flir.com:7999/camos/uboot-pingu.git;protocol=ssh"
+FLIR_IMX7_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_IMX7_GIT = "git://bitbucketcommercial.flir.com:7999/camos"
+
+FLIR_UBOOT_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_IMX7_GIT}/uboot-pingu.git", "${FLIR_IMX7_GITHUB_GIT}/uboot-pingu.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
 #SRCBRANCH = "FLIR_EC101_v21_04"
-#SRC_URI = "${UBOOT_SRC};branch=${SRCBRANCH}"
-SRC_URI = "${UBOOT_SRC};nobranch=1"
+#SRC_URI = "${FLIR_UBOOT_URI};protocol=${PROTO};branch=${SRCBRANCH}"
+SRC_URI = "${FLIR_UBOOT_URI};protocol=${PROTO};nobranch=1"
+
 SRC_URI_append += "file://git/localversion.std"
 
 SRCREV = "5783aacca6c5a46d240d9aa1d3f5e5e1ac12e189"
