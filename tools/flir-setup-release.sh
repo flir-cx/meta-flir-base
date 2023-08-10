@@ -176,6 +176,9 @@ hook_in_layer meta-imx/meta-sdk
 echo "" >> $BUILD_DIR/conf/bblayers.conf
 echo "Adds FLIR layer"
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-flir-base \"" >> $BUILD_DIR/conf/bblayers.conf
+if [ $MACHINE == "ec401w" ]; then
+	echo "BBLAYERS += \" \${BSPDIR}/sources/meta-flir-gplv2 \"" >> $BUILD_DIR/conf/bblayers.conf
+fi
 echo "" >> $BUILD_DIR/conf/bblayers.conf
 
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-networking \"" >> $BUILD_DIR/conf/bblayers.conf
@@ -185,7 +188,7 @@ echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-webserver \"" >> 
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-qt5 \"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-python2 \"" >> $BUILD_DIR/conf/bblayers.conf
 
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-boundary \"" >> $BUILD_DIR/conf/bblayers.conf
+#echo "BBLAYERS += \" \${BSPDIR}/sources/meta-boundary \"" >> $BUILD_DIR/conf/bblayers.conf
 
 echo BSPDIR=$BSPDIR
 echo BUILD_DIR=$BUILD_DIR
