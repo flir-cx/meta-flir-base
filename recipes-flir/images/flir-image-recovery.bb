@@ -27,7 +27,6 @@ IMAGE_INSTALL = "base-files \
                  os-release \
                  packagegroup-core-boot \
                  parted \
-                 prodtest-api \
                  u-boot-default-env-pingu \
 "
 
