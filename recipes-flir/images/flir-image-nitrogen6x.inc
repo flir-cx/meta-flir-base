@@ -10,7 +10,6 @@ IMAGE_INSTALL_append = " \
     bluez5 \
     firmware-imx-vpu-imx6d \
     firmware-imx-vpu-imx6q \
-    fliriptables \
     gadgetload \
     haproxy \
     imx-gst1.0-plugin \

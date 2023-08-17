@@ -13,7 +13,6 @@ IMAGE_INSTALL_append = " \
     exfat-utils \
     firmware-qca9377 \
     flir-sysfs-links-service \
-    fliriptables \
     flir-powerbutton \
     gadgetload \
     iputils-ping \

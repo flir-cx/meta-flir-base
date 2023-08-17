@@ -12,7 +12,6 @@ IMAGE_INSTALL_append = " \
     flirbifrost \
     flirfad \
     flirfvdk \
-    fliriptables \
     flirvcam \
     flir-sysfs-links-service \
     gadgetload \

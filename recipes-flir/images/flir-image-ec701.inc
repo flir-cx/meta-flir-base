@@ -12,7 +12,6 @@ IMAGE_INSTALL_append = "\
     flirbifrost \
     flirfad \
     flirfvdk \
-    fliriptables \
     flir-activity-monitor \
     gadgetload \
     haproxy \
