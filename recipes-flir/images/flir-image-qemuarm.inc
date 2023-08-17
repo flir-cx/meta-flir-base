@@ -4,7 +4,6 @@ require flir-image-base.inc
 inherit populate_sdk
 
 IMAGE_INSTALL_append = " \
-    fliriptables \
     haproxy \
     iputils-ping \
     libevdev \
