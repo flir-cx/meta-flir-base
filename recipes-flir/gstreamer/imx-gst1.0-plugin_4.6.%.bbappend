@@ -6,4 +6,5 @@ SRC_URI_append = " \
    file://0009-Find-empty-buffer.patch \
    file://0010-Add-combine-support.patch \
    file://0011-Remove-interpipe.patch \
+   file://0012-Fix-secondary-flow-buffer-handling.patch \
 "

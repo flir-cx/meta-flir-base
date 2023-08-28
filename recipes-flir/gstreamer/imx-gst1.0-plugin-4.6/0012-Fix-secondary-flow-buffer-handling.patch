@@ -1,0 +1,109 @@
+From 43fbf4907932087c975cbbd295f73426c8ca9749 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Johansson?= <bjoern.johansson@teledyneflir.com>
+Date: Mon, 28 Aug 2023 10:07:38 +0200
+Subject: [PATCH] Fix secondary flow buffer handling
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Mark secondary flow buffer copies to avoid a situation where
+the primary flow reused a pending buffer copy before the first
+buffer was handled by the secondary flow. This situation caused
+the buffer handling for primary and secondary to be out of sync.
+
+Signed-off-by: Björn Johansson <bjoern.johansson@teledyneflir.com>
+---
+ libs/v4l2_core/gstimxv4l2.c | 22 +++++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/libs/v4l2_core/gstimxv4l2.c b/libs/v4l2_core/gstimxv4l2.c
+index 10243d2..378e037 100644
+--- a/libs/v4l2_core/gstimxv4l2.c
++++ b/libs/v4l2_core/gstimxv4l2.c
+@@ -167,6 +167,7 @@ typedef struct
+     int wrBuf[MAX_FLOWS];           // Write buffer pointer
+     int fd_v4l[MAX_FLOWS];          // fd for /dev/video0
+     struct V4LSrcCommonBuf buf[MAX_FLOWS][MAX_BUFFER];
++    guint8 is_buf_copy[MAX_FLOWS][MAX_BUFFER]; // Pos v4l2buf->index is a copy
+     sem_t *sem[MAX_FLOWS];           // Semaphore to wait for buffer
+     GMutex lock;                     // Lock to protect this struct
+     enum flow_state state[MAX_FLOWS];    // Flow state
+@@ -1225,6 +1226,10 @@ gpointer gst_imx_v4l2_open_device (gchar *device, int type)
+     v4lc->rdBuf[v4lc->activeFlows] = 0;
+     v4lc->wrBuf[v4lc->activeFlows] = 0;
+     v4lc->buffer_pair[v4lc->activeFlows] = handle->buffer_pair;
++    for (int k=0; k<MAX_BUFFER; k++){
++      v4lc->buf[v4lc->activeFlows][k].new = 0;
++      v4lc->is_buf_copy[v4lc->activeFlows][k] = 0;
++    }
+     v4lc->activeFlows++;
+     g_mutex_unlock(&v4lc->lock);
+     GST_INFO("Open %d (%d)\n", v4lCommon[handle->device_map_id].activeFlows, handle->v4l2_fd);
+@@ -1342,6 +1347,8 @@ imx_v4l2_remove_flow(MFWGstV4LSrcCommon *v4lc, IMXV4l2Handle *handle)
+ 
+     for (int k=0; k<MAX_BUFFER; k++){
+       v4lc->buf[next_flow-1][k].v4l2buf = v4lc->buf[next_flow][k].v4l2buf;
++      v4lc->buf[next_flow-1][k].new = v4lc->buf[next_flow][k].new;
++      v4lc->is_buf_copy[next_flow-1][k] = v4lc->is_buf_copy[next_flow][k];
+     }
+   }
+ 
+@@ -2208,9 +2215,15 @@ imx_v4l2_copy_buffer_to_secondary_flows(MFWGstV4LSrcCommon *v4lc, struct v4l2_bu
+ 
+     if (v4lc->buffer_pair[i][v4l2buf->index].v4l2memblk) {
+       GST_DEBUG("Copying %d to flow %d fd: %d", v4l2buf->index, i, v4lc->fd_v4l[i]);
++      /* Avoid copying the same v4l2buf index again. */
++      if (v4lc->is_buf_copy[i][v4l2buf->index]) {
++        GST_DEBUG("Found previous copy in flow %d, index=%d", i, v4l2buf->index);
++        continue;
++      }
+ 
+       v4lc->buf[i][v4lc->wrBuf[i]].v4l2buf = *v4l2buf;
+       v4lc->buf[i][v4lc->wrBuf[i]].new = 1;
++      v4lc->is_buf_copy[i][v4l2buf->index] = 1;
+ 
+       if (++v4lc->wrBuf[i] >= MAX_BUFFER){
+         v4lc->wrBuf[i] = 0;
+@@ -2281,6 +2294,7 @@ imx_v4l2_dequeue_shared_device_memblk(IMXV4l2Handle *handle, struct v4l2_buffer
+   struct V4LSrcCommonBuf *readbuffer;
+   MFWGstV4LSrcCommon * v4lc;
+ 
++  *memblk = NULL;
+   while (!dequeued_v4l2buf) {
+     v4lc = &v4lCommon[handle->device_map_id];
+ 
+@@ -2317,6 +2331,8 @@ imx_v4l2_dequeue_shared_device_memblk(IMXV4l2Handle *handle, struct v4l2_buffer
+             g_mutex_unlock(&v4lc->lock);
+             continue;
+         }
++        *memblk = handle->buffer_pair[v4l2buf->index].v4l2memblk;
++        handle->buffer_pair[v4l2buf->index].v4l2memblk = NULL;
+         dequeued_v4l2buf = 1;
+         g_mutex_unlock(&v4lc->lock);
+ 
+@@ -2392,19 +2408,19 @@ imx_v4l2_dequeue_shared_device_memblk(IMXV4l2Handle *handle, struct v4l2_buffer
+ 
+       *v4l2buf = readbuffer->v4l2buf;
+       readbuffer->new = 0;
++      v4lc->is_buf_copy[flow_index][v4l2buf->index] = 0;
+ 
+       if (++v4lc->rdBuf[flow_index] >= MAX_BUFFER){
+         v4lc->rdBuf[flow_index]=0;
+       }
+ 
++      *memblk = handle->buffer_pair[v4l2buf->index].v4l2memblk;
++      handle->buffer_pair[v4l2buf->index].v4l2memblk = NULL;
+       dequeued_v4l2buf = 1;
+       g_mutex_unlock(&v4lc->lock);
+     }
+   }
+ 
+-  *memblk = handle->buffer_pair[v4l2buf->index].v4l2memblk;
+-  handle->buffer_pair[v4l2buf->index].v4l2memblk = NULL;
+-
+   if ((! *memblk) || (v4l2buf->m.offset != (__u32)(*memblk)->paddr)) {
+     GST_ERROR("memblk is NULL or Out of sync");
+     return -1;
+-- 
+2.34.1
+
