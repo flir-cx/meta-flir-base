@@ -1,0 +1,8 @@
+# Specifies the algorithm to use (lzo, lzo-rle or zstd)
+ZRAM_ALGORITHM=lzo-rle
+
+# Specifies the amount of RAM that should be used for zram
+# based on a percentage the total amount of available memory
+ZRAM_SIZE_PERCENT=20
+
+

@@ -50,6 +50,7 @@ IMAGE_INSTALL_append = "\
     u-boot-default-env-pingu \
     u-boot-script \
     umtp-responder \
+    zram \
     \
     packagegroup-flir-gstreamer \
     packagegroup-flir-lighttpd \
