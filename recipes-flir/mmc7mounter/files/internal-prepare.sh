@@ -3,7 +3,7 @@
 set -e
 prepare_p7=
 
-if (fdisk -l /dev/mmcblk0 | grep -q storage)
+if (busybox.nosuid fdisk -l /dev/mmcblk0 | grep -q storage)
 then
     echo "`basename $0`: /dev/mmcblk0p7 is correctly (re-)labeled"
 else
