@@ -120,7 +120,7 @@ output "running dmesg"
 dmesg > "${TMP_PATH}"/dmesg.log
 
 output "running flirversions"
-flirversions -a > "${TMP_PATH}"/flirversions.log
+timeout -s KILL 5 flirversions -a > "${TMP_PATH}"/flirversions.log
 
 output "copy any .dmp files to <result folder>"
 cp -p /tmp/*.dmp "${TMP_PATH}" 2>/dev/null
