@@ -55,6 +55,8 @@ ms_subcompat_id="5162001" # matches Windows RNDIS 6.0 Driver
 yuv_width=640
 yuv_height=480
 yuv_bytes_per_pixel=2
+f7m0_width=320
+f7m0_height=246
 
 get_base_mac_from_cmdline() {
 	cat /proc/cmdline | sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p"
@@ -175,10 +177,10 @@ config_load() {
 
 	# Configuration Descriptor, config 1.
 	mkdir -p configs/c.1
-	
+
 	echo "${usb_attr}"	    > configs/c.1/bmAttributes
 	echo "${usb_max_power}" > configs/c.1/MaxPower
-	
+
 	mkdir -p configs/c.1/strings/0x409
 	echo "$config_string" > configs/c.1/strings/0x409/configuration
 
@@ -207,9 +209,21 @@ config_load() {
 5000000
 EOF
 
+		mkdir -p functions/uvc.usb0/streaming/framebased/f7m0/240p
+		printf 'F7M0\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/f7m0/guidFormat
+		echo "${f7m0_width}" > functions/uvc.usb0/streaming/framebased/f7m0/240p/wWidth
+		echo "${f7m0_height}" > functions/uvc.usb0/streaming/framebased/f7m0/240p/wHeight
+		echo 333333 > functions/uvc.usb0/streaming/framebased/f7m0/240p/dwDefaultFrameInterval
+		cat <<EOF > functions/uvc.usb0/streaming/framebased/f7m0/240p/dwFrameInterval
+333333
+666666
+1000000
+EOF
+
 		mkdir -p functions/uvc.usb0/streaming/header/h
 		cd functions/uvc.usb0/streaming/header/h
-		ln -s ../../uncompressed/yuv
+		ln -s ../../uncompressed/yuv .
+		ln -s ../../framebased/f7m0 .
 		cd ../../class/fs
 		ln -s ../../header/h
 		cd ../../class/hs
@@ -331,22 +345,25 @@ config_unload() {
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/ss/h
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/hs/h
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/class/fs/h
+	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/f7m0
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h/yuv
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/header/h
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/framebased/f7m0/240p"
+	remove_if_exists "${gadget_path}/functions/uvc.usb0/streaming/framebased/f7m0"
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv/480p
 	remove_if_exists ${gadget_path}/functions/uvc.usb0/streaming/uncompressed/yuv
-	
+
 	remove_if_exists ${gadget_path}/configs/c.1/rndis.usb0
 	remove_if_exists ${gadget_path}/configs/c.1/ffs.umtp
 	remove_if_exists ${gadget_path}/configs/c.1/uvc.usb0
-	
+
 	remove_if_exists ${gadget_path}/functions/rndis.usb0
 	remove_if_exists ${gadget_path}/functions/ffs.umtp
 	remove_if_exists ${gadget_path}/functions/uvc.usb0
-	
+
 	remove_if_exists ${gadget_path}/configs/c.1/strings/0x409
 	remove_if_exists ${gadget_path}/configs/c.1
-	
+
 	remove_if_exists ${gadget_path}/strings/0x409
 	remove_if_exists ${gadget_path}
 
