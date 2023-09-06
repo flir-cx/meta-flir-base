@@ -8,6 +8,7 @@
 SCRIPT_VER=1.2
 VERBOSE=
 SKIP_VERSION=
+KEEP=5
 
 output()
 {
@@ -22,12 +23,19 @@ limit_logs()
     folder=$1
     n=0
 
+    if [ "${KEEP}" -eq 0 ]; then
+        output "limit is 0, won't delete old diagnostics."
+        return
+    else
+        output "limit is ${KEEP} diagnostics"
+    fi
+
     # shellcheck disable=SC2045
     for fil in $(ls -1t "${folder}"/FLIRdump_*)
     do
         n=$((n+1))
 #       echo $fil;
-        if [ $n -gt 5 ]
+        if [ $n -gt "${KEEP}" ]
         then
            output deletes old "$fil"
            rm -f "$fil"
@@ -44,11 +52,12 @@ usage()
     echo "options:"
     echo "-s              Skip calling \"version\" (as it might hang/crash)"
     echo "-v              Verbose output"
-    echo "-V              show script version and exit"    
+    echo "-V              show script version and exit"
+    echo "-l              set limit for amount of diagnostics, default 5, 0 - no delete"
     echo "-h              Show this help text and exit"
 }
 
-while getopts "hsvV" arg
+while getopts "hsvVl:" arg
 do
      case $arg in
          s)
@@ -65,6 +74,9 @@ do
              echo "Script version ${SCRIPT_VER}"
              exit 0
              ;;
+         l)
+            KEEP=$OPTARG;
+            ;;
          *)
              echo "unknown option"
              exit 1
