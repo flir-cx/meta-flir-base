@@ -55,8 +55,37 @@ ms_subcompat_id="5162001" # matches Windows RNDIS 6.0 Driver
 yuv_width=640
 yuv_height=480
 yuv_bytes_per_pixel=2
-f7m0_width=320
-f7m0_height=246
+
+get_rad_streaming_resolution() {
+	NEW_IR_WIDTH=$(i2cget -f -y 1 0x57 0xC0)
+	NEW_IR_HEIGHT=$(i2cget -f -y 1 0x57 0xC2)
+
+	if [[ $NEW_IR_WIDTH -eq 0xA0 ]] && [[ $NEW_IR_HEIGHT -eq 0x78 ]];
+	then
+		f7m0_width=160
+		f7m0_height=120
+
+	elif [[ $NEW_IR_WIDTH -eq 0xF0 ]] && [[ $NEW_IR_HEIGHT -eq 0xB4 ]];
+	then
+		f7m0_width=240
+		f7m0_height=180
+
+	else
+		f7m0_width=320
+		f7m0_height=240
+	fi
+
+	f7m0_fffdata_default=3732
+	f7m0_fffdata=$(cat /FLIR/system/fffsize)
+
+	if [ -z ${f7m0_fffdata} ]; then
+		echo "No f7m0 fff data size found, using default"
+		f7m0_fffdata=$f7m0_fffdata_default
+	fi
+	f7m0_extralines=$(($f7m0_fffdata/($f7m0_width*16/8)))
+	f7m0_extralines=$(($f7m0_extralines+1))
+	f7m0_height=$(($f7m0_height+$f7m0_extralines))
+}
 
 get_base_mac_from_cmdline() {
 	cat /proc/cmdline | sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p"
@@ -89,7 +118,7 @@ get_default_usb_ip_addr() {
 
 usage() {
 	script_name=`basename "$0"`
-	echo "Usage: ${script_name} (load|unload)"
+	echo "Usage: ${script_name} (load|unload|reload)"
 }
 
 get_mode(){
@@ -185,6 +214,7 @@ config_load() {
 	echo "$config_string" > configs/c.1/strings/0x409/configuration
 
 	if [ "$usbmode_uvc" = true ] ; then
+		get_rad_streaming_resolution
 		# Control endpoint packet size is 64 bytes.
 		echo 0x40 > bMaxPacketSize0
 
