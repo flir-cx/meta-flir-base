@@ -20,7 +20,7 @@ FLIR_ACTIVITY_MONITOR_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", 
 
 PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
 
-SRCREV = "bdcc1af7adba18f6ddc3e219b4441c8118fa96ee"
+SRCREV = "6d339eaaa9df8bc79a3a78ec3f327f544ca7366c"
 SRC_URI  = "${FLIR_ACTIVITY_MONITOR_URI};protocol=${PROTO};nobranch=1"
 SRC_URI += " \
     file://${BPN}.service \
