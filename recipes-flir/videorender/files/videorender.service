@@ -7,6 +7,7 @@ Type=simple
 ExecStart=/FLIR/usr/bin/videorender.sh
 Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 ExecStopPost=/sbin/systemd-failure-notifier "%n" "%i"
+TimeoutStopSec=21
 
 [Install]
 WantedBy=multi-user.target
