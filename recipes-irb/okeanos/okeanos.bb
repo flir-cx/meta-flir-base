@@ -10,7 +10,7 @@ PR = "r1"
 #SRC_URI = "git:///home/yoctobuild/src/git/okeanos;protocol=file"
 
 SRCREV = "b0189894118ca9f06e5b96d04c5e28a68eaaaabb"
-SRC_URI = "git://git@bitbucketcommercial.flir.com:7999/titan/okeanos.git;protocol=ssh"
+SRC_URI = "git://git@bitbucketcommercial.flir.com:7999/titan/okeanos.git;protocol=ssh;nobranch=1"
 
 S = "${WORKDIR}/git"
 
