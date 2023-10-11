@@ -57,3 +57,13 @@ background-color=0xff000000
 
 " >> ${WESTON_INI}
 }
+
+SRC_URI_append += "\
+	file://weston-stop-handler.sh \
+"
+
+do_install_append() {
+    install -d ${D}${sbindir}
+    install -m 0755 ${WORKDIR}/weston-stop-handler.sh ${D}${sbindir}/weston-stop-handler
+}
+
