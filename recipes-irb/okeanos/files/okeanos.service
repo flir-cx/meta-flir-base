@@ -1,0 +1,10 @@
+[Unit]
+Before=flirapp.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c '/sbin/modprobe okeanos && /bin/sleep infinity'
+ExecStop=/bin/bash -c '/sbin/modprobe -r okeanos'
+
+[Install]
+WantedBy=graphical.target

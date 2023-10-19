@@ -6,11 +6,20 @@ LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 PR = "r1"
 
+inherit systemd
+
+RPROVIDES_${PN} += "${PN}-systemd"
+RREPLACES_${PN} += "${PN}-systemd"
+RCONFLICTS_${PN} += "${PN}-systemd"
+SYSTEMD_SERVICE_${PN} = "okeanos.service"
+
 #SRCREV = "${AUTOREV}"
 #SRC_URI = "git:///home/yoctobuild/src/git/okeanos;protocol=file"
 
 SRCREV = "b0189894118ca9f06e5b96d04c5e28a68eaaaabb"
 SRC_URI = "git://git@bitbucketcommercial.flir.com:7999/titan/okeanos.git;protocol=ssh;nobranch=1"
+
+SRC_URI += "file://okeanos.service"
 
 S = "${WORKDIR}/git"
 
@@ -19,6 +28,9 @@ KERNEL_MODULE_AUTOLOAD_recc += "okeanos"
 
 do_install() {
     module_do_install
+
+    install -d ${D}${systemd_unitdir}/system
+    install -m 0644 ${WORKDIR}/okeanos.service ${D}${systemd_unitdir}/system/okeanos.service
 }
 
 do_module_signing() {
