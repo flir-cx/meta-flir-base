@@ -26,7 +26,7 @@ inherit module
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
-SRCREV = "76948fddfa9bf9f7188692477c066dde06ea960c"
+SRCREV = "00c40201254bd493ff02b60063d1c116ce16b28f"
 
 SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-yildun.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
 SRC_URI += "file://yildun.conf"

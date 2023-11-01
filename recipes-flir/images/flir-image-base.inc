@@ -81,6 +81,10 @@ TOOLCHAIN_TARGET_TASK_append = "\
     immer-dev \
     inja-dev \
     kernel-dev \
+    flirvcamheaders-dev \
+    fliryildunheaders-dev \
+    flirfadheaders-dev \
+    flirbifrostheaders-dev \
     kernel-devsrc \
     libasan-dev \
     libconfig-dev \
