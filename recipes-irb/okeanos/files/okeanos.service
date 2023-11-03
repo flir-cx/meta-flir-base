@@ -1,5 +1,6 @@
 [Unit]
 Before=flirapp.service
+After=weston.service
 
 [Service]
 Type=simple
