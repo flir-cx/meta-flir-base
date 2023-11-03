@@ -42,19 +42,24 @@ torch_lnk=$lnk_base_dir/torch
 flash_lnk=$lnk_base_dir/flash
 
 find_out_model () {
-	grep -q -- '-evco' $compat_path && return $evco
-	grep -q -- '-leco' $compat_path && return $leco
-	grep -q -- '-beco' $compat_path && return $beco
-	grep -q -- 'digi' $compat_path && return $roco
-	grep -q -- '-ec201' $compat_path && return $ec201
-	grep -q -- '-ec401w' $compat_path && return $ec401w
-	grep -q -- '-eoco' $compat_path && return $eoco
-	grep -q -- '-ec302' $compat_path && return $ec302
-        return $unknown
+	STR=$(tr -d '\0' <$compat_path)
+
+	case $STR in
+		*"-evco"*) return $evco ;;
+		*"-leco"*) return $leco ;;
+		*"-beco"*) return $beco ;;
+		*"digi"*) return $roco ;;
+		*"-ec201"*) return $ec201 ;;
+		*"-ec401w"*) return $ec401w ;;
+		*"-eoco"*) return $eoco ;;
+		*"ec302"*) return $ec302 ;;
+	esac
+
+	return $unknown
 }
 
 set_paths () {
-	local model=$1
+	model="$1"
 
 	case "$model" in
 	"$evco"|"$leco")
@@ -106,8 +111,8 @@ set_paths () {
 }
 
 create_link() {
-	[ -n "$1" -a ! -L $2 ] && \
-		ln -sf $1 $2
+	[ -n "$1" ] && [ ! -L "$2" ] && \
+		ln -sf "$1" "$2"
 }
 
 create_links () {
@@ -119,32 +124,34 @@ create_links () {
 
 	create_link "$battery_path" "$battery_lnk"
 	create_link "$pmic_path" "$pmic_lnk"
-	
-	[ -n "$tpleds_camera_path" ] && \
-		mkdir -p $tpleds_folder
-
-	[ ! -a $tpleds_detect_lnk/uevent ] && \
-		rm -rf $tpleds_detect_lnk
-
-	[ -n "$coverleds_led1_path" ] && \
-		mkdir -p $coverleds_folder
-
-	[ ! -a $coverleds_detect_lnk/uevent ] && \
-		rm -rf $coverleds_detect_lnk
 
 	#sherlock tp-leds
-	create_link "$tpleds_camera_path" "$tpleds_detect_lnk" # Detect link for appcore
-	create_link "$tpleds_camera_path" "$tpleds_camera_lnk"
-	create_link "$tpleds_gallery_path" "$tpleds_gallery_lnk"
-	create_link "$tpleds_settings_path" "$tpleds_settings_lnk"
+	if [ -n "$tpleds_camera_path" ]; then
+		mkdir -p $tpleds_folder
+
+		[ ! -e $tpleds_detect_lnk/uevent ] && \
+			rm -rf $tpleds_detect_lnk
+
+		create_link "$tpleds_camera_path" "$tpleds_detect_lnk" # Detect link for appcore
+		create_link "$tpleds_camera_path" "$tpleds_camera_lnk"
+		create_link "$tpleds_gallery_path" "$tpleds_gallery_lnk"
+		create_link "$tpleds_settings_path" "$tpleds_settings_lnk"
+	fi
 
 	#ec401w cover leds
-	create_link "$coverleds_led1_path" "$coverleds_detect_lnk" # Detect link for appcore
-	create_link "$coverleds_led1_path" "$coverleds_led1_lnk"
-	create_link "$coverleds_led2_path" "$coverleds_led2_lnk"
-	create_link "$coverleds_led3_path" "$coverleds_led3_lnk"
-	create_link "$coverleds_ledred_path" "$coverleds_ledred_lnk"
-	
+	if [ -n "$coverleds_led1_path" ]; then
+		mkdir -p $coverleds_folder
+
+		[ ! -e $coverleds_detect_lnk/uevent ] && \
+			rm -rf $coverleds_detect_lnk
+
+		create_link "$coverleds_led1_path" "$coverleds_detect_lnk" # Detect link for appcore
+		create_link "$coverleds_led1_path" "$coverleds_led1_lnk"
+		create_link "$coverleds_led2_path" "$coverleds_led2_lnk"
+		create_link "$coverleds_led3_path" "$coverleds_led3_lnk"
+		create_link "$coverleds_ledred_path" "$coverleds_ledred_lnk"
+	fi
+
 	create_link "$backlight_lcd_path" "$backlight_lcd_lnk"
 
 	create_link "$torch_path" "$torch_lnk"
@@ -152,6 +159,7 @@ create_links () {
 }
 
 find_out_model
+
 set_paths $?
 create_links
 exit 0
