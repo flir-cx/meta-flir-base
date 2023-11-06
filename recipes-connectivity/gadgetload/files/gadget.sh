@@ -95,7 +95,7 @@ get_default_usb_ip_addr() {
 
 usage() {
 	script_name=$(basename "$0")
-	echo "Usage: ${script_name} (load|unload)"
+	echo "Usage: ${script_name} (load|unload|reload|isloaded)"
 }
 
 get_mode() {
@@ -437,9 +437,30 @@ config_unload() {
 	echo "Unloaded: Done."
 }
 
+check_loaded_status () {
+	get_mode
+	if [ -d "/sys/kernel/config/usb_gadget/g1" ] ; then
+		if [ "$usbmode_rndis" = true ] && ! [ "$(ifconfig | grep usb0)" ]; then
+			echo "RNIDS not loaded, return fail."
+			exit 1
+		fi
+		if [ "$usbmode_mtp" = true ] && ! [ "$(pidof umtprd)" ]; then
+			echo "MTP not loaded, return fail."
+			exit 1
+		fi
+		if [ "$usbmode_uvc" = true ] && ! [ "$(ls /dev/v4l/by-path/platform-ci_hdrc*)" ]; then
+			echo "UVC not loaded, return fail."
+			exit 1
+		fi
+	fi
+	echo "gadget seems loaded ok."
+	exit 0
+}
+
 case $1 in
 load) config_load ;;
 unload) config_unload ;;
 reload) config_unload && config_load ;;
+isloaded) check_loaded_status ;;
 *) usage ;;
 esac

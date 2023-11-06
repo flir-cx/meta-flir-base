@@ -87,7 +87,7 @@ get_default_usb_ip_addr() {
 
 usage() {
 	script_name=`basename "$0"`
-	echo "Usage: ${script_name} (load|unload)"
+	echo "Usage: ${script_name} (load|unload|reload|isloaded)"
 }
 
 get_mode(){
@@ -376,6 +376,10 @@ check_loaded_status () {
 		fi
 		if [ "$usbmode_mtp" = true ] && ! [ "$(pidof umtprd)" ]; then
 			echo "MTP not loaded, return fail."
+			return 1
+		fi
+		if [ "$usbmode_uvc" = true ] && ! [ "$(ls /dev/v4l/by-path/platform-ci_hdrc*)" ]; then
+			echo "UVC not loaded, return fail."
 			return 1
 		fi
 	else

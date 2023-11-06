@@ -425,6 +425,10 @@ check_loaded_status () {
 			echo "MTP not loaded, return fail."
 			return 1
 		fi
+		if [ "$usbmode_uvc" = true ] && ! [ "$(ls /dev/v4l/by-path/platform-ci_hdrc*)" ]; then
+			echo "UVC not loaded, return fail."
+			return 1
+		fi
 	else
 		echo "gadget is not loaded"
 		return 1
