@@ -2,6 +2,9 @@
 
 case $1 in
     pre)
+        sysctl kernel.panic_on_oops=1
+        sysctl kernel.panic_on_warn=1
+        sysctl kernel.panic=-1
         systemctl stop gadget
         systemctl stop bluetooth
         systemctl stop btload
@@ -18,5 +21,8 @@ case $1 in
         systemctl start btload
         systemctl start bluetooth
         systemctl start gadget
+        sysctl kernel.panic_on_oops=0
+        sysctl kernel.panic_on_warn=0
+        sysctl kernel.panic=0
     ;;
 esac
