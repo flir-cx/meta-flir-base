@@ -1,4 +1,4 @@
-cd ..require flir-image-base.inc
+require flir-image-base.inc
 
 ### ec302 board specifics for flir-image
 inherit populate_sdk_qt5
