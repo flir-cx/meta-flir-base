@@ -1,4 +1,4 @@
-require flir-image-base.inc
+cd ..require flir-image-base.inc
 
 ### ec302 board specifics for flir-image
 inherit populate_sdk_qt5
@@ -10,14 +10,14 @@ IMAGE_INSTALL_append = "\
     bluez5 \
     brcm-patchram \
     btload \
-    chargelogo \
     data-collection-service \
     exfat-utils \
     flir-activity-monitor \
     gadgetload \
     iputils-ping \
     kernel-modules \
-    kernel-module-qca9377 firmware-qca9377 \
+    firmware-qca9377 \
+    kernel-module-qca9377 \
     lepton-m4 \
     libevdev \
     libubootenv-bin \

@@ -10,7 +10,6 @@ IMAGE_INSTALL_append = "\
     bluez5 \
     brcm-patchram \
     btload \
-    chargelogo \
     data-collection-service \
     exfat-utils \
     flir-activity-monitor \
@@ -43,6 +42,7 @@ IMAGE_INSTALL_append = "\
     u-boot-script \
     umtp-responder \
     videorender-service \
+    wlanload \
     packagegroup-flir-lighttpd \
     packagegroup-flir-gstreamer \
-"
+    "
