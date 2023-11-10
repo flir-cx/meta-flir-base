@@ -7,6 +7,8 @@ COMPATIBLE_MACHINE = "(ec501|evco|eoco)"
 
 IMAGE_INSTALL_append = " \
     ltp \
+    python3-fcntl \
+    python3-ctypes \
 "
 
 IMAGE_INSTALL_append_ec501 = " \
