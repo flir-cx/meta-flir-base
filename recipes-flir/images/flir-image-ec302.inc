@@ -10,6 +10,7 @@ IMAGE_INSTALL_append = "\
     bluez5 \
     brcm-patchram \
     btload \
+    chargelogo \
     data-collection-service \
     exfat-utils \
     flir-activity-monitor \
