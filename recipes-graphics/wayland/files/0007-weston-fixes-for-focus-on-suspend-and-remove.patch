@@ -1,17 +1,19 @@
-From 0ff50708465f7d20208678c8ce9c791e668e69d0 Mon Sep 17 00:00:00 2001
+From b3dae30fbc90b9a575770bf89f5f9d404c777319 Mon Sep 17 00:00:00 2001
 From: Erik Jansson <Erik.Jansson@teledyneflir.com>
 Date: Fri, 26 Aug 2022 17:14:43 +0200
 Subject: [PATCH] weston: Fixes for focus issues
 
 Add automatic focus handling. Specifically to surface_removed
 and resume.
+
+%% original patch: 0007-weston-fixes-for-focus-on-suspend-and-remove.patch
 ---
  desktop-shell/shell.c           | 157 +++++++++++++++++++++++++-------
  libweston/backend-fbdev/fbdev.c |  12 +++
  2 files changed, 134 insertions(+), 35 deletions(-)
 
 diff --git a/desktop-shell/shell.c b/desktop-shell/shell.c
-index a9dc390a..015509c2 100644
+index a9dc390a..b0d1afda 100644
 --- a/desktop-shell/shell.c
 +++ b/desktop-shell/shell.c
 @@ -1285,6 +1285,72 @@ surface_keyboard_focus_lost(struct weston_surface *surface)
@@ -218,7 +220,7 @@ index a9dc390a..015509c2 100644
 -	weston_layer_set_position(&ws->layer, WESTON_LAYER_POSITION_NORMAL);
 +	weston_layer_set_position(&ws->layer,
 +                                  WESTON_LAYER_POSITION_NORMAL);
-+        weston_layer_set_position(&shell->overlay_layer,
++        weston_layer_set_position(&shell->progress_layer,
 +                                  WESTON_LAYER_POSITION_PROGRESS);
 +        weston_layer_set_position(&shell->overlay_layer,
 +                                  WESTON_LAYER_POSITION_OVERLAY);
@@ -317,5 +319,5 @@ index 01367460..c2b1a893 100644
  		weston_log("leaving VT\n");
  		udev_input_disable(&backend->input);
 -- 
-2.25.1
+2.34.1
 
