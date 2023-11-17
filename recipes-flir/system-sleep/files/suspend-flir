@@ -6,9 +6,11 @@ case $1 in
 	/FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareStandby true
 	# Sleep added to let facets delayed standby have time to run
 	sleep 0.5
+	suspend-qca9377 pre
     ;;
     post)
 	# Added sleep for no communication with lepton until it has time to wake up
+	suspend-qca9377 post
 	sleep 1.0
 	/FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareResume true
     ;;
