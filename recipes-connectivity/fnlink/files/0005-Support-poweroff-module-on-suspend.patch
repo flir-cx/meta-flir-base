@@ -1,0 +1,87 @@
+From c1f8bdc2e830ab87ff6a14b3e3ea3d1dbf9e461f Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@teledyneflir.com>
+Date: Tue, 21 Nov 2023 15:31:05 +0100
+Subject: [PATCH] Support poweroff module on suspend
+
+qca9377 will be powered off during suspend. Remove device before
+suspend, and insert on resume to wakeup properly.
+---
+ CORE/HDD/src/wlan_hdd_cfg80211.c                   |  5 +++--
+ CORE/SERVICES/HIF/sdio/linux/native_sdio/src/hif.c | 12 +++++++++++-
+ 2 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/CORE/HDD/src/wlan_hdd_cfg80211.c b/CORE/HDD/src/wlan_hdd_cfg80211.c
+index 64ba99642..2d08602db 100644
+--- a/CORE/HDD/src/wlan_hdd_cfg80211.c
++++ b/CORE/HDD/src/wlan_hdd_cfg80211.c
+@@ -31410,6 +31410,7 @@ resume_tx:
+ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
+                                    struct cfg80211_wowlan *wow)
+ {
++#if 0
+     hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+     int ret;
+ 
+@@ -31417,8 +31418,8 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
+     ret = __wlan_hdd_cfg80211_suspend_wlan(wiphy, wow, false);
+     hdd_system_suspend_state_set(hdd_ctx, true);
+     vos_ssr_unprotect(__func__);
+-
+-    return ret;
++#endif
++    return 0;
+ }
+ 
+ 
+diff --git a/CORE/SERVICES/HIF/sdio/linux/native_sdio/src/hif.c b/CORE/SERVICES/HIF/sdio/linux/native_sdio/src/hif.c
+index 54c6bf160..e6b898b18 100644
+--- a/CORE/SERVICES/HIF/sdio/linux/native_sdio/src/hif.c
++++ b/CORE/SERVICES/HIF/sdio/linux/native_sdio/src/hif.c
+@@ -2269,6 +2269,10 @@ static int hifRestartAllVap(struct ol_ath_softc_net80211 *scn)
+ static int hifDeviceSuspend(struct device *dev)
+ {
+     struct sdio_func *func=dev_to_sdio_func(dev);
++    hifDeviceRemoved(func);
++    return 0;
++#if 0
++
+     A_STATUS status = A_OK;
+     int ret = A_OK;
+ #if defined(MMC_PM_KEEP_POWER) || (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34))
+@@ -2321,7 +2325,7 @@ static int hifDeviceSuspend(struct device *dev)
+                 pm_flag |= MMC_PM_KEEP_POWER;
+                 break;
+             case 3://force CutPower
+-                pm_flag &= ~(MMC_PM_WAKE_SDIO_IRQ | MMC_PM_WAKE_SDIO_IRQ);
++                pm_flag &= ~(MMC_PM_WAKE_SDIO_IRQ | MMC_PM_KEEP_POWER);
+                 break;
+         }
+         if(!(pm_flag & MMC_PM_KEEP_POWER)){
+@@ -2421,11 +2425,16 @@ static int hifDeviceSuspend(struct device *dev)
+         device->is_suspend = FALSE;
+         return -1;
+     }
++
++#endif
+ }
+ 
+ static int hifDeviceResume(struct device *dev)
+ {
+     struct sdio_func *func=dev_to_sdio_func(dev);
++    hifDeviceInserted(func, &ar6k_id_table[17]);
++    return 0;
++#if 0
+     A_STATUS status = A_OK;
+     HIF_DEVICE_POWER_CHANGE_TYPE  config;
+     HIF_DEVICE *device;
+@@ -2493,6 +2502,7 @@ static int hifDeviceResume(struct device *dev)
+     device->DeviceState = HIF_DEVICE_STATE_ON;
+ 
+     return A_SUCCESS(status) ? 0 : status;
++#endif
+ }
+ #endif /* CONFIG_PM */
+ 
+-- 
+2.34.1
+

@@ -5,4 +5,5 @@ SRC_URI += " \
     file://0002-datastructures-and-flags.patch \
     file://0003-wlan-ifdefs.patch \
     file://0004-disable-wlan-test-mode.patch \
+    file://0005-Support-poweroff-module-on-suspend.patch \
 "
