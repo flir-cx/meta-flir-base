@@ -4,7 +4,7 @@ After=weston.service
 
 [Service]
 Type=simple
-ExecStart=/bin/bash -c '/sbin/modprobe okeanos && /bin/sleep infinity'
+ExecStart=/bin/bash -c '/sbin/modprobe okeanos spi_verify_probe=1 && /bin/sleep infinity'
 ExecStop=/bin/bash -c '/sbin/modprobe -r okeanos'
 
 [Install]
