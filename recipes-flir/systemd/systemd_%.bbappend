@@ -12,6 +12,11 @@ do_install_append() {
       install -m 0644 ${WORKDIR}/flir-system.conf ${D}${sysconfdir}/systemd/system.conf
       install -m 0644 ${WORKDIR}/journald.conf ${D}${sysconfdir}/systemd/journald.conf
       install -m 0644 ${WORKDIR}/50-data-collection.preset ${D}${systemd_unitdir}/system-preset/50-data-collection.preset
+      # modify touchscreen rules
+      if [ -e  ${D}${sysconfdir}/udev/rules.d/touchscreen.rules ]; then
+         ADDON="DEVPATH==\"*platform*\","
+         sed "s/SCREEN}==\"1\", SYMLINK/SCREEN}==\"1\", $ADDON SYMLINK/g" -i ${D}${sysconfdir}/udev/rules.d/touchscreen.rules
+      fi
 }
 
 do_configure_append_ec401w() {
