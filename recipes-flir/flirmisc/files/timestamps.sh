@@ -24,9 +24,7 @@ showline()
     while IFS= read -r line; do
 	 abstime=$(echo "$line" | grep -oE '[^ ]+$')
 	 rel=$((abstime - myoffset))
-	 frac=$((rel % 1000000))
-	 frac=$(echo $frac | awk '{ print substr($0,0,2) }')
-	 sec=$((rel / 1000000))."$frac"
+	 sec=$(echo $rel | awk '{r = $1 / 1000000 ; print r}' OFMT="%.2f")
 	 name=$(echo "$line" | awk '{print $3}')
          output "Line: ${line}"
 	 output abstime:"$abstime"
