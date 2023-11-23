@@ -272,9 +272,9 @@ enable_gadget() {
 }
 
 remove_if_exists() {
-	[ -d "$1" ] && [ ! -L "$1" ] && rmdir "$1" || true
-	[ -d "$1" ] && [ -L "$1" ] && rm "$1" || true
-	[ -f "$1" ] && rm "$1" || true
+	[ -d "$1" ] && [ ! -L "$1" ] && rmdir "$1"
+	[ -d "$1" ] && [ -L "$1" ] && rm "$1"
+	[ -f "$1" ] && rm "$1"
 }
 
 config_unload() {
@@ -351,7 +351,7 @@ config_unload() {
 check_loaded_status () {
 	get_mode
 	if [ -d "/sys/kernel/config/usb_gadget/g1" ] ; then
-		if [ "$usbmode_rndis" = true ] && ! [ "$(ifconfig | grep usb0)" ]; then
+		if [ "$usbmode_rndis" = true ] && ! ifconfig -a | grep -q "usb0" ; then
 			echo "RNIDS not loaded, return fail."
 			exit 1
 		fi
