@@ -14,7 +14,7 @@ case $1 in
         sysctl kernel.panic_on_oops=0
         sysctl kernel.panic_on_warn=0
         sysctl kernel.panic=0
-        systemctl reload btload # load BT firmware to module
+        systemctl restart btload # load BT firmware to module
         # Added sleep for no communication with lepton until it has time to wake up
         [ "$(cat /etc/platform)" = "ec201" ] && sleep 1.0
         /FLIR/usr/bin/rset -s -t $timeout .power.actions.prepareResume true
