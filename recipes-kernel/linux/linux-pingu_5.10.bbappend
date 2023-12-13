@@ -1,5 +1,6 @@
 SRC_URI_append_ec501 = " \
     file://enable-multicast.cfg \
+    file://enable-phy.cfg \
 "
 
 SRC_URI_append_ec701 = " \
