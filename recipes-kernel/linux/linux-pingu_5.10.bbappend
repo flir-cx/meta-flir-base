@@ -11,8 +11,10 @@ SRC_URI_append_ec701 = " \
 "
 
 SRC_URI_append_evco = " \
+    file://enable-ca111.cfg \
     file://enable-cyttsp5-module.cfg \
     file://enable-edt-ft5636-module.cfg \
+    file://enable-fxos8700-acc-mag.cfg \
     file://enable-kopin-kcda914.cfg \
     file://enable-orise-otm1287a.cfg \
     file://enable-truly-st7703.cfg \
