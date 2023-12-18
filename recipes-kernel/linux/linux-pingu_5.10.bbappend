@@ -11,6 +11,8 @@ SRC_URI_append_ec701 = " \
 "
 
 SRC_URI_append_evco = " \
+    file://enable-bq24298-charger.cfg \
+    file://enable-bq27xxx-battery.cfg \
     file://enable-ca111.cfg \
     file://enable-cyttsp5-module.cfg \
     file://enable-edt-ft5636-module.cfg \
