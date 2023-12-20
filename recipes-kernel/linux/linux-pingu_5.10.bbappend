@@ -19,6 +19,7 @@ SRC_URI_append_eoco = " \
     file://enable-ema100080-viewfinder.cfg \
     file://enable-max5380-backlight-viewfinder.cfg \
     file://enable-mtd-device.cfg \
+    file://enable-pcf857x-expander.cfg \
     file://enable-rotary-encoder.cfg \
     file://enable-truly-st7703.cfg \
     file://enable-wlan-wl18-module.cfg \
