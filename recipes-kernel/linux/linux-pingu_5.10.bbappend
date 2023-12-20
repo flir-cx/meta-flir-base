@@ -11,6 +11,19 @@ SRC_URI_append_ec701 = " \
     file://enable-truly-st7703.cfg \
 "
 
+SRC_URI_append_eoco = " \
+    file://enable-adxl344-acc.cfg \
+    file://enable-bq40z50-fuelg-gauge.cfg \
+    file://enable-bt-module.cfg \
+    file://enable-cyttsp5-module.cfg \
+    file://enable-ema100080-viewfinder.cfg \
+    file://enable-max5380-backlight-viewfinder.cfg \
+    file://enable-mtd-device.cfg \
+    file://enable-rotary-encoder.cfg \
+    file://enable-truly-st7703.cfg \
+    file://enable-wlan-wl18-module.cfg \
+"
+
 SRC_URI_append_evco = " \
     file://enable-bq24298-charger.cfg \
     file://enable-bq27xxx-battery.cfg \
