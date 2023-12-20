@@ -3,10 +3,10 @@ SRC_URI_append_ec501 = " \
     file://enable-multicast.cfg \
     file://enable-phy.cfg \
     file://enable-wlan-wl18-module.cfg \
+    file://enable-zram-module.cfg \
 "
 
 SRC_URI_append_ec701 = " \
-    file://disable-zram.cfg \
     file://enable-weim.cfg \
     file://enable-truly-st7703.cfg \
 "
@@ -37,4 +37,5 @@ SRC_URI_append_evco = " \
     file://enable-orise-otm1287a.cfg \
     file://enable-truly-st7703.cfg \
     file://enable-wlan-wl18-module.cfg \
+    file://enable-zram-module.cfg \
 "
