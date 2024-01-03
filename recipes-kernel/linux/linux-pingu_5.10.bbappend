@@ -40,3 +40,7 @@ SRC_URI_append_evco = " \
     file://enable-wlan-wl18-module.cfg \
     file://enable-zram-module.cfg \
 "
+
+SRC_URI_append_ec702 = " \
+    file://mtd-device.cfg \
+"

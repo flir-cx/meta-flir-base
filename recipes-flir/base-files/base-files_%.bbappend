@@ -33,6 +33,10 @@ do_install_append_ec701() {
     install -m 0755 -d ${D}/FLIR/internal
 }
 
+do_install_append_ec702() {
+    install -m 0755 -d ${D}/FLIR/internal
+}
+
 do_install_basefilesissue () {
 # Overridden from poky version
 # Reason is to avoid creating /etc/issue* within base-files.

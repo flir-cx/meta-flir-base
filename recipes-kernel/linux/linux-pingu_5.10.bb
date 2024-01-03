@@ -38,7 +38,7 @@ SRC_URI_append_ec201 += "\
              file://0001-qca9377-oot.patch \
 "
 
-COMPATIBLE_MACHINE = "evco|ec501|eoco|ec701|ec302|ec201"
+COMPATIBLE_MACHINE = "evco|ec501|eoco|ec701|ec702|ec302|ec201"
 
 # Set an external linux source, prevents Yocto from deleting your local changes
 #inherit externalsrc
