@@ -42,5 +42,7 @@ SRC_URI_append_evco = " \
 "
 
 SRC_URI_append_ec702 = " \
-    file://mtd-device.cfg \
+    file://enable-mtd-device.cfg \
+    file://enable-cyttsp5-module.cfg \
+    file://enable-truly-st7703.cfg \
 "

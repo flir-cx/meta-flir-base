@@ -10,7 +10,6 @@ IMAGE_INSTALL_append = "\
     flirfad \
     flirfvdk \
     gadgetload \
-    hdmi-service \
     iputils-ping \
     kernel-modules \
     kernel-sysfs-helpers \
@@ -24,6 +23,7 @@ IMAGE_INSTALL_append = "\
     qtbase \
     qtgraphicaleffects \
     progressapp-service \
+    systemd-failure-notifier \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
