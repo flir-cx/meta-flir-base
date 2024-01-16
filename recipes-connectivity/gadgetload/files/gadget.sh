@@ -1,5 +1,5 @@
 #!/bin/sh
-
+#set -x
 export LD_LIBRARY_PATH=/FLIR/usr/lib
 export PATH="$PATH":/usr/bin:/bin:/sbin:/FLIR/usr/bin
 
@@ -56,7 +56,7 @@ ms_compat_id="RNDIS"	  # matches Windows RNDIS Drivers
 ms_subcompat_id="5162001" # matches Windows RNDIS 6.0 Driver
 
 get_base_mac_from_cmdline() {
-	cat /proc/cmdline | sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p"
+	sed -ne "s/^.*${1}=[ ]*00\([0-9a-zA-Z:]*\).*$/\1/ p" /proc/cmdline
 }
 
 get_base_mac_addr() {
@@ -74,7 +74,7 @@ get_base_mac_addr() {
 get_default_usb_ip_addr() {
 	ip_addr=""
 	if [ -f "/etc/usb_ip_addr" ]; then
-		ip_addr=$(cat /etc/usb_ip_addr | grep -o -E '([0-9]{1,3}\.){3}[0-9]{1,3})')
+		ip_addr=$(grep -o -E '([0-9]{1,3}\.){3}[0-9]{1,3})' /etc/usb_ip_addr)
 	fi
 
 	if [ -n "${ip_addr}" ]; then
@@ -92,13 +92,10 @@ usage() {
 get_mode() {
 	# Workaround if stuck in MTP mode only.
 	if [ -f "/FLIR/images/.usbmode" ] ; then
-		usbmode=$(cat /FLIR/images/.usbmode)
-		cp FLIR/images/.usbmode /etc/usbmode
+		mv FLIR/images/.usbmode /etc/usbmode
 		echo .system.usbmode text "${usbmode}" >> /FLIR/system/journal.d/journal.rsc
-		rm /FLIR/images/.usbmode
-	elif [ -f "/etc/usbmode" ] ; then
-		usbmode=$(cat /etc/usbmode)
 	fi
+	usbmode=$(cat /etc/usbmode 2>/dev/null)
 
 	echo "validate usbmode"
 
@@ -252,9 +249,9 @@ config_load() {
 }
 
 enable_gadget() {
-	echo "enable gadget"
 	ln -s configs/c.1 os_desc
-	sleep 1
+	echo "enable gadget"
+	sleep 0.04
 	echo "${udc_device}" > UDC
 
 	if [ "$usbmode_rndis" = true ] ; then
