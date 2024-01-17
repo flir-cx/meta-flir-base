@@ -17,7 +17,7 @@ SRC_URI = "${FLIR_KERNEL_URI};protocol=${PROTO};nobranch=1"
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "a68e0254b8139daab5e06ae044677abdc8b7e861"
+SRCREV = "525415c1f73dfa2d8aecbc05ab4ff069b619eac0"
 
 PV="5.10-git${SRCPV}"
 PR="13"
@@ -25,6 +25,10 @@ PR="13"
 LINUX_VERSION = "5.10.72"
 
 FILESEXTRAPATHS_prepend = "${THISDIR}/${PN}-5.10:"
+
+SRC_URI_append_flir-framebuffer = " \
+    file://enable-flir-fb-videoflow.cfg \
+"
 
 SRC_URI_append = "\
              file://defconfig \
