@@ -17,9 +17,53 @@ do_install_append() {
          ADDON="DEVPATH==\"*platform*\","
          sed "s/SCREEN}==\"1\", SYMLINK/SCREEN}==\"1\", $ADDON SYMLINK/g" -i ${D}${sysconfdir}/udev/rules.d/touchscreen.rules
       fi
+
+      # Remove files that were not removed by the PACKAGECONFIG_remove
+      rm -f ${D}${systemd_unitdir}/system/systemd-journald-audit.socket
+      rm -f ${D}${systemd_unitdir}/system/sockets.target.wants/systemd-journald-audit.socket
+      rm -f ${D}${systemd_unitdir}/system/dev-hugepages.mount
+      rm -f ${D}${systemd_unitdir}/system/sysinit.target.wants/dev-hugepages.mount
+      rm -f ${D}${systemd_unitdir}/system/systemd-hwdb-update.service
+      rm -f ${D}${systemd_unitdir}/system/sysinit.target.wants/systemd-hwdb-update.service
+
+      # Smartcards are not inserted into our cameras
+      rm -f ${D}${systemd_unitdir}/system/smartcard.target
+      rm -f ${D}${systemd_unitdir}/system/systemd-kexec.service
+
+      # Detect virtual machines
+      rm -f ${D}${bindir}/systemd-detect-virt
+
+      # Some udev rules for cd, tape and touchpad that we don't use
+      rm -f ${D}${rootlibexecdir}/udev/rules.d/60-cdrom_id.rules
+      rm -f ${D}${rootlibexecdir}/udev/rules.d/60-persistent-storage-tape.rules
+      rm -f ${D}${rootlibexecdir}/udev/rules.d/70-touchpad.rules
+
+      # Identity keys, such as YubiKeys and a file system that we don't use
+      rm -f ${D}${rootlibexecdir}/udev/rules.d/60-fido-id.rules
+      rm -f ${D}${rootlibexecdir}/udev/rules.d/64-btrfs.rules
 }
 
 do_configure_append_ec401w() {
       sed -i -e "s/enable systemd-timesyncd.service/disable systemd-timesyncd.service/g" ${S}/presets/90-systemd.preset
       sed -i -e "s/enable systemd-resolved.service/disable systemd-resolved.service/g" ${S}/presets/90-systemd.preset
 }
+
+PACKAGECONFIG_remove=" \
+      adm-group \
+      binfmt \
+      hibernate \
+      hwdb \
+      ima \
+      kernel-install \
+      libfdisk \
+      machined \
+      nss-mymachines \
+      quotacheck \
+      wheel-group \
+      xz \
+"
+
+# We have a read only rootfs that normally requires
+# the volatile bind but our /var is not readonly
+# so this is not needed
+RDEPENDS_remove="volatile-bind"
