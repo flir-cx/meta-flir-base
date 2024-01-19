@@ -16,28 +16,25 @@ RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "flirapp.service"
 
-SRC_URI += "file://flirapp.service"
-SRC_URI += "file://flirapp.conf"
+
+SRC_URI += "file://flirapp.service.header"
+SRC_URI += "file://flirapp.service.conf"
 SRC_URI += "file://flirapp_env_check.sh"
 SRC_URI += "file://flirapp_reduce_speed.sh"
 SRC_URI += "file://flir-speedup.sh"
-SRC_URI += "file://flirapp_weston_add.conf"
 SRC_URI += "file://flirapp_dbus.conf"
+SRC_URI += '${@bb.utils.contains("DISTRO_FEATURES", "wayland", "file://flirapp.service.weston_add.conf", "", d)}'
 
 S = "${WORKDIR}"
 
-# If distro uses wayland, flirapp should start "after" weston,
-# and we should define wayland specific environment
-WESTONADD = '${@bb.utils.contains("DISTRO_FEATURES", "wayland", "${WORKDIR}/flirapp_weston_add.conf", "", d)}'
-
 do_compile() {
-    rm -f ${WORKDIR}/flirapp_comb.service
-    cat ${WORKDIR}/flirapp.service ${WORKDIR}/flirapp.conf ${WESTONADD} > ${WORKDIR}/flirapp_comb.service
+    cat ${WORKDIR}/flirapp.service.header ${WORKDIR}/flirapp.service.conf > ${WORKDIR}/flirapp.service
+    ${@bb.utils.contains("DISTRO_FEATURES", "wayland", "cat flirapp.service.weston_add.conf >> flirapp.service", "", d)}
 }
 
 do_install_append() {
     install -d ${D}${systemd_unitdir}/system
-    install -m 0644 ${WORKDIR}/flirapp_comb.service ${D}${systemd_unitdir}/system/flirapp.service
+    install -m 0644 ${WORKDIR}/flirapp.service ${D}${systemd_unitdir}/system/
     install -d ${D}${sbindir}
     install -m 0755 ${WORKDIR}/flirapp_env_check.sh ${D}${sbindir}
     install -m 0755 ${WORKDIR}/flirapp_reduce_speed.sh ${D}${sbindir}
