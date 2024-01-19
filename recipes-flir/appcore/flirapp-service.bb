@@ -32,6 +32,8 @@ do_compile() {
     ${@bb.utils.contains("DISTRO_FEATURES", "wayland", "cat flirapp.service.weston_add.conf >> flirapp.service", "", d)}
 }
 
+do_compile_append_flir-framebuffer += " sed -i s/fb2/fb1/ ${WORKDIR}/flirapp.service;"
+
 do_install_append() {
     install -d ${D}${systemd_unitdir}/system
     install -m 0644 ${WORKDIR}/flirapp.service ${D}${systemd_unitdir}/system/
