@@ -1,6 +1,7 @@
 [Unit]
 Description=Lightning Fast Webserver
 After=network.target
+ConditionPathExists=/FLIR/usr/www
 
 [Install]
 WantedBy=multi-user.target
