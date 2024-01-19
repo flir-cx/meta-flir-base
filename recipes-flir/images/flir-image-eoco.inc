@@ -45,8 +45,6 @@ IMAGE_INSTALL_append = "\
     u-boot-default-env-pingu \
     u-boot-script \
     umtp-responder \
-    wlanload \
-    \
     packagegroup-flir-gstreamer \
     packagegroup-flir-lighttpd \
     packagegroup-flir-pulseaudio-packages \
