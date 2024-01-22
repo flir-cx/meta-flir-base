@@ -25,11 +25,12 @@ S = "${WORKDIR}"
 
 do_compile() {
     pwd
-    #rm -rf ${WORKDIR}/g1
+    rm -rf ${WORKDIR}/g1
     mkdir -p ${WORKDIR}/g1
     cd ${WORKDIR}/g1
     bash ../uvc-sysfs-skeleton-create.sh
     cd ..
+    rm -f uvc-sysfs-skeleton.tar
     tar -cf uvc-sysfs-skeleton.tar g1
 }
 

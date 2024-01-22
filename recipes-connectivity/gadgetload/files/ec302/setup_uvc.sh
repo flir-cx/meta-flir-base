@@ -1,9 +1,5 @@
 #!/bin/sh
 
-yuv_width=640
-yuv_height=480
-yuv_bytes_per_pixel=2
-
 signal_uvc_enable() {
     if [ "$(pidof videoserver)" ] ; then
         killall -USR1 videoserver 2>/dev/null;
@@ -50,52 +46,24 @@ get_rad_streaming_resolution() {
 }
 
 setup_usbmode_uvc () {
-		get_rad_streaming_resolution
-		# Control endpoint packet size is 64 bytes.
-		echo 0x40 > bMaxPacketSize0
+                get_rad_streaming_resolution
 
-		mkdir functions/uvc.usb0
-		mkdir -p functions/uvc.usb0/streaming/uncompressed/yuv/480p
+		# Inflate tar file with skeleton
+		tar --overwrite --strip-components=1 -xmf /etc/gadget/uvc-sysfs-skeleton.tar
 
-		echo -n -e 'YUY2\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/uncompressed/yuv/guidFormat
 
-		# Class-specific VS Frame Descriptor.
-		echo $yuv_width > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wWidth
-		echo $yuv_height > functions/uvc.usb0/streaming/uncompressed/yuv/480p/wHeight
-
-		# echo 614400 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
-		echo $(( $yuv_width * $yuv_height * $yuv_bytes_per_pixel )) > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwMaxVideoFrameBufferSize
-
-		echo 666666 > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwDefaultFrameInterval
-
-		# Class-specifig VS Frame Descriptor.
-		cat <<EOF > functions/uvc.usb0/streaming/uncompressed/yuv/480p/dwFrameInterval
-666666
-2000000
-5000000
-EOF
-
-		mkdir -p functions/uvc.usb0/streaming/framebased/f7m0/240p
-		printf 'F7M0\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > functions/uvc.usb0/streaming/framebased/f7m0/guidFormat
+		# These are dynamic, thus not possible to tar
 		echo "${f7m0_width}" > functions/uvc.usb0/streaming/framebased/f7m0/240p/wWidth
 		echo "${f7m0_height}" > functions/uvc.usb0/streaming/framebased/f7m0/240p/wHeight
-		echo 333333 > functions/uvc.usb0/streaming/framebased/f7m0/240p/dwDefaultFrameInterval
-		cat <<EOF > functions/uvc.usb0/streaming/framebased/f7m0/240p/dwFrameInterval
-333333
-666666
-1000000
-EOF
 
 		mkdir -p functions/uvc.usb0/streaming/header/h
 		cd functions/uvc.usb0/streaming/header/h
 		ln -s ../../uncompressed/yuv .
 		ln -s ../../framebased/f7m0 .
-		cd ../../class/fs
-		ln -s ../../header/h
-		cd ../../class/hs
-		ln -s ../../header/h
-		cd ../../class/ss
-		ln -s ../../header/h
+		ln -s ../../header/h ../../class/fs/
+		ln -s ../../header/h ../../class/hs/
+		ln -s ../../header/h ../../class/ss/
+
 		cd ../../../control
 		mkdir header/h
 		ln -s header/h class/fs
