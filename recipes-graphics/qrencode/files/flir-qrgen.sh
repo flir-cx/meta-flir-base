@@ -31,7 +31,7 @@ do
         *)
             echo "Unknown option"
             usage
-            exit -1
+            exit 255
             ;;
     esac
 done
