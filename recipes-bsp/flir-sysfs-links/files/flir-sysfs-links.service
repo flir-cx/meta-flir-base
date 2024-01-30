@@ -3,12 +3,15 @@ Description=First boot creation of FLIR sysfs links
 DefaultDependencies=no
 Conflicts=shutdown.target
 After=systemd-remount-fs.service
-Before=systemd-sysusers.service sysinit.target shutdown.target
+Before=systemd-sysusers.service sysinit.target shutdown.target systemd-update-done.service
+ConditionNeedsUpdate=/etc
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecStartPre=echo "Update FLIR sysfs links"
 ExecStart=/usr/sbin/set-sysfs-links.sh
+ExecStartPost=echo "Updated FLIR sysfs links"
 
 [Install]
 WantedBy=multi-user.target
