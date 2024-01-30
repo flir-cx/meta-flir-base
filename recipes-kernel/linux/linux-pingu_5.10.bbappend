@@ -1,5 +1,6 @@
 SRC_URI_append_ec501 = " \
     file://default-gov-ondemand.cfg \
+    file://enable-mtd-device.cfg \
     file://enable-multicast.cfg \
     file://enable-phy.cfg \
     file://enable-wlan-wl18-module.cfg \
@@ -7,8 +8,8 @@ SRC_URI_append_ec501 = " \
 "
 
 SRC_URI_append_ec701 = " \
-    file://enable-weim.cfg \
     file://enable-truly-st7703.cfg \
+    file://enable-weim.cfg \
 "
 
 SRC_URI_append_eoco = " \
@@ -35,6 +36,7 @@ SRC_URI_append_evco = " \
     file://enable-fusb30x-charger.cfg \
     file://enable-fxos8700-acc-mag.cfg \
     file://enable-kopin-kcda914.cfg \
+    file://enable-mtd-device.cfg \
     file://enable-orise-otm1287a.cfg \
     file://enable-truly-st7703.cfg \
     file://enable-wlan-wl18-module.cfg \
@@ -42,7 +44,7 @@ SRC_URI_append_evco = " \
 "
 
 SRC_URI_append_ec702 = " \
-    file://enable-mtd-device.cfg \
     file://enable-cyttsp5-module.cfg \
+    file://enable-mtd-device.cfg \
     file://enable-truly-st7703.cfg \
 "
