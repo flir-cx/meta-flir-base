@@ -48,3 +48,9 @@ SRC_URI_append_ec702 = " \
     file://enable-mtd-device.cfg \
     file://enable-truly-st7703.cfg \
 "
+
+# This will create /etc/modprobe.d/spi-nor.conf
+# It is needed to make the aoutommatic loading of spi-nor
+# module work since the alias is not default.
+KERNEL_MODULE_PROBECONF += "spi-nor"
+module_conf_spi-nor = "alias spi:n25q256a spi-nor"
