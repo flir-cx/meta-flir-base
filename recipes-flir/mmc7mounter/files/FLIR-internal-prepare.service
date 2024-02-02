@@ -1,7 +1,9 @@
 [Unit]
 Description=FLIR internal prepare 
 DefaultDependencies=no
-After=sysinit.target
+After=local-fs.target
+Before=systemd-update-done.service
+ConditionNeedsUpdate=/etc
 ConditionPathExists=/dev/mmcblk0p7
 
 [Service]
