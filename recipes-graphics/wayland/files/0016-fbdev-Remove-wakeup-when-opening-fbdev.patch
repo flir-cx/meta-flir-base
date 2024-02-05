@@ -1,0 +1,32 @@
+From 796e2cdd41c063ab3b89e1276d9543b6fa595bd3 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@teledyneflir.com>
+Date: Mon, 5 Feb 2024 15:19:39 +0100
+Subject: [PATCH] fbdev: Remove wakeup when opening fbdev
+
+This saves 1s at boot and is not necessary.
+---
+ libweston/backend-fbdev/fbdev.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/libweston/backend-fbdev/fbdev.c b/libweston/backend-fbdev/fbdev.c
+index 17196271..742a1d1f 100644
+--- a/libweston/backend-fbdev/fbdev.c
++++ b/libweston/backend-fbdev/fbdev.c
+@@ -477,14 +477,6 @@ fbdev_frame_buffer_open(const char *fb_dev,
+ 		return -1;
+ 	}
+ 
+-	/* Attempt to wake up the framebuffer device, needed for secondary
+-	 * framebuffer devices */
+-	if (fbdev_wakeup_screen(fd, screen_info) < 0) {
+-		weston_log("Failed to activate framebuffer display. "
+-		           "Attempting to open output anyway.\n");
+-	}
+-
+-
+ 	return fd;
+ }
+ 
+-- 
+2.34.1
+

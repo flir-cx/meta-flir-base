@@ -16,4 +16,5 @@ SRC_URI_append += "\
 	file://0013-Add-implementation-of-read_pixels-to-g2d_renderer.patch \
 	file://0014-Add-streaming-functionality-to-Weston.patch \
 	file://0015-Remove-blue-screen-blink.patch \
+	file://0016-fbdev-Remove-wakeup-when-opening-fbdev.patch \
 "
