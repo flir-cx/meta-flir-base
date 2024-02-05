@@ -74,7 +74,10 @@ SRC_URI_append += "\
 "
 
 do_install_append() {
+    WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
+
     install -d ${D}${sbindir}
     install -m 0755 ${WORKDIR}/weston-stop-handler.sh ${D}${sbindir}/weston-stop-handler
-}
 
+    sed -i 's/modules=screen-share.so/#modules=screen-share.so/g' ${WESTON_INI};\
+}
