@@ -64,7 +64,7 @@ do_install_append_mx7() {
 	echo "
 [shell]
 panel-position=\"none\"
-background-color=0xff000000
+background-image=/usr/share/weston/bootlogo.png
 
 " >> ${WESTON_INI}
 }
