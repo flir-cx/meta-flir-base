@@ -15,6 +15,8 @@ usbmode_uvc=false
 # Device info
 product="FLIR Camera" # TODO: Populate with product name
 manufacturer="FLIR Systems"
+serialno=$(camserial)
+serialno=${serialno:=*}
 vendor_id="0x09CB"
 product_id=""
 product_id_rndis="0x1002"
@@ -221,6 +223,10 @@ config_load() {
 	mkdir -p strings/0x409
 	echo "${manufacturer}"  > strings/0x409/manufacturer
 	echo "${product}"	    > strings/0x409/product
+	if [[ $usbmode == "UVC_MTP" ]]
+	then
+		echo "${serialno}" > strings/0x409/serialnumber
+	fi
 
 	# Configuration Descriptor, config 1.
 	mkdir -p configs/c.1
