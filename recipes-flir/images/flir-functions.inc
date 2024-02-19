@@ -16,7 +16,8 @@ flir_rev_update() {
    if ! grep -q ${REPODIR}/manifests $HOME/.gitconfig ; then
       git config --global --add safe.directory ${REPODIR}/manifests 
    fi
-   BLD_VERSION=`git -C ${REPODIR}/manifests describe --dirty --long --always`
+   BLD_VERSION=$(git -C ${REPODIR}/manifests describe --dirty --long --always)
+   BLD_VERSION=${MACHINE}_${BLD_VERSION}
 
    if echo ${BLD_VERSION} | grep -vq "dirty"
    then
@@ -36,17 +37,20 @@ flir_rev_update() {
           BLD_VERSION=${BLD_VERSION}-dirty
       fi
    fi
-   BLDHOST=`/bin/hostname`;\
-   date +%Y%m%d%H%M > ${IMAGE_ROOTFS}/etc/build; \
-   echo "${MACHINE}" > ${IMAGE_ROOTFS}/etc/platform; \
-   FLIR_VERSION=${BLD_VERSION}; \
-   echo "${FLIR_VERSION}" >${IMAGE_ROOTFS}/etc/version ;\
-   echo "${FLIR_VERSION}" >${DEPLOY_DIR_IMAGE}/rootfs.version ;\
-   sed -i 's/IMAGENAME/${IMAGE_NAME}/g' ${IMAGE_ROOTFS}/etc/os-release ;\
-   sed -i s/IVERSION/${BLD_VERSION}/g ${IMAGE_ROOTFS}/etc/os-release ;\
-   sed -i 's/BLDUSER/${USER}/g' ${IMAGE_ROOTFS}/etc/os-release ;\
-   sed -i s/BLDHOST/${BLDHOST}/g ${IMAGE_ROOTFS}/etc/os-release ;\
-   cp --preserve=timestamps ${REPODIR}/manifests/default.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml; \
+   BLDHOST=`/bin/hostname`
+   date +%Y%m%d%H%M > ${IMAGE_ROOTFS}/etc/build
+   echo "${MACHINE}" > ${IMAGE_ROOTFS}/etc/platform
+   FLIR_VERSION=$(echo ${BLD_VERSION} | sed "s/-/./")
+   if echo ${BLD_VERSION} | grep -q -e "-0-g" ; then
+      FLIR_VERSION=${BLD_VERSION}
+   fi
+   echo "${FLIR_VERSION}" >${IMAGE_ROOTFS}/etc/version
+   echo "${FLIR_VERSION}" >${DEPLOY_DIR_IMAGE}/rootfs.version
+   sed -i 's/IMAGENAME/${IMAGE_NAME}/g' ${IMAGE_ROOTFS}/etc/os-release
+   sed -i s/IVERSION/${BLD_VERSION}/g ${IMAGE_ROOTFS}/etc/os-release
+   sed -i 's/BLDUSER/${USER}/g' ${IMAGE_ROOTFS}/etc/os-release
+   sed -i s/BLDHOST/${BLDHOST}/g ${IMAGE_ROOTFS}/etc/os-release
+   cp --preserve=timestamps ${REPODIR}/manifests/default.xml ${IMAGE_ROOTFS}/etc/flir-os-manifest.xml
 }
 
 link_licenses_info() {
