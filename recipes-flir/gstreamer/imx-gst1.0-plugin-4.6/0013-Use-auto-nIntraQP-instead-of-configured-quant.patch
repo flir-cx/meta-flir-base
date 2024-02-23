@@ -1,0 +1,62 @@
+From 52a8d862afb291b070b33366a5d77005428218f9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Johansson?= <bjoern.johansson@teledyneflir.com>
+Date: Wed, 21 Feb 2024 23:58:41 +0100
+Subject: [PATCH] plugins/vpu: Use auto nIntraQP instead of configured quant
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When using bit rate control to vpu encoder, the nIntraQP
+parameter affects the detail in I-frames. Since this parameter also
+depends on desired rate, resolution, fps, etc it is better to leave
+it to auto, also to avoid inheriting a default QP.
+
+Signed-off-by: Björn Johansson <bjoern.johansson@teledyneflir.com>
+---
+ plugins/vpu/gstvpuenc.c | 10 +++++++++-
+ plugins/vpu/gstvpuenc.h |  1 +
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/plugins/vpu/gstvpuenc.c b/plugins/vpu/gstvpuenc.c
+index 57366b7..a31d692 100755
+--- a/plugins/vpu/gstvpuenc.c
++++ b/plugins/vpu/gstvpuenc.c
+@@ -400,6 +400,7 @@ gst_vpu_enc_init (GstVpuEnc * enc)
+   enc->bitrate = DEFAULT_BITRATE;
+   enc->gop_size = DEFAULT_GOP_SIZE;
+   enc->quant = DEFAULT_QUANT;
++  enc->intra_qp = 0;
+   enc->stream_slice_count = DEFAULT_STREAM_SLICE_COUNT;
+   enc->gstbuffer_in_vpuenc = NULL;
+   enc->gop_count = 0;
+@@ -826,7 +827,14 @@ gst_vpu_enc_set_format (GstVideoEncoder * benc, GstVideoCodecState * state)
+   }
+   enc->open_param.nColorConversionType = state->info.colorimetry.matrix; /* 3:BT.709, 4:BT.601 */
+   enc->open_param.nStreamSliceCount = enc->stream_slice_count;
+-  enc->open_param.nIntraQP = enc->quant;
++  /*
++   * It seems better to leave nIntraQP to auto for now, as it sets QP for I-frame during rate control.
++   * We do not tune this based on bitrate, resolution, fps etc and the default QP selected
++   * by this plugin when quant=-1 seems to give some image quality problems,
++   * probably since the default QP gives too low quality.
++   */
++  enc->open_param.nIntraQP = enc->intra_qp; /* intra_qp is auto by default, was enc->quant */
++  GST_INFO_OBJECT(enc, "using nIntraQP=%d (0=auto)", enc->open_param.nIntraQP);
+   enc->open_param.nChromaInterleave = 0;
+   enc->open_param.nMapType = 0;
+   enc->open_param.nLinear2TiledEnable = 0;
+diff --git a/plugins/vpu/gstvpuenc.h b/plugins/vpu/gstvpuenc.h
+index f00c783..6a7041f 100755
+--- a/plugins/vpu/gstvpuenc.h
++++ b/plugins/vpu/gstvpuenc.h
+@@ -36,6 +36,7 @@ struct _GstVpuEnc {
+ 	guint gop_size;
+ 	guint bitrate;
+ 	gint quant;
++  gint intra_qp;
+   guint stream_slice_count;
+   guint force_idr;
+ 
+-- 
+2.34.1
+
