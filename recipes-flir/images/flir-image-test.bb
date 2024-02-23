@@ -9,6 +9,8 @@ IMAGE_INSTALL_append = " \
     ltp \
     python3-fcntl \
     python3-ctypes \
+    ncurses \
+    dialog \
 "
 
 IMAGE_INSTALL_append_ec501 = " \
