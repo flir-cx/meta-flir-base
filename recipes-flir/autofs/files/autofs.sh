@@ -31,14 +31,18 @@ automount() {
     dbus-send --system --print-reply --reply-timeout=2500 --type=method_call --dest="se.flir.appservices.udev" "/" "se.flir.appservices.udev.RegisterDevice" string:"/media/autofs/$name"
 }
 
-# Only mount vfat filesystems
-if [ "$ACTION" = "add" ] && [ -n "$DEVNAME" ] && [ "$ID_FS_TYPE" = "vfat" ]; then
-    logger "autofs.sh: Do mount $DEVNAME"
+[ "$ID_FS_TYPE" = "vfat" ] && supported="yes"
+[ "$ID_FS_TYPE" = "exfat" ] && supported="yes"
+[ "${ID_FS_TYPE:0:3}" = "ext" ] && supported="yes"
+
+# Only mount supported filesystems (vfat, exfat, ext[234])
+if [ "$ACTION" = "add" ] && [ -n "$DEVNAME" ] && [ "${supported}" = "yes" ]; then
+    logger "autofs.sh: Do mount $DEVNAME, $ID_FS_TYPE"
     automount
 fi
 
-# Only unmount vfat filesystems
-if [ "$ACTION" = "remove" ] && [ -n "$DEVNAME" ] && [ "$ID_FS_TYPE" == "vfat" ]; then
+# Only unmount supported filesystems
+if [ "$ACTION" = "remove" ] && [ -n "$DEVNAME" ] && [ "${supported}" = "yes" ]; then
   
   name=$(basename "$DEVNAME")
   dirname="/media/autofs/$name"

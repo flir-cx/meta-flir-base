@@ -12,6 +12,7 @@ IMAGE_INSTALL_append = "\
     chargeapp-service \
     chargelogo \
     data-collection-service \
+    exfat-utils \
     firmware-imx-vpu-imx6d \
     flirbifrost \
     flirfad \

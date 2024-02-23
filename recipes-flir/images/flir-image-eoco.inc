@@ -10,6 +10,7 @@ IMAGE_INSTALL_append = "\
     cooler-service \
     chargelogo \
     data-collection-service \
+    exfat-utils \
     firmware-imx-vpu-imx6d \
     flirbifrost \
     flirfad \
