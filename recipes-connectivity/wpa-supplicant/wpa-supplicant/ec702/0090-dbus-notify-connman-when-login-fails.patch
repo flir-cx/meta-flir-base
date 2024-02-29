@@ -1,0 +1,54 @@
+diff --git a/src/ap/wpa_auth.c b/src/ap/wpa_auth.c
+index c560770..ff61013 100644
+--- a/src/ap/wpa_auth.c
++++ b/src/ap/wpa_auth.c
+@@ -30,6 +30,7 @@
+ #include "pmksa_cache_auth.h"
+ #include "wpa_auth_i.h"
+ #include "wpa_auth_ie.h"
++#include "dbus/dbus.h"
+ 
+ #define STATE_MACHINE_DATA struct wpa_state_machine
+ #define STATE_MACHINE_DEBUG_PREFIX "WPA"
+@@ -2888,8 +2889,40 @@ SM_STATE(WPA_PTK, PTKCALCNEGOTIATING)
+ 	if (!ok) {
+ 		wpa_auth_logger(sm->wpa_auth, sm->addr, LOGGER_DEBUG,
+ 				"invalid MIC in msg 2/4 of 4-Way Handshake");
+-		if (psk_found)
++		if (psk_found) {
+ 			wpa_auth_psk_failure_report(sm->wpa_auth, sm->addr);
++
++            // Note: special handling for Leia secure connection negotiation
++            // when authentication fails, e.g. someone tries to connect using
++            // the passphrase we send a message to com.flir.connmanAgent via
++            // DBus to allow the agent to initiate 2-factor negotiation of passphrase
++            const char *service = "com.flir.connmanAgent";
++            const char *objpath = "/com/flir/connmanAgent";
++            const char *message = "AP_STA_POSSIBLE_PSK_MISMATCH";
++
++            DBusMessage *msg = dbus_message_new_method_call(service, objpath, "net.connman.Agent", "ReportError");
++            if (msg != NULL) {
++                if (dbus_message_append_args(msg, DBUS_TYPE_OBJECT_PATH, &objpath, DBUS_TYPE_STRING, &message, DBUS_TYPE_INVALID)) {
++                    DBusError error;
++                    dbus_error_init(&error);
++                    DBusConnection *conn = dbus_bus_get(DBUS_BUS_SYSTEM, &error);
++                    if (conn != NULL) {
++                        wpa_printf(MSG_INFO, "send message to %s", service);
++                        dbus_connection_send(conn, msg, NULL);
++                    } else {
++                        wpa_printf(MSG_ERROR, "failed to get system dbus: %s :: %s", error.name, error.message);
++                        if (dbus_error_is_set(&error)) {
++                            dbus_error_free(&error);
++                        }
++                    }
++                } else {
++                    wpa_printf(MSG_ERROR, "failed to create message for %s", service);
++                }
++                dbus_message_unref(msg);
++            } else {
++                wpa_printf(MSG_ERROR, "failed to create new message for %s", service);
++            }
++        }
+ 		return;
+ 	}
+ 
