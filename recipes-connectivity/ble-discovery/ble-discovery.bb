@@ -16,7 +16,7 @@ RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
 SYSTEMD_SERVICE_${PN} = "ble-discovery.service"
 
-SRC_URI += "git://bitbucketcommercial.flir.com/scm/camos/flir-blediscovery.git;protocol=ssh;nobranch=1"
+SRC_URI = "${FLIRSE_DRV_MIRROR}/flir-blediscovery.git;${FLIRSE_DRV_PROTOCOL};nobranch=1"
 SRC_URI += "file://ble-discovery.sh"
 SRC_URI += "file://ble-discovery.service"
 
