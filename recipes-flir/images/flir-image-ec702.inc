@@ -3,6 +3,9 @@ inherit populate_sdk_qt5
 
 IMAGE_INSTALL_append = "\
     autofs \
+    ble-discovery \
+    bluez5 \
+    btload \
     chargelogo \
     data-collection-service \
     firmware-imx-vpu-imx6d \
@@ -24,6 +27,10 @@ IMAGE_INSTALL_append = "\
     qtgraphicaleffects \
     progressapp-service \
     systemd-failure-notifier \
+    ti-bt-firmware \
+    ti-firmware \
+    ti-nvs \
+    ti-uim \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \

@@ -1,0 +1,12 @@
+[Unit]
+Description=BLE discovery: started advserver daemon
+After=bluetooth.service btload.service
+
+[Service]
+Type=simple
+ExecCondition=/bin/bash -c '! grep -q "factorydefault" /proc/cmdline'
+ExecStart=/sbin/ble-discovery.sh
+Restart=on-failure
+
+[Install]
+WantedBy=bluetooth.target

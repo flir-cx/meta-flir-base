@@ -46,9 +46,11 @@ SRC_URI_append_evco = " \
 "
 
 SRC_URI_append_ec702 = " \
+    file://enable-bt-module.cfg \
     file://enable-cyttsp5-module.cfg \
     file://enable-mtd-device.cfg \
     file://enable-truly-st7703.cfg \
+    file://enable-wlan-wl18-module.cfg \
 "
 
 # This will create /etc/modprobe.d/spi-nor.conf
