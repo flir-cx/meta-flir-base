@@ -255,7 +255,7 @@ config_load() {
 enable_gadget() {
 	ln -s configs/c.1 os_desc
 	echo "enable gadget"
-	sleep 0.04
+	sleep 0.08
 	echo "${udc_device}" > UDC
 
 	if [ "$usbmode_rndis" = true ] ; then
