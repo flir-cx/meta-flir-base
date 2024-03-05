@@ -5,10 +5,11 @@
 # Purpose is to allow non-developer staff to generate and share system state of camera without help of developer
 # Useful when reporting bugs, automated sw test faults, suspected sw production problems etc.
 
-SCRIPT_VER=1.2
+SCRIPT_VER=1.3
 VERBOSE=
 SKIP_VERSION=
 KEEP=5
+FVTIMEOUT=5
 
 output()
 {
@@ -53,11 +54,12 @@ usage()
     echo "-s              Skip calling \"version\" (as it might hang/crash)"
     echo "-v              Verbose output"
     echo "-V              show script version and exit"
-    echo "-l              set limit for amount of diagnostics, default 5, 0 - no delete"
+    echo "-l <limit>      Set limit for amount of diagnostics, default 5, 0 - no delete"
+    echo "-f <secs>       Set flirversions max time, default 5s"
     echo "-h              Show this help text and exit"
 }
 
-while getopts "hsvVl:" arg
+while getopts "hsvVl:f:" arg
 do
      case $arg in
          s)
@@ -75,8 +77,11 @@ do
              exit 0
              ;;
          l)
-            KEEP=$OPTARG;
-            ;;
+             KEEP=$OPTARG;
+             ;;
+         f)
+             FVTIMEOUT=$OPTARG;
+             ;;
          *)
              echo "unknown option"
              exit 1
@@ -131,8 +136,8 @@ fi
 output "running dmesg"
 dmesg > "${TMP_PATH}"/dmesg.log
 
-output "running flirversions"
-timeout -s KILL 5 flirversions -a > "${TMP_PATH}"/flirversions.log
+output "running flirversions (timeout ${FVTIMEOUT})"
+timeout -s KILL ${FVTIMEOUT} flirversions -a > "${TMP_PATH}"/flirversions.log
 
 output "copy any .dmp files to <result folder>"
 cp -p /tmp/*.dmp "${TMP_PATH}" 2>/dev/null
