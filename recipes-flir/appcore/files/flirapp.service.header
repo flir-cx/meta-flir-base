@@ -1,6 +1,7 @@
 [Unit]
 Description=FLIR flirapp (appcore et al) service 
 After=connman.service systemd-journald.service progressapp.service
+Before=flir-basic.target
 
 [Service]
 Type=simple

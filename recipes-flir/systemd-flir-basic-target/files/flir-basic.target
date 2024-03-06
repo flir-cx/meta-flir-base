@@ -1,0 +1,14 @@
+[Unit]
+Description=Basic flir target, non-boot-essential services come after this
+Requires=basic.target
+Conflicts=rescue.service rescue.target
+Before=multi-user.target
+After=basic.target rescue.service rescue.target
+AllowIsolate=yes
+
+# Temporary solution to delay flir-basic until after flirapp is started
+# This should be removed when we have flirapp signaling its start correctly
+After=cam_updater.service
+
+[Install]
+WantedBy=multi-user.target

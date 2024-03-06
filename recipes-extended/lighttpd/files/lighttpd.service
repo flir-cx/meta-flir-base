@@ -1,6 +1,6 @@
 [Unit]
 Description=Lightning Fast Webserver
-After=network.target
+After=network.target flir-basic.target
 
 [Install]
 WantedBy=multi-user.target
