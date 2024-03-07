@@ -8,7 +8,7 @@
 [Unit]
 Description=FLIR internal mounter (ext4)
 DefaultDependencies=no
-After=sysinit.target FLIR-internal-prepare.service
+After=sysinit.target FLIR-internal-prepare.service flir-basic.target
 ConditionPathExists=/dev/mmcblk0p7
 
 [Mount]
