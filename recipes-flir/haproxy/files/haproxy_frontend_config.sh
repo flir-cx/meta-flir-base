@@ -1,8 +1,11 @@
 #!/bin/bash
 
 mkdir -p /var/run/haproxy
-rm -f /var/run/haproxy/haproxy_frontends.cfg
-touch /var/run/haproxy/haproxy_frontends.cfg
+chown haproxy:haproxy /var/run/haproxy
+
+# Create the config file if not existing otherwise truncate it
+: > /var/run/haproxy/haproxy_frontends.cfg
+
 if [ -f /etc/haproxy/enable_https ]; then
     cat /etc/haproxy/haproxy.available/haproxy_https.cfg >>/var/run/haproxy/haproxy_frontends.cfg
 fi

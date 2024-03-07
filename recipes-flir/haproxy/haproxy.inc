@@ -27,7 +27,6 @@ SRC_URI = "https://www.haproxy.org/download/1.8/src/haproxy-${PV}.tar.gz \
         file://0001-Change-Makefile-to-use-external-CC-and-LD.patch \
         file://haproxy.cfg \
         file://haproxy.service \
-        file://haproxy_env_check.sh \
         file://haproxy_frontend_config.sh \
         file://haproxy_http.cfg \
         file://haproxy_https.cfg \
@@ -62,7 +61,6 @@ do_install() {
     install -d ${D}/usr/bin
     install -d ${D}/etc/haproxy/haproxy.available
     touch ${D}//etc/haproxy/enable_http
-    install -m 0755 ${WORKDIR}/haproxy_env_check.sh ${D}${sbindir}
     install -m 0755 ${WORKDIR}/haproxy_frontend_config.sh ${D}${sbindir}
     install -m 0755 ${WORKDIR}/utils/webprotoctl.sh ${D}${sbindir}/webprotoctl
     install -m 0644 ${WORKDIR}/haproxy.cfg ${D}/etc/haproxy/haproxy.cfg
