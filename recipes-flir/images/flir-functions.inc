@@ -17,8 +17,10 @@ flir_rev_update() {
       git config --global --add safe.directory ${REPODIR}/manifests 
    fi
    BLD_VERSION=$(git -C ${REPODIR}/manifests describe --dirty --long --always)
-   BLD_VERSION=${MACHINE}_${BLD_VERSION}
-
+   if echo ${BLD_VERSION} | grep -vq ${MACHINE}
+   then
+      BLD_VERSION=${MACHINE}_${BLD_VERSION}
+   fi
    if echo ${BLD_VERSION} | grep -vq "dirty"
    then
       FLIR1DIR=$(realpath "${REPODIR}/../sources/meta-flir-base")
