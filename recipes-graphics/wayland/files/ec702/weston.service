@@ -35,15 +35,11 @@ ConditionPathExists=/dev/tty0
 Type=notify
 EnvironmentFile=/etc/default/weston
 
-ExecStartPre=/usr/sbin/fbset -fb /dev/fb1 -g 640 480 640 480 32
-ExecStartPre=/usr/sbin/fbset -fb /dev/fb2 -g 1024 768 1024 2304 32
-ExecStartPre=/bin/echo "1 2" > /sys/devices/platform/fb@0/graphics/fb0/clone_to
-ExecStartPre=/bin/echo 0 > /sys/devices/platform/fb@0/graphics/fb1/blank # Ovl
-ExecStartPre=/bin/echo 0 > /sys/devices/platform/fb@1/graphics/fb2/blank # HDMI
-ExecStart=/usr/bin/weston --log=/tmp/weston.log \
-			  --modules=systemd-notify.so \
-			  --device=/dev/fb0,/dev/fb1 \
-			  --local-alpha-device=/dev/fb1
+ExecStartPre=/usr/sbin/fbset -fb /dev/fb0 -g 1024 768 1024 768 32
+ExecStartPre=/usr/sbin/fbset -fb /dev/fb1 -g 1024 768 1024 768 32
+ExecStartPre=/bin/sh -c '/bin/echo 0 > /sys/devices/platform/fb@0/graphics/fb1/blank' # Ovl
+ExecStart=/usr/bin/weston --log=${XDG_RUNTIME_DIR}/weston.log --modules=systemd-notify.so --device=/dev/fb0,/dev/fb1 --local-alpha-device=/dev/fb1
+
 # Optional watchdog setup
 TimeoutStartSec=60
 WatchdogSec=40

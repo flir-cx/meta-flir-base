@@ -44,7 +44,7 @@ do_install_append_ec702() {
 
     echo "
 [shell]
-panel-position=\"\"
+panel-position=\"none\"
 background-color=0x00ffffff
 
 " >> ${WESTON_INI}
