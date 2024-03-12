@@ -4,7 +4,7 @@ AUTHOR = "Fredrik Gihl <fredrik.gihl@flir.se>"
 SECTION = "flir/applications"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
-PR = "r1"
+PR = "r2"
 PV = "1"
 
 RDEPENDS_${PN} += "bash jpeg"
@@ -19,6 +19,7 @@ SYSTEMD_SERVICE_${PN} = "flirapp.service"
 
 SRC_URI += "file://flirapp.service.header"
 SRC_URI += "file://flirapp.service.conf"
+SRC_URI += "file://flirapp-default-notify.sh"
 SRC_URI += "file://flirapp_env_check.sh"
 SRC_URI += "file://flirapp_reduce_speed.sh"
 SRC_URI += "file://flir-speedup.sh"
@@ -41,6 +42,7 @@ do_install_append() {
     install -m 0755 ${WORKDIR}/flirapp_env_check.sh ${D}${sbindir}
     install -m 0755 ${WORKDIR}/flirapp_reduce_speed.sh ${D}${sbindir}
     install -m 0755 ${WORKDIR}/flir-speedup.sh ${D}${sbindir}/flir-speedup
+    install -m 0755 ${WORKDIR}/flirapp-default-notify.sh ${D}${sbindir}/flirapp-default-notify
     install -d ${D}/etc/dbus-1
     install -d ${D}/etc/dbus-1/system.d
     install -m 0755 ${WORKDIR}/flirapp_dbus.conf ${D}/etc/dbus-1/system.d/flirapp_dbus.conf

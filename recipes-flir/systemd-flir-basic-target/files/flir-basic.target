@@ -8,7 +8,7 @@ AllowIsolate=yes
 
 # Temporary solution to delay flir-basic until after flirapp is started
 # This should be removed when we have flirapp signaling its start correctly
-After=cam_updater.service
+After=flirapp.service
 
 [Install]
 WantedBy=multi-user.target

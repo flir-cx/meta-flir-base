@@ -4,8 +4,8 @@ After=connman.service systemd-journald.service
 Before=flir-basic.target
 
 [Service]
-Type=simple
-ExecStartPre=/bin/bash -c '/usr/sbin/flirapp_env_check.sh'
+Type=notify
+ExecStartPre=/usr/sbin/flirapp_env_check.sh
 ExecStart=/FLIR/usr/bin/appcore -d
 ExecStop=/usr/bin/killall -HUP appcore
 KillMode=control-group
