@@ -2,6 +2,7 @@
 Description=Bluetooth service
 Documentation=man:bluetoothd(8)
 ConditionPathIsDirectory=/sys/class/bluetooth
+After=flir-basic.target
 
 [Service]
 Type=dbus
