@@ -7,10 +7,9 @@ LICENSE = "CLOSED"
 COMPATIBLE_MACHINE = "(evco)"
 
 IMAGE_INSTALL_append = " \
-    valgrind \
-    perf \
     evtest \
-    iperf \
-    wifi-test-suite \
+    perf \
     python-pip \
+    systemd-bootchart \
+    valgrind \
 "
