@@ -1,5 +1,6 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
+# Note for ec702, patch 0003 has a slightly different variant in files/ec702.
 SRC_URI_append += "\
         file://0001-weston-z-ordering.patch \
 	file://0002-support-local-alpha-on-named-fbdev.patch \
