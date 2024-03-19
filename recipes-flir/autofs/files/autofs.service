@@ -6,6 +6,7 @@ After=network.target remote-fs.target
 [Service]
 Type=notify
 EnvironmentFile=-/etc/default/autofs
+UMask=0000
 ExecStart=/usr/sbin/automount $OPTIONS --systemd-service --dont-check-daemon
 ExecReload=/usr/bin/kill -HUP $MAINPID
 KillMode=process
