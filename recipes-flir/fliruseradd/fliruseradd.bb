@@ -34,7 +34,7 @@ GROUPADD_PARAM_${PN} = " \
 
 USERADD_PARAM_${PN} = " \
     --uid 1000 --gid fliruser \
-        --groups video,tty,audio,input,shutdown,disk,userdata \
+        --groups userdata \
         --create-home --shell /bin/sh --password \"${FLIRUSERPASSWD}\" fliruser ; \
     --uid 1200 --gid haproxy \
         --home /var/run/haproxy --shell /bin/false --system haproxy \
