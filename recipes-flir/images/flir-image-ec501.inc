@@ -34,6 +34,7 @@ IMAGE_INSTALL_append = " \
     net-snmp \
     net-snmp-mibs \
     net-snmp-server-snmpd \
+    oommon \
     qtbase \
     qtgraphicaleffects \
     php \
@@ -47,6 +48,7 @@ IMAGE_INSTALL_append = " \
     \
     u-boot-default-env-pingu \
     u-boot-script \
+    zram \
     packagegroup-flir-gstreamer \
     packagegroup-flir-lighttpd \
     packagegroup-flir-opencv-packages \
