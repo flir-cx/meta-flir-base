@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+# This is to notify systemd that flirapp is ready if
+# we have a flirapp that fails to do so.
+/usr/sbin/flirapp-default-notify &
+
 declare -i count=0
 
 echo 512 > /proc/sys/fs/mqueue/msgsize_max
