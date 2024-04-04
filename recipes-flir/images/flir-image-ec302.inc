@@ -16,6 +16,7 @@ IMAGE_INSTALL_append = "\
     flir-activity-monitor \
     gadgetload \
     iputils-ping \
+    irb-shell-utils \
     kernel-modules \
     firmware-qca9377 \
     kernel-module-qca9377 \
