@@ -4,6 +4,7 @@ SRC_URI += "file://flir-system.conf \
             file://journald.conf \
             file://systemd-random-seed.service \
             file://50-data-collection.preset \
+            file://60-persistent-storage.rules \
 "
 
 do_install_append() {
@@ -12,6 +13,7 @@ do_install_append() {
       install -m 0644 ${WORKDIR}/flir-system.conf ${D}${sysconfdir}/systemd/system.conf
       install -m 0644 ${WORKDIR}/journald.conf ${D}${sysconfdir}/systemd/journald.conf
       install -m 0644 ${WORKDIR}/50-data-collection.preset ${D}${systemd_unitdir}/system-preset/50-data-collection.preset
+      install -m 0644 ${WORKDIR}/60-persistent-storage.rules ${D}${rootlibexecdir}/udev/rules.d/60-persistent-storage.rules
       # modify touchscreen rules
       if [ -e  ${D}${sysconfdir}/udev/rules.d/touchscreen.rules ]; then
          ADDON="DEVPATH==\"*platform*\","
