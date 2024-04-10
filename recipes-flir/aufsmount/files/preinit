@@ -7,7 +7,7 @@
 
 ROOTFS_RW=mmcblk0p4
 
-echo "preinit - prepare and boot overlay rootfs" >/dev/kmsg
+echo "preinit: prepare and boot overlay rootfs" >/dev/kmsg
 
 # We need /proc to be able to find mtab (which mount -o remount uses)
 mount -t proc none /proc
