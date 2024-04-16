@@ -27,6 +27,7 @@ SRC_URI += "file://wlanload.sh"
 SRC_URI += "file://wlanload.service"
 SRC_URI_append_ec401w = " file://udhcpd.conf"
 SRC_URI_append_ec401w = " file://testwlan.sh"
+SRC_URI_append_ec401w = " file://set-wlan-region.sh"
 
 S = "${WORKDIR}"
 
@@ -42,4 +43,5 @@ do_install_append_ec401w() {
     install -m 0644 ${WORKDIR}/udhcpd.conf ${D}/etc/udhcpd.conf
     install -d ${D}${bindir}
     install -m 0744 ${WORKDIR}/testwlan.sh ${D}${bindir}
+    install -m 0744 ${WORKDIR}/set-wlan-region.sh ${D}${bindir}/set-wlan-region
 }
