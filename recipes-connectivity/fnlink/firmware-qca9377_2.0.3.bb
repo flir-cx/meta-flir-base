@@ -32,9 +32,6 @@ do_install_append_ec401w () {
     install -m 644 ${WORKDIR}/qcom_cfg.ini.5G-UNII1 ${D}${base_libdir}/firmware/wlan
     install -m 644 ${WORKDIR}/qcom_cfg.ini.5G-UNII3 ${D}${base_libdir}/firmware/wlan
     install -m 644 ${WORKDIR}/qcom_cfg.ini.24G ${D}${base_libdir}/firmware/wlan
-
-    # Default config 2.4GHz AP mode
-    install -m 644 ${WORKDIR}/qcom_cfg.ini.24G ${D}${base_libdir}/firmware/wlan/qca9377/qcom_cfg.ini
 }
 
 

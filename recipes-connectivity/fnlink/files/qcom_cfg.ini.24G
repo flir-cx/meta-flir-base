@@ -214,7 +214,7 @@ gAPAutoShutOff=0
 # SAP auto channel selection configuration
 # 0 = disable auto channel selection
 # 1 = enable auto channel selection, channel provided by supplicant will be ignored
-gApAutoChannelSelection=1
+gApAutoChannelSelection=0
 
 #Preferred band (both or 2.4 only or 5 only)
 BandCapability=0
