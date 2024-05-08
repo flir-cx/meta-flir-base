@@ -44,4 +44,5 @@ do_install_append_ec401w() {
     install -d ${D}${bindir}
     install -m 0744 ${WORKDIR}/testwlan.sh ${D}${bindir}
     install -m 0744 ${WORKDIR}/set-wlan-region.sh ${D}${bindir}/set-wlan-region
+    install -m 0744 ${WORKDIR}/set-wlan-region.sh ${D}${bindir}/get-wlan-band
 }
