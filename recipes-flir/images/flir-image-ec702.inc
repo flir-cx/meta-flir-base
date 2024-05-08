@@ -3,7 +3,6 @@ inherit populate_sdk_qt5
 
 IMAGE_INSTALL_append = "\
     autofs \
-    ble-discovery \
     bluez5 \
     btload \
     chargelogo \

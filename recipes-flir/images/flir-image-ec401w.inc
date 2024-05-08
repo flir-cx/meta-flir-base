@@ -4,7 +4,6 @@ DISTRO_SSH_DAEMON ?= "openssh"
 
 IMAGE_INSTALL_append = " \
     ${DISTRO_SSH_DAEMON} \
-    ble-discovery \
     bluez5 \
     brcm-patchram \
     btload \
