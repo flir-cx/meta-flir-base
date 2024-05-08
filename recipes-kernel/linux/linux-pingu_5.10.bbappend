@@ -52,6 +52,7 @@ SRC_URI_append_ec702 = " \
     file://enable-truly-st7703.cfg \
     file://enable-wlan-wl18-module.cfg \
     file://enable-gnss-ubx-module.cfg \
+    file://enable-weim.cfg \
 "
 
 # This will create /etc/modprobe.d/spi-nor.conf
