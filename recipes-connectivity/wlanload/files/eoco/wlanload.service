@@ -1,6 +1,7 @@
 [Unit]
 Description=WLAN loader
-After=dbus.service flir-basic.target
+After=dbus.service
+Before=connman.service
 
 [Service]
 Type=oneshot

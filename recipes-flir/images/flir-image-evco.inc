@@ -52,6 +52,7 @@ IMAGE_INSTALL_append = "\
     u-boot-default-env-pingu \
     u-boot-script \
     umtp-responder \
+    wlanload \
     zram \
     \
     packagegroup-flir-gstreamer \
