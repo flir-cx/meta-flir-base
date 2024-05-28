@@ -109,6 +109,7 @@ check_channels
 if ! diff -q $FW_CONF_SOURCE $FW_CONF >/dev/null; then
     deploy_fw
     update_wlan
+    systemctl restart ble-discovery # Update discovery packet info
 else
     echo "Correct fw is already set"
 fi
