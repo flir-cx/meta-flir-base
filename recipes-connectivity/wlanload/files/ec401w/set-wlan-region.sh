@@ -48,6 +48,7 @@ clear_region() {
     if ! diff -q $FW_CONF_SOURCE $FW_CONF >/dev/null; then
         deploy_fw
         update_wlan
+        systemctl restart ble-discovery # Update discovery packet info
         echo "Updated to 2.4GHz only"
     else
         echo "2.4GHz already set"
