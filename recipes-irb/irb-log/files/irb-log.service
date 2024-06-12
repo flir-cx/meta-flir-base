@@ -1,0 +1,13 @@
+[Unit]
+PartOf=okeanos.service
+After=okeanos.service
+
+[Service]
+Type=simple
+ExecStart=/bin/cat /dev/oki0
+ExecStop=/bin/kill $MAINPID
+Restart=on-failure
+SyslogIdentifier=irb-log
+
+[Install]
+WantedBy=graphical.target
