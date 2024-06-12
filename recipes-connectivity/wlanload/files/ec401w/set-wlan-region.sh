@@ -1,7 +1,5 @@
 #!/bin/sh
 
-REGION=$1
-
 FW_CONF_5G_UNII3=/lib/firmware/wlan/qcom_cfg.ini.5G-UNII3
 FW_CONF_5G_UNII1=/lib/firmware/wlan/qcom_cfg.ini.5G-UNII1
 FW_CONF_24G=/lib/firmware/wlan/qcom_cfg.ini.24G
@@ -9,6 +7,8 @@ FW_CONF=/lib/firmware/wlan/qca9377/qcom_cfg.ini
 FW_CONF_SOURCE=""
 
 REG_CFG_FILE="/etc/modprobe.d/cfg80211.conf"
+
+IMMEDIATE=0
 
 verify_region() {
     if ! echo "options cfg80211 ieee80211_regdom=$REGION" | diff $REG_CFG_FILE - >/dev/null 2>/dev/null ; then
@@ -47,8 +47,12 @@ clear_region() {
     FW_CONF_SOURCE=$FW_CONF_24G
     if ! diff -q $FW_CONF_SOURCE $FW_CONF >/dev/null; then
         deploy_fw
-        update_wlan
-        systemctl restart ble-discovery # Update discovery packet info
+        if [ $IMMEDIATE -eq 1 ]; then
+            update_wlan
+            systemctl restart ble-discovery # Update discovery packet info
+        else
+            echo "Reboot to apply changes"
+        fi
         echo "Updated to 2.4GHz only"
     else
         echo "2.4GHz already set"
@@ -87,6 +91,33 @@ deploy_fw() {
     cp "$FW_CONF_SOURCE" "$FW_CONF"
 }
 
+help() {
+   echo "Usage: $0 [OPTION] REGION"
+   echo "Set WLAN region"
+   echo
+   echo "Options:"
+   echo "   -h      Display help"
+   echo "   -i      Immediate update"
+   echo
+   echo "REGION: 2 letter ISO region code. \"EMPTY\" for 2.4GHz only mode."
+}
+
+while getopts ":hi" option; do
+   case $option in
+      h) # display Help
+         help
+         exit;;
+      i)
+         IMMEDIATE=1;;
+      *)
+        help;;
+   esac
+done
+
+shift "$((OPTIND - 1))"
+
+REGION=$1
+
 if [ -z "$REGION" ]; then
     echo "No ISO region provided. \"EMPTY\" for 2.4GHz only mode."
     exit 1
@@ -109,12 +140,18 @@ check_channels
 # Update wlan only if fw is different
 if ! diff -q $FW_CONF_SOURCE $FW_CONF >/dev/null; then
     deploy_fw
-    update_wlan
-    systemctl restart ble-discovery # Update discovery packet info
+    if [ $IMMEDIATE -eq 1 ]; then
+        update_wlan
+        systemctl restart ble-discovery # Update discovery packet info
+    fi
 else
     echo "Correct fw is already set"
 fi
 
 echo "Updated region to $REGION"
+
+if [ $IMMEDIATE -eq 0 ]; then
+    echo "Reboot to apply changes"
+fi
 
 exit 0
