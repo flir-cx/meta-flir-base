@@ -12,6 +12,7 @@ IMAGE_INSTALL_append = "\
     flirfad \
     flirfvdk \
     gadgetload \
+    haproxy \
     iputils-ping \
     kernel-modules \
     kernel-sysfs-helpers \
@@ -21,6 +22,10 @@ IMAGE_INSTALL_append = "\
     mmc7mounter-intnl \
     mmc7prepare \
     mtd-utils-jffs2 \
+    php \
+    php-cgi \
+    php-cli \
+    php-opcache \
     qrencode \
     qtbase \
     qtgraphicaleffects \
@@ -38,6 +43,7 @@ IMAGE_INSTALL_append = "\
     umtp-responder \
     \
     packagegroup-flir-gstreamer \
+    packagegroup-flir-lighttpd \
 "
 
 # For Wi-Fi certification (Radio tests)
