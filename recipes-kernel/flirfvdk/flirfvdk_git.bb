@@ -18,7 +18,7 @@ SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-fvdk.git${FLIRSE_DRV_PROTOCOL};nobranch=
 # Please use AUTOREV only locally while developing
 # Bump PV when changing SRCREV
 PV = "1.3"
-SRCREV = "59e8fc4cf46e2051b730c318d6f615b0472fd188"
+SRCREV = "22e2036d22ebb4d77d55aa3c136234d86a01eedd"
 #SRCREV = "${AUTOREV}"
 
 EXTRA_OEMAKE = "'EXTRA_CFLAGS=-I${STAGING_DIR_TARGET}/${includedir}/flir'"
