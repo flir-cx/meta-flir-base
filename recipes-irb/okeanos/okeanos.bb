@@ -16,7 +16,7 @@ SYSTEMD_SERVICE_${PN} = "okeanos.service"
 #SRCREV = "${AUTOREV}"
 #SRC_URI = "git:///home/yoctobuild/src/git/okeanos;protocol=file"
 
-SRCREV = "dfda0047d133a9d0e1bc56310bfe425334a6f4c7"
+SRCREV = "9c2074071cb198345977a4f8894cea1ad7a0ee60"
 SRC_URI = "git://git@bitbucketcommercial.flir.com:7999/titan/okeanos.git;protocol=ssh;nobranch=1"
 
 SRC_URI += "file://okeanos.service"
