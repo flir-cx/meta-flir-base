@@ -35,6 +35,7 @@ IMAGE_INSTALL_append = "\
     rpmsg-bifrost \
     system-sleep-flir \
     systemd-failure-notifier \
+    systemd-flir-basic-target \
     ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', \
 		     'weston weston-init \
 		      qtwayland qtwayland-plugins', '', d)} \
