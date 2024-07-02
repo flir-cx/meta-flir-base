@@ -3,7 +3,7 @@
 # Create simplified and hardware independent sym-links to important sysfs
 # directories for use by various applications.
 #
-# (C) 2017 FLIR Systems AB
+# (C) 2017-2024 FLIR Systems AB
 #
 
 # Detected variants
@@ -16,6 +16,7 @@ ec201=5
 ec401w=6
 eoco=7
 ec302=8
+ec702=9
 
 compat_path=/proc/device-tree/compatible
 lnk_base_dir=/etc/sysfs-links
@@ -51,6 +52,7 @@ find_out_model () {
 		*"digi"*) return $roco ;;
 		*"-ec201"*) return $ec201 ;;
 		*"-ec401w"*) return $ec401w ;;
+		*"-ec702"*) return $ec702 ;;
 		*"-eoco"*) return $eoco ;;
 		*"ec302"*) return $ec302 ;;
 	esac
@@ -106,6 +108,12 @@ set_paths () {
 		backlight_lcd_path=/sys/class/backlight/backlight_lcd
 		torch_path=/sys/class/leds/torch
 		flash_path=/sys/class/leds/flash
+		;;
+	"$ec702")
+		usbc_control_path=/sys/bus/i2c/devices/i2c-2/2-0022/control
+		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
+		battery_path=/sys/class/power_supply/bq27520g4-0
+		backlight_lcd_path=/sys/class/backlight/mxcfb_boe
 		;;
 	esac
 }
