@@ -1,4 +1,4 @@
-bootcmd=if recoverykey; then run recoveryboot;else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
+bootcmd=if recoverykey && kbd_secret; then run recoveryboot;else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
 bootdelay=0
 baudrate=115200
 ethprime=eth0
