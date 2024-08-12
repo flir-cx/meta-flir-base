@@ -1,0 +1,67 @@
+From be4cac37eabe2431e5ee86c5efbb9b33e1a51cd5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Johansson?= <bjoern.johansson@teledyneflir.com>
+Date: Mon, 12 Aug 2024 11:22:37 +0200
+Subject: [PATCH] fbdev: Fix double-free of param device string
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In fbdev_backend_create() param->device is freed,
+but weston_backend_init() did a shallow copy of the config
+struct and the caller of weston_backend_init then does free
+a second time of the same buffer.
+
+Check if fbdev_backend_create() allocates a new param device
+and free conditionally on this allocation.
+
+Signed-off-by: Björn Johansson <bjoern.johansson@teledyneflir.com>
+---
+ libweston/backend-fbdev/fbdev.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/libweston/backend-fbdev/fbdev.c b/libweston/backend-fbdev/fbdev.c
+index 742a1d1f..535a60b3 100644
+--- a/libweston/backend-fbdev/fbdev.c
++++ b/libweston/backend-fbdev/fbdev.c
+@@ -1118,6 +1118,7 @@ fbdev_backend_create(struct weston_compositor *compositor,
+ 	struct fbdev_backend *backend;
+ 	const char *seat_id = default_seat;
+ 	const char *session_seat;
++	char *allocated_device = NULL;
+ 
+ 	session_seat = getenv("XDG_SEAT");
+ 	if (session_seat)
+@@ -1143,8 +1144,9 @@ fbdev_backend_create(struct weston_compositor *compositor,
+ 		goto out_compositor;
+ 	}
+ 
++	/* Remember to free allocated device */
+ 	if (!param->device)
+-		param->device = find_framebuffer_device(backend, seat_id);
++		allocated_device = param->device = find_framebuffer_device(backend, seat_id);
+ 	if (!param->device) {
+ 		weston_log("fatal: no framebuffer devices detected.\n");
+ 		goto out_udev;
+@@ -1293,7 +1295,8 @@ fbdev_backend_create(struct weston_compositor *compositor,
+ 				   " synchronization support failed.\n");
+ 	}
+ 
+-	free(param->device);
++	if (allocated_device)
++		free(allocated_device);
+ 
+ 	udev_input_init(&backend->input, compositor, backend->udev,
+ 			seat_id, param->configure_device);
+@@ -1301,7 +1304,8 @@ fbdev_backend_create(struct weston_compositor *compositor,
+ 	return backend;
+ 
+ out_launcher:
+-	free(param->device);
++	if (allocated_device)
++		free(allocated_device);
+ 	weston_launcher_destroy(compositor->launcher);
+ 
+ out_udev:
+-- 
+2.34.1
+
