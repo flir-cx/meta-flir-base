@@ -15,11 +15,7 @@ help() {
 
 if [ "$1" = "1" ] || [ "$1" = "viewfinder" ] || [ "$1" = "vf" ]
 then
-    #Enable GOVP board, enable voltage 5V to GOVP board
-    [ -d /sys/bus/i2c/drivers/at24/0-0051 ] || echo 0-0051 > /sys/bus/i2c/drivers/at24/bind
-    [ -d /sys/bus/i2c/drivers/backlight_vf/0-0030 ] || echo 0-0030 >/sys/bus/i2c/drivers/backlight_vf/bind
-    [ -d /sys/bus/i2c/drivers/flir-ema100080/0-0032 ] || echo 0-0032 >/sys/bus/i2c/drivers/flir-ema100080/bind
-
+    echo 1 > /sys/devices/platform/soc/2100000.bus/21a0000.i2c/i2c-0/0-0032/pwr_on
     echo "1 2" > /sys/devices/platform/fb@0/graphics/fb0/clone_to
     echo 1 > /sys/devices/platform/lcd@0/control/enablebus
     fb_setoverlay.sh viewfinder
@@ -29,11 +25,7 @@ then
 elif [ "$1" = "0" ] || [ "$1" = "lcd" ]
 then
     #Toggling to LCD disables viewfinder, but not HDMI
-    #Disable GOVP board, disable voltage 5V to GOVP board
-    [ -d /sys/bus/i2c/drivers/at24/0-0051 ] && echo 0-0051 > /sys/bus/i2c/drivers/at24/unbind
-    [ -d /sys/bus/i2c/drivers/backlight_vf/0-0030 ] && echo 0-0030 >/sys/bus/i2c/drivers/backlight_vf/unbind
-    [ -d /sys/bus/i2c/drivers/flir-ema100080/0-0032 ] && echo 0-0032 >/sys/bus/i2c/drivers/flir-ema100080/unbind
-
+    echo 0 > /sys/devices/platform/soc/2100000.bus/21a0000.i2c/i2c-0/0-0032/pwr_on
     echo "0 2" > /sys/devices/platform/fb@0/graphics/fb0/clone_to
     echo 0 > /sys/devices/platform/lcd@0/control/enablebus
     fb_setoverlay.sh lcd
