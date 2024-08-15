@@ -30,6 +30,11 @@ IMAGE_INSTALL = "base-files \
                  u-boot-default-env-pingu \
 "
 
+IMAGE_INSTALL_append_ec501 = " \
+                 kernel-module-af-packet \
+                 kernel-module-unix \
+"
+
 IMAGE_INSTALL_append_eoco = " \
                  firmware-imx-sdma-imx6q \
 "
