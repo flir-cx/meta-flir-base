@@ -1,4 +1,4 @@
-bootcmd=if recoverykey && kbd_secret; then run recoveryboot;else run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
+bootcmd=if recoverykey && kbd_secret; then run recoveryboot;else chargeState; run mmcbootflir;fi;echo Fallback to recovery boot!....;run recoveryboot;
 bootdelay=0
 baudrate=115200
 ethprime=eth0
@@ -44,7 +44,7 @@ mmcdev=0
 fdt_file=
 fdt_file_default=imx6qp-ec702.dtb
 console=ttymxc0
-hw_start=loadFPGA t
+hw_start=checkCharger; loadFPGA t
 uuid_disk=075e2a9b-6af6-448c-a52a-3a6e69f0afff
 part1_uuid=43f1961b-ce4c-4e6c-8f22-2230c5d532bd
 part2_uuid=f241b915-4241-47fd-b4de-ab5af832a0f6
