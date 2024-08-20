@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 mkdir -p /var/www /var/run/lighttpd /var/log/lighttpd
 chown www-data:www-data /var/www /var/run/lighttpd /var/log/lighttpd
