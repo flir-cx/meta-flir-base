@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 # evco: reduce speed ~30s after flirapp start to avoid overheating
 sleep 28

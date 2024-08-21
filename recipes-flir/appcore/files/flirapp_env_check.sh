@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 # This is to notify systemd that flirapp is ready if
 # we have a flirapp that fails to do so.
