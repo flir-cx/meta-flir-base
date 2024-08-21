@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 mkdir -p /var/run/haproxy
 chown haproxy:haproxy /var/run/haproxy

@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 mkdir -p /var/run/haproxy_ssl
 chown -R haproxy:haproxy /var/run/haproxy_ssl
