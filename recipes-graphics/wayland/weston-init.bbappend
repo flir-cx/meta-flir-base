@@ -42,6 +42,9 @@ name=fbdev
 do_install_append_ec702() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
 
+    # Remove any repaint-window parameter and add a new one in core section
+    sed -i '/^repaint-window/d ; /\[core\]/a repaint-window=13' ${WESTON_INI}
+
     echo "
 [shell]
 panel-position=\"none\"
