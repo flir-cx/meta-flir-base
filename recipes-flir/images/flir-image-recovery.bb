@@ -18,6 +18,7 @@ IMAGE_INSTALL = "base-files \
                  gadgetload \
                  i2c-tools \
                  kernel-module-libcomposite \
+                 kernel-module-spi-nor \
                  kernel-module-usb-f-rndis \
                  libstdc++ \
                  libubootenv-bin \
