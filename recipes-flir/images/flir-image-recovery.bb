@@ -57,6 +57,9 @@ IMAGE_INSTALL_append_mx7 = " \
                  kernel-module-u-ether \
 "
 
+# ec401w uses a different kernel and config
+IMAGE_INSTALL_remove_ec401w += "kernel-module-spi-nor"
+
 # We're using journal and do not want the busybox-syslog
 BAD_RECOMMENDATIONS += "busybox-syslog udev-hwdb"
 
