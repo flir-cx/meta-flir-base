@@ -35,8 +35,8 @@ ConditionPathExists=/dev/tty0
 Type=notify
 EnvironmentFile=/etc/default/weston
 
-# Timings for HDMI on fb2
-ExecStartPre=/usr/sbin/fbset -fb /dev/fb2 -g 1024 768 1024 768 32 -t 15385 160 24 29 3 136 6
+# Timings for HDMI on fb2. To use hdmi must be enabled in device tree
+#ExecStartPre=/usr/sbin/fbset -fb /dev/fb2 -g 1024 768 1024 768 32 -t 15385 160 24 29 3 136 6
 # Timings for viewfinder on fb0 and fb1
 ExecStartPre=/usr/sbin/fbset -fb /dev/fb0 -g 1024 768 1024 768 32 -t 19921 8 4 35 3 4 6
 ExecStartPre=/usr/sbin/fbset -fb /dev/fb1 -g 1024 768 1024 768 32 -t 19921 8 4 35 3 4 6
