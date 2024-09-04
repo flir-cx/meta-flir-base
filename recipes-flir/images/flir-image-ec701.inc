@@ -5,34 +5,38 @@ inherit populate_sdk_qt5
 
 IMAGE_INSTALL_append = "\
     autofs \
+    bluez5 \
+    btload \
     chargeapp-service \
     chargelogo \
     data-collection-service \
-    firmware-imx-vpu-imx6d \
     firmware-imx-sdma-imx6q \
+    firmware-imx-vpu-imx6d \
+    flir-activity-monitor \
     flirbifrost \
     flirfad \
     flirfvdk \
-    flir-activity-monitor \
     gadgetload \
     haproxy \
     iputils-ping \
     kernel-modules \
+    kernel-sysfs-helpers \
     libevdev \
     libubootenv-bin \
     mmc-utils \
     mmc7mounter-intnl \
     mmc7prepare \
     mtd-utils-jffs2 \
-    qrencode \
-    qtbase \
-    qtgraphicaleffects \
     php \
     php-cgi \
     php-cli \
     php-opcache \
     progressapp-service \
+    qrencode \
+    qtbase \
+    qtgraphicaleffects \
     systemd-failure-notifier \
+    ti-bt-firmware \
     ti-firmware \
     ti-nvs \
     ti-uim \
