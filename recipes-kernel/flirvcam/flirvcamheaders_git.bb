@@ -6,11 +6,18 @@ New headers are installed in ${includedir}/."
 LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-only;md5=801f80980d171dd6425610833a22dbe6"
 
+FLIR_CAMOS_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_CAMOS_GIT = "git://bitbucketcommercial.flir.com:7999/camos"
+
+FLIR_FLIRVCAM_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_CAMOS_GIT}/flirdrv-vcam.git", "${FLIR_CAMOS_GITHUB_GIT}/flirdrv-vcam.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
 SRCREV = "4f9d87201dcee03ef35728403bc904c2328a725f"
-SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-vcam.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
+SRC_URI = "${FLIR_FLIRVCAM_URI};protocol=${PROTO};nobranch=1"
 
 S = "${WORKDIR}/git"
 
