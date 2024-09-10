@@ -10,7 +10,14 @@ PR = "r1"
 
 inherit module
 
-SRC_URI = "${FLIRSE_DRV_MIRROR}/bifrost_module.git${FLIRSE_DRV_PROTOCOL};nobranch=1 \
+FLIR_CAMOS_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_CAMOS_GIT = "git://bitbucketcommercial.flir.com:7999/camos"
+
+FLIR_BIFROST_MODULE_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_CAMOS_GIT}/bifrost_module.git", "${FLIR_CAMOS_GITHUB_GIT}/bifrost_module.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
+SRC_URI = "${FLIR_BIFROST_MODULE_URI};protocol=${PROTO};nobranch=1 \
            file://Makefile \
            file://bifrost.conf \
 	   file://bifrost_opt.conf \
