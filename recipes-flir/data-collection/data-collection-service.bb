@@ -16,6 +16,8 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
 SRC_URI = "\
            file://data-collection.service \
 "
+SRC_URI_append_ec702 = "file://pre-data-collection.sh \
+"
 
 # Keep service disabled as default if not stated otherwise
 SYSTEMD_AUTO_ENABLE_${PN} ?= "disable"
@@ -30,4 +32,9 @@ do_compile[noexec] = "1"
 do_install() {
     install -d ${D}${systemd_unitdir}/system
     install -m 0644 ${WORKDIR}/data-collection.service ${D}${systemd_unitdir}/system
+}
+
+do_install_append_ec702() {
+      install -d ${D}${bindir}
+      install -m 0755 ${WORKDIR}/pre-data-collection.sh ${D}${bindir}/pre-data-collection.sh
 }
