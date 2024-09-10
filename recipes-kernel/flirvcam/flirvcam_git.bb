@@ -11,11 +11,19 @@ PV = "0.${SRCPV}"
 
 inherit module
 
+FLIR_CAMOS_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_CAMOS_GIT = "git://bitbucketcommercial.flir.com:7999/camos"
+
+FLIR_FLIRVCAM_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_CAMOS_GIT}/flirdrv-vcam.git", "${FLIR_CAMOS_GITHUB_GIT}/flirdrv-vcam.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
 SRCREV = "ccca4a4b9cd57b9469b7a553f47131285505e489"
-SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-vcam.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
+
+SRC_URI = "${FLIR_FLIRVCAM_URI};protocol=${PROTO};nobranch=1"
 SRC_URI += "file://vcam.conf"
 
 EXTRA_OEMAKE = "'EXTRA_CFLAGS=-I${STAGING_DIR_TARGET}/${includedir}/flir'"
