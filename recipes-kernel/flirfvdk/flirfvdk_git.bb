@@ -10,9 +10,16 @@ PR = "r1"
 
 inherit module
 
-SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-fvdk.git${FLIRSE_DRV_PROTOCOL};nobranch=1 \
+FLIR_CAMOS_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_CAMOS_GIT = "git://bitbucketcommercial.flir.com:7999/camos"
+
+FLIR_FLIRFVDK_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_CAMOS_GIT}/flirdrv-fvdk.git", "${FLIR_CAMOS_GITHUB_GIT}/flirdrv-fvdk.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
+
+SRC_URI = "${FLIR_FLIRFVDK_URI};protocol=${PROTO};nobranch=1 \
           file://fvdk.conf \
-          "
+"
 
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing

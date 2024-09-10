@@ -11,25 +11,22 @@ PR = "r1"
 PV = "0.${SRCPV}"
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-# FLIRSE_DRV_MIRROR and FLIRSE_DRV_PROTOCOL used below are defined in 
-# <yocto-root>/build_<machine>/conf/local.conf
-# You may edit that file to switch between se-arn-dev5 gitolite and 
-# git-se (bitbucket git)
-# local.conf is originally built using <yocto-root>/setup-environment
-
-# For smooth migration, we locally define FLIRSE_ vars for recipe to work
-# as before while local.conf is not updated
-# FLIRSE_DRV_MIRROR ?= "git://se-arn-dev5"
-# FLIRSE_DRV_PROTOCOL ?= ";protocol=git"
-
 inherit module
+
+FLIR_CAMOS_GITHUB_GIT = "git://github.com/flir-cx"
+FLIR_CAMOS_GIT = "git://bitbucketcommercial.flir.com:7999/camos"
+
+FLIR_FLIRFAD_URI = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "${FLIR_CAMOS_GIT}/flirdrv-fad.git", "${FLIR_CAMOS_GITHUB_GIT}/flirdrv-fad.git", d)}"
+
+PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
 
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
 SRCREV = "9238bc5b929f5c0f773f946474f32dfd11488b49"
 
-SRC_URI = "${FLIRSE_DRV_MIRROR}/flirdrv-fad.git${FLIRSE_DRV_PROTOCOL};nobranch=1"
+SRC_URI = "${FLIR_FLIRFAD_URI};protocol=${PROTO};nobranch=1"
+
 SRC_URI += "file://fad.conf"
 
 EXTRA_OEMAKE = "'EXTRA_CFLAGS=-I${STAGING_DIR_TARGET}/${includedir}/flir'"
