@@ -114,6 +114,7 @@ set_paths () {
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		battery_path=/sys/class/power_supply/bq27520g4-0
 		backlight_lcd_path=/sys/class/backlight/mxcfb_boe
+		pmic_path=/sys/class/power_supply/bq24298-charger
 		;;
 	esac
 }
