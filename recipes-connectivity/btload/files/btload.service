@@ -1,7 +1,6 @@
 [Unit]
 Description=Bluetooth loader
-After=connman.service dbus.service bluetooth.service
-
+After=connman.service dbus.service bluetooth.service wlanload.service
 
 [Service]
 Type=oneshot
