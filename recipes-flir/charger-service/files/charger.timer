@@ -1,0 +1,11 @@
+[Unit]
+Description=Run charger once a minute and on boot
+
+[Timer]
+OnBootSec=0
+OnUnitActiveSec=1min
+OnCalendar=*-*-* *:*:00
+Unit=charger.service
+
+[Install]
+WantedBy=multi-user.target
