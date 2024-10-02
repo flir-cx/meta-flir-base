@@ -45,6 +45,11 @@ do_install_append() {
       rm -f ${D}${rootlibexecdir}/udev/rules.d/64-btrfs.rules
 }
 
+do_install_append_ec702() {
+     install -d ${D}/var/lib/systemd/backlight
+     echo 175 > "${D}/var/lib/systemd/backlight/platform-lcd_i2c@0:backlight:mxcfb_boe"
+}
+
 do_configure_append_ec401w() {
       sed -i -e "s/enable systemd-timesyncd.service/disable systemd-timesyncd.service/g" ${S}/presets/90-systemd.preset
       sed -i -e "s/enable systemd-resolved.service/disable systemd-resolved.service/g" ${S}/presets/90-systemd.preset
