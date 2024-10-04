@@ -60,7 +60,7 @@ update_file() {
 	:
 }
 
-# weston.ini mods for mx7 (ec302 and ec201)
+# weston.ini mods for mx7 (ec302 and ec201 and ec202)
 do_install_append_mx7() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
 

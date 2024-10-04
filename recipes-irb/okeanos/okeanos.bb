@@ -23,7 +23,6 @@ SRC_URI += "file://okeanos.service"
 
 S = "${WORKDIR}/git"
 
-# Module loaded by flirapp on ec302
 KERNEL_MODULE_AUTOLOAD_recc += "okeanos"
 
 do_install() {

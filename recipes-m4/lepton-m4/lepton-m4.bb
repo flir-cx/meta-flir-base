@@ -20,6 +20,7 @@ S="${WORKDIR}/git"
 
 M4_BIN = "imx7ulpm4.bin.lepton"
 M4_BIN_ec302 = "imx7ulpm4.bin.irb"
+M4_BIN_ec202 = "imx7ulpm4.bin.irb"
 
 do_install() {
     install -d ${D}/boot

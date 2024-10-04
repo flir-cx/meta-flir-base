@@ -17,7 +17,7 @@ SRC_URI = "${FLIR_KERNEL_URI};protocol=${PROTO};nobranch=1"
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "203ad99e526bfbf11c96a334266f2f8547d8817f"
+SRCREV = "fbc2553d38896f7e09e63322768092467da66012"
 PV="5.10-git${SRCPV}"
 PR="13"
 
@@ -33,15 +33,11 @@ SRC_URI_append = "\
              file://defconfig \
 "
 
-SRC_URI_append_ec302 += "\
+SRC_URI_append_mx7 += "\
              file://0001-qca9377-oot.patch \
 "
 
-SRC_URI_append_ec201 += "\
-             file://0001-qca9377-oot.patch \
-"
-
-COMPATIBLE_MACHINE = "evco|ec501|eoco|ec701|ec702|ec302|ec201"
+COMPATIBLE_MACHINE = "evco|ec501|eoco|ec701|ec702|ec302|ec201|ec202"
 
 # Set an external linux source, prevents Yocto from deleting your local changes
 #inherit externalsrc

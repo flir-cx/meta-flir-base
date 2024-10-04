@@ -12,10 +12,9 @@ evco=1
 leco=2
 beco=3
 roco=4
-ec201=5
+imx7=5
 ec401w=6
 eoco=7
-ec302=8
 ec702=9
 
 compat_path=/proc/device-tree/compatible
@@ -50,11 +49,12 @@ find_out_model () {
 		*"-leco"*) return $leco ;;
 		*"-beco"*) return $beco ;;
 		*"digi"*) return $roco ;;
-		*"-ec201"*) return $ec201 ;;
+		*"-ec201"*) return $imx7 ;;
 		*"-ec401w"*) return $ec401w ;;
 		*"-ec702"*) return $ec702 ;;
 		*"-eoco"*) return $eoco ;;
-		*"ec302"*) return $ec302 ;;
+		*"ec302"*) return $imx7 ;;
+		*"ec202"*) return $imx7 ;;
 	esac
 
 	return $unknown
@@ -77,7 +77,7 @@ set_paths () {
 	"$roco")
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		;;
-	"$ec201")
+	"$imx7")
 		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
 		battery_path=/sys/class/power_supply/battery
 		pmic_path=/sys/class/power_supply/pf1550-charger
@@ -100,14 +100,6 @@ set_paths () {
 	"$eoco")
 		battery_path=/sys/class/power_supply/bq40z50
 		torch_path=/sys/class/leds/torch
-		;;
-	"$ec302")
-		usb2_control_path=/sys/bus/platform/drivers/ci_hdrc/ci_hdrc.0/udc/ci_hdrc.0
-		battery_path=/sys/class/power_supply/battery
-		pmic_path=/sys/class/power_supply/pf1550-charger
-		backlight_lcd_path=/sys/class/backlight/backlight_lcd
-		torch_path=/sys/class/leds/torch
-		flash_path=/sys/class/leds/flash
 		;;
 	"$ec702")
 		usbc_control_path=/sys/bus/i2c/devices/i2c-2/2-0022/control
@@ -134,7 +126,7 @@ create_links () {
 	create_link "$battery_path" "$battery_lnk"
 	create_link "$pmic_path" "$pmic_lnk"
 
-	#sherlock tp-leds
+	#sherlock/watson tp-leds
 	if [ -n "$tpleds_camera_path" ]; then
 		mkdir -p $tpleds_folder
 
