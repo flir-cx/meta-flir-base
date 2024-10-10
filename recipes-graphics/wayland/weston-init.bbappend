@@ -39,6 +39,17 @@ name=fbdev
 " >> ${WESTON_INI}
 }
 
+do_install_append_ec701() {
+    WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
+
+    echo "
+[shell]
+panel-position=\"none\"
+background-color=0x00ffffff
+
+" >> ${WESTON_INI}
+}
+
 do_install_append_ec702() {
     WESTON_INI=${D}${sysconfdir}/xdg/weston/weston.ini
 

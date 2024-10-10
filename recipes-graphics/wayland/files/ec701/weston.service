@@ -1,0 +1,84 @@
+# This is a system unit for launching Weston with auto-login as the
+# user configured here.
+#
+# Weston must be built with systemd support, and your weston.ini must load
+# the plugin systemd-notify.so.
+[Unit]
+Description=Weston, a Wayland compositor, as a system service
+Documentation=man:weston(1) man:weston.ini(5)
+Documentation=http://wayland.freedesktop.org/
+
+# Make sure we are started after logins are permitted.
+Requires=systemd-user-sessions.service
+After=systemd-user-sessions.service
+
+# If Plymouth is used, we want to start when it is on its way out.
+After=plymouth-quit-wait.service
+
+# D-Bus is necessary for contacting logind. Logind is required.
+Wants=dbus.socket
+After=dbus.socket
+
+# Ensure the socket is present
+Requires=weston.socket
+
+# Since we are part of the graphical session, make sure we are started before
+# it is complete.
+Before=graphical.target
+
+# Prevent starting on systems without virtual consoles, Weston requires one
+# for now.
+ConditionPathExists=/dev/tty0
+
+[Service]
+# Requires systemd-notify.so Weston plugin.
+Type=notify
+EnvironmentFile=/etc/default/weston
+
+# Timings for HDMI on fb2. To use hdmi must be enabled in device tree
+#ExecStartPre=/usr/sbin/fbset -fb /dev/fb2 -g 1024 768 1024 768 32 -t 15385 160 24 29 3 136 6
+# Timings for viewfinder on fb0 and fb1
+#ExecStartPre=/usr/sbin/fbset -fb /dev/fb0 -g 1024 768 1024 768 32 -t 19921 8 4 35 3 4 6
+#ExecStartPre=/usr/sbin/fbset -fb /dev/fb1 -g 1024 768 1024 768 32 -t 19921 8 4 35 3 4 6
+
+# Uncomment the next line if you want to clone the IR-image to a connected HDMI display
+#ExecStartPre=/bin/sh -c "/bin/echo 1 2 > /sys/devices/platform/fb@0/graphics/fb0/clone_to"
+
+# Blank all framebuffers before starting weston
+ExecStartPre=-/bin/sh -c 'cd /sys/class/graphics ; /bin/echo 0 > fb0/blank ; /bin/echo 0 > fb1/blank ; /bin/echo 0 > fb2/blank'
+
+ExecStart=/usr/bin/weston --log=${XDG_RUNTIME_DIR}/weston.log --modules=systemd-notify.so --device=/dev/fb0,/dev/fb1 --local-alpha-device=/dev/fb1
+
+# Optional watchdog setup
+TimeoutStartSec=60
+WatchdogSec=40
+
+# The user to run Weston as.
+User=root
+Group=root
+
+# Make sure the working directory is the users home directory
+WorkingDirectory=/home/weston
+
+# Set up a full user session for the user, required by Weston.
+PAMName=weston-autologin
+
+# A virtual terminal is needed.
+TTYPath=/dev/tty7
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+# Fail to start if not controlling the tty.
+StandardInput=tty-fail
+StandardOutput=journal
+StandardError=journal
+
+# Log this user with utmp, letting it show up with commands 'w' and 'who'.
+UtmpIdentifier=tty7
+UtmpMode=user
+
+[Install]
+# Note: If you only want weston to start on-demand, remove this line with a
+# service drop file
+WantedBy=graphical.target charge.target
