@@ -1,6 +1,5 @@
 [Unit]
 Description=FLIR Activity Monitor
-After=flirapp.service
 
 [Service]
 Type=simple
