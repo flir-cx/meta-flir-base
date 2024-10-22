@@ -28,6 +28,7 @@ SRCREV = "dc426ad7bb96062b56b30ecd7ad2e51e82373ed9"
 SRC_URI = "${FLIR_FLIRFAD_URI};protocol=${PROTO};nobranch=1"
 
 SRC_URI += "file://fad.conf"
+SRC_URI += "file://fad_opt.conf"
 
 EXTRA_OEMAKE = "'EXTRA_CFLAGS=-I${STAGING_DIR_TARGET}/${includedir}/flir'"
 
@@ -43,10 +44,13 @@ do_install() {
 	     install -d ${D}${sysconfdir}
 	     install -d ${D}${sysconfdir}/modules-load.d
 	     install -m 0755 ${WORKDIR}/fad.conf ${D}${sysconfdir}/modules-load.d/fad.conf
+	     install -d ${D}${sysconfdir}/modprobe.d
+	     install -m 0755 ${WORKDIR}/fad_opt.conf ${D}${sysconfdir}/modprobe.d/fad_opt.conf
 }
 
 PACKAGES = "${PN}"
 
 FILES_${PN} += "\
 	    /etc/modules-load.d/fad.conf \
+	    /etc/modprobe.d/fad_opt.conf \
 	    "
