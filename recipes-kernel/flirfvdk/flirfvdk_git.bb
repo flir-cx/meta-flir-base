@@ -25,7 +25,7 @@ SRC_URI = "${FLIR_FLIRFVDK_URI};protocol=${PROTO};nobranch=1 \
 # Please use AUTOREV only locally while developing
 # Bump PV when changing SRCREV
 PV = "1.3"
-SRCREV = "518ffb7ab42b146f46204c1a786755e361789103"
+SRCREV = "853e5001b0052d3414b940e861432adc7e198f1e"
 #SRCREV = "${AUTOREV}"
 
 EXTRA_OEMAKE = "'EXTRA_CFLAGS=-I${STAGING_DIR_TARGET}/${includedir}/flir'"
