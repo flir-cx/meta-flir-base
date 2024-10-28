@@ -59,6 +59,8 @@ COMMON_PACKAGES = " \
     kernel \
     kernel-image \
     kmod \
+    libbsd \
+    libexif \
     libiio \
     libpng \
     libzip \
