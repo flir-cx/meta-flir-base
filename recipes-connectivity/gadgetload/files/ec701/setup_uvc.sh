@@ -22,19 +22,10 @@ setup_usbmode_uvc () {
     # Inflate tar file with skeleton
     tar --overwrite --strip-components=1 -xmf /etc/gadget/uvc-sysfs-skeleton.tar
 
-    # These are not included in the tar file since they are dynamic
-    echo "${STREAM_WIDTH}" > functions/uvc.usb0/streaming/framebased/mjls/480p/wWidth
-    echo "${STREAM_HEIGHT}" > functions/uvc.usb0/streaming/framebased/mjls/480p/wHeight
-
-    echo "${STREAM_WIDTH}" > functions/uvc.usb0/streaming/framebased/dfvi/480p/wWidth
-    echo "${STREAM_HEIGHT}" > functions/uvc.usb0/streaming/framebased/dfvi/480p/wHeight
-
     # The links are not possible to have in the tar file
     cd functions/uvc.usb0/streaming/header/h || exit 1
     ln -s ../../uncompressed/yuv .
     ln -s ../../mjpeg/frame .
-    ln -s ../../framebased/mjls .
-    ln -s ../../framebased/dfvi .
     ln -s ../../header/h ../../class/fs/ || exit 1
     ln -s ../../header/h ../../class/hs/ || exit 1
     ln -s ../../header/h ../../class/ss/ || exit 1
