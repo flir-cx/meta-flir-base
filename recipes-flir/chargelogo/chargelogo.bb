@@ -9,6 +9,7 @@ PV = "1"
 
 SRC_URI += "file://battery_logo.bmp.gz;unpack=0"
 SRC_URI += "file://no_battery.bmp.gz;unpack=0"
+SRC_URI_append_ec702 = "file://hot_battery.bmp.gz;unpack=0"
 
 S = "${WORKDIR}"
 
@@ -18,7 +19,18 @@ do_install_append() {
     install -m 0644 ${WORKDIR}/no_battery.bmp.gz ${D}/boot/no_battery.bmp.gz
 }
 
+do_install_append_ec702() {
+    install -d ${D}/boot
+    install -m 0644 ${WORKDIR}/hot_battery.bmp.gz ${D}/boot/hot_battery.bmp.gz
+}
+
+
+
 FILES_${PN} += "\
 	    /boot/battery_logo.bmp.gz \
 	    /boot/no_battery.bmp.gz \
 	    "
+
+FILES_${PN}_append_ec702 = "\
+	    /boot/hot_battery.bmp.gz \
+        "
