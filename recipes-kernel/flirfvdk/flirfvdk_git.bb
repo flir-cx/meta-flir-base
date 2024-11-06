@@ -24,8 +24,8 @@ SRC_URI = "${FLIR_FLIRFVDK_URI};protocol=${PROTO};nobranch=1 \
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
 # Bump PV when changing SRCREV
-PV = "1.3"
-SRCREV = "853e5001b0052d3414b940e861432adc7e198f1e"
+PV = "1.4"
+SRCREV = "0b87900684a28e06110aabb701ea14ad6aaeeb65"
 #SRCREV = "${AUTOREV}"
 
 EXTRA_OEMAKE = "'EXTRA_CFLAGS=-I${STAGING_DIR_TARGET}/${includedir}/flir'"
