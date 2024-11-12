@@ -7,5 +7,5 @@
 echo 512 > /proc/sys/fs/mqueue/msgsize_max
 echo 80 > /proc/sys/fs/mqueue/msg_max
 
-rm -rf $(ls /tmp/FLIRevent/* /dev/mqueue/* 2>/dev/null | grep -v Progress)
+rm -rf $(ls /tmp/FLIRevent/* /dev/mqueue/* 2>/dev/null | grep -v Progress | grep -v statistics)
 

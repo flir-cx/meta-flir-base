@@ -20,7 +20,6 @@ readonly INSTANCE="${2:-}"
 
 # Take last lines from system log, gzip them and make them ASCII without any newlines
 # to suite JSON format.
-readonly JOURNAL=$(journalctl --lines=2000 | gzip | base64 | tr -d '\n')
+readonly JOURNAL=$(journalctl --lines=400 | gzip | base64 | tr -d '\n')
 
 ${COLLECT_STATISTICS} --event-id "systemd-${SERVICE_RESULT}" --field "systemd-name=${NAME}" --field "systemd-instance=${INSTANCE:-<none>}" --field "systemd-exit-code=${EXIT_CODE:-<none>}" --field "systemd-exit-status=${EXIT_STATUS:-<none>}" --field "log-gzip-base64=${JOURNAL}"
-
