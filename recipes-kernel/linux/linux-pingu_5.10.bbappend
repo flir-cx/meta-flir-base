@@ -61,7 +61,6 @@ SRC_URI_append_ec702 = " \
     file://enable-fusb30x-charger.cfg \
     file://enable-gnss-ubx-module.cfg \
     file://enable-mtd-device.cfg \
-    file://enable-weim.cfg \
     file://enable-wlan-wl18-module.cfg \
 "
 

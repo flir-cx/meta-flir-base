@@ -26,7 +26,7 @@ SRC_URI = "${FLIR_BIFROST_MODULE_URI};protocol=${PROTO};nobranch=1 \
 # Please use AUTOREV only locally while developing
 # Bump PV when changing SRCREV
 PV = "1.6"
-SRCREV = "52a8e61d14dbc454191dfe95adc7346c18785fb2"
+SRCREV = "07d58a084f13b56dad365b8e382615ef804b4c0a"
 #SRCREV = "${AUTOREV}"
 
 EXTRA_OEMAKE += "KERNELDIR=${STAGING_KERNEL_DIR} KCFLAGS=-Werror"
