@@ -1,0 +1,28 @@
+From 93943fba7d2a58032475eda37ccb5a03aa6454b8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Johansson?= <bjoern.johansson@teledyneflir.com>
+Date: Tue, 19 Nov 2024 11:42:36 +0100
+Subject: [PATCH] Increase tmo for configuring waylandsink surface.
+
+During boot, 100ms is sometimes not enough when other
+processes compete for the cpu.
+---
+ ext/wayland/wlwindow.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/ext/wayland/wlwindow.c b/ext/wayland/wlwindow.c
+index 1ea88e8dd..969aa46ed 100644
+--- a/ext/wayland/wlwindow.c
++++ b/ext/wayland/wlwindow.c
+@@ -515,7 +515,8 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
+     wl_display_flush (display->display);
+ 
+     g_mutex_lock (&window->configure_mutex);
+-    timeout = g_get_monotonic_time () + 100 * G_TIME_SPAN_MILLISECOND;
++    /* Increase timeout, sometimes 100ms is not enough during boot */
++    timeout = g_get_monotonic_time () + 500 * G_TIME_SPAN_MILLISECOND;
+     while (!window->configured) {
+       if (!g_cond_wait_until (&window->configure_cond, &window->configure_mutex,
+               timeout)) {
+-- 
+2.34.1
+
