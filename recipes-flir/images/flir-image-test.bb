@@ -3,7 +3,7 @@
 #
 require flir-image-${MACHINE}.inc
 
-COMPATIBLE_MACHINE = "(ec501|evco|eoco|ec702)"
+COMPATIBLE_MACHINE = "(ec501|evco|eoco|ec701|ec702)"
 
 IMAGE_INSTALL_append = " \
     ltp \

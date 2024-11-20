@@ -36,6 +36,7 @@ IMAGE_INSTALL_append = "\
     qtbase \
     qtgraphicaleffects \
     systemd-failure-notifier \
+    systemd-flir-basic-target \
     ti-bt-firmware \
     ti-firmware \
     ti-nvs \
