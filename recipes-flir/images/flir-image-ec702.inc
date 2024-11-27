@@ -7,6 +7,7 @@ IMAGE_INSTALL_append = "\
     btload \
     chargeapp-service \
     chargelogo \
+    charger-current-limiter-service \
     data-collection-service \
     firmware-imx-vpu-imx6d \
     flirbifrost \
