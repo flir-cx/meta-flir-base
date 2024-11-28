@@ -29,11 +29,12 @@ IMAGE_INSTALL_append = "\
     php-cgi \
     php-cli \
     php-opcache \
+    progressapp-service \
     qrencode \
     qtbase \
     qtgraphicaleffects \
-    progressapp-service \
     systemd-failure-notifier \
+    systemd-flir-basic-target \
     ti-bt-firmware \
     ti-firmware \
     ti-nvs \
