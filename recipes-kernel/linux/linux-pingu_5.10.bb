@@ -17,7 +17,7 @@ SRC_URI = "${FLIR_KERNEL_URI};protocol=${PROTO};nobranch=1"
 #SRCREV = "${AUTOREV}"
 # Note that when any of the imx headers are changed in the kernel tree, one
 # also needs to update the SRCREV in linux-imx-headers
-SRCREV = "22a9d66c8878ac547841d70bf4bc6cb1118d9232"
+SRCREV = "c9f02c4e02fd7b18c4ae807e56c35396e86a4810"
 PV="5.10-git${SRCPV}"
 PR="13"
 
