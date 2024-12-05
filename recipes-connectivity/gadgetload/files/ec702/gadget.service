@@ -1,0 +1,13 @@
+[Unit]
+Description=Configure gadget on usb0
+Before=network.target
+After=FLIR-internal.mount
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/gadget.sh load
+ExecStop=/sbin/gadget.sh unload
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target charge.target
