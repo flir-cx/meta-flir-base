@@ -9,6 +9,8 @@ IMAGE_INSTALL_append = "\
     chargelogo \
     charger-current-limiter-service \
     data-collection-service \
+    data-collection-events-service \
+    data-collection-dumps-service \
     firmware-imx-vpu-imx6d \
     flirbifrost \
     flirfad \

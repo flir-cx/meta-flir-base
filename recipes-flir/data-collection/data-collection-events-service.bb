@@ -1,20 +1,21 @@
-SUMMARY = "Data-collection service starter"
+SUMMARY = "Data-collection user event service"
 SECTION = "flir/application"
 PRIORITY = "optional"
 LICENSE = "CLOSED"
-PACKAGES = "data-collection-service"
+PACKAGES = "data-collection-events-service"
 
 inherit autotools systemd
 RPROVIDES_${PN} += "${PN}-systemd"
 RREPLACES_${PN} += "${PN}-systemd"
 RCONFLICTS_${PN} += "${PN}-systemd"
-SYSTEMD_SERVICE_${PN} = "data-collection.service"
+SYSTEMD_SERVICE_${PN} = "data-collection-events.path"
 RDEPENDS_${PN} += "bash"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:"
+FILESEXTRAPATHS_prepend := "${THISDIR}/${MACHINE}:${THISDIR}/files:${THISDIR}/files/${MACHINE}:"
 
 SRC_URI = "\
-           file://data-collection.service \
+           file://data-collection-events.path \
+           file://data-collection-eventwatcher.service \
 "
 
 # Keep service disabled as default if not stated otherwise
@@ -30,5 +31,8 @@ do_compile[noexec] = "1"
 
 do_install() {
     install -d ${D}${systemd_system_unitdir}
-    install -m 0644 ${WORKDIR}/data-collection.service ${D}${systemd_system_unitdir}
+    install -m 0644 ${WORKDIR}/data-collection-events.path ${D}${systemd_system_unitdir}
+    install -m 0644 ${WORKDIR}/data-collection-eventwatcher.service ${D}${systemd_system_unitdir}
 }
+
+FILES_${PN} += "${systemd_system_unitdir}/data-collection-eventwatcher.service"

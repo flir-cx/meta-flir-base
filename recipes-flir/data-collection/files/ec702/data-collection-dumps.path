@@ -1,0 +1,9 @@
+[Unit]
+Description=FLIR Data Collection Crashdump Housekeeping
+
+[Path]
+PathChanged=/FLIR/internal/data-collection/minidumps
+Unit=data-collection-dumpwatcher.service
+
+[Install]
+WantedBy=multi-user.target

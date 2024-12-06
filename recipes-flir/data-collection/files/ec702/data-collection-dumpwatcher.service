@@ -1,0 +1,6 @@
+[Unit]
+Description=FLIR Data Collection Crashdump Monitor
+
+[Service]
+ExecStart=/FLIR/usr/bin/dccleanup.sh -d
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
