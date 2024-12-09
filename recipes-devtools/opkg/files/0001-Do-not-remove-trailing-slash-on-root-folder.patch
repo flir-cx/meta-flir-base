@@ -1,0 +1,32 @@
+From 79f3c0d3f71f758404f4969117f6d74370561179 Mon Sep 17 00:00:00 2001
+From: Erik Bengtsson <erik.bengtsson@teledyneflir.com>
+Date: Mon, 9 Dec 2024 10:22:12 +0100
+Subject: [PATCH] Do not remove trailing slash on root folder
+
+Avoids issue where root folder is removed and empty line in file
+list.
+---
+ libopkg/pkg.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/libopkg/pkg.c b/libopkg/pkg.c
+index 31abdd1..c2fedce 100644
+--- a/libopkg/pkg.c
++++ b/libopkg/pkg.c
+@@ -1432,7 +1432,12 @@ static void pkg_write_filelist_helper(const char *key, void *entry_,
+         size_t size;
+         int unmatched_offline_root = opkg_config->offline_root
+                 && !str_starts_with(key, opkg_config->offline_root);
+-        char *entry = xstrdup(key);
++        char *entry = NULL;
++
++        if (key[1] == '\0' && key[0] == '/')
++            entry = xstrdup("/.");
++        else
++            entry = xstrdup(key); 
+ 
+         size = strlen(entry);
+         if (size > 0 && entry[size-1] == '/')
+-- 
+2.34.1
+
