@@ -3,6 +3,7 @@ Description=FLIR Activity Monitor
 
 [Service]
 Type=simple
+Environment=LD_LIBRARY_PATH=/FLIR/usr/lib
 ExecStart=/usr/bin/flir-activity-monitor
 
 [Install]
