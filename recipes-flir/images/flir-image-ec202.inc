@@ -21,7 +21,8 @@ IMAGE_INSTALL_append = "\
     kernel-modules \
     firmware-qca9377 \
     kernel-module-qca9377 \
-    lepton-m4 \
+    lepton-m4a \
+    lepton-m4b \
     libevdev \
     libubootenv-bin \
     mmc-utils \
