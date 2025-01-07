@@ -1,6 +1,7 @@
 [Unit]
 PartOf=okeanos.service
 After=okeanos.service
+ConditionPathExists=/dev/oki0
 
 [Service]
 Type=simple
