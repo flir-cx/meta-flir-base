@@ -9,6 +9,7 @@ IMAGE_INSTALL_append = "\
     btload \
     chargeapp-service \
     chargelogo \
+    data-collection-noupload \
     data-collection-service \
     firmware-imx-sdma-imx6q \
     firmware-imx-vpu-imx6d \
