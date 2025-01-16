@@ -1,38 +1,33 @@
 #!/usr/bin/env bash
-FIINLIMFILE=/sys/bus/i2c/drivers/bq24298-charger/2-006b/power_supply/bq24298-charger/f_iinlim
+FCHRGFILE=/sys/bus/i2c/drivers/bq24298-charger/2-006b/power_supply/bq24298-charger/f_ichg
 BATTERYTEMPFILE=/etc/sysfs-links/battery/temp
-RESTORE=0
+
+ICHRG_512MA=0x0
+ICHRG_1024MA=0x8
+ICHRG_2048MA=0x18
+ICHRG_3008MA=0x27
 
 [ -f /tmp/chargeval ] && RESTORE=1
-[ -f $FIINLIMFILE ] || echo "Failed to find f_iinlim file"
+[ -f $FCHRGFILE ] || echo "Failed to find f_ichrg file"
 [ -f $BATTERYTEMPFILE ] || echo "Failed to find battery temperature file"
 
-func() 
+func()
 {
     TEMP=$(cat $BATTERYTEMPFILE)
-    CHARGEVAL=$(cat $FIINLIMFILE)
-    
-    if [[ $TEMP  -le 100 ]]; then 
-        if [[ $CHARGEVAL -gt 4 ]]; then
-            [ -f /tmp/chargeval ] || echo $CHARGEVAL > /tmp/chargeval
+    CHARGEVAL="0x$(cat $FCHRGFILE)"
+
+    if [[ $TEMP -le 100 ]]; then
+       if [[ $CHARGEVAL -ne $ICHRG_1024MA ]]; then
             echo "Charging with more than 1A, temperature less than 10 C"
-            echo "Limiting charge current to 1A due to temperature < 10 C"
-            echo 4 >$FIINLIMFILE
-            RESTORE=1
-        elif [[ $RESTORE == 1 ]]; then
-            echo "Restore is set, temp is $TEMP"
-            
-        fi
-    elif [[ $RESTORE == 1 ]]; then
-        RESTOREVAL=$(cat /tmp/chargeval)
-        echo "Restoring charge value to $RESTOREVAL"
-        echo $RESTOREVAL >$FIINLIMFILE
-        RESTORE=0
-        rm /tmp/chargeval
-        echo $TEMP
+            echo "charger-current-limiter: Limiting charge current to 1A due to temperature < 10 C"
+            echo $ICHRG_1024MA >$FCHRGFILE
+       fi
     else
-        echo $TEMP, loop
-    fi 
+        if [[ $CHARGEVAL -ne $ICHRG_3008MA ]]; then
+	    echo $ICHRG_3008MA > $FCHRGFILE
+            echo "charger-current-limiter: Restoring charge limit to 3A"
+	fi
+    fi
 }
 
 func

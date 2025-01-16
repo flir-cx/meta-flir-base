@@ -1,0 +1,6 @@
+charger current limiter test
+
+shUnit2 (https://github.com/kward/shunit2) based test script
+start by executing "shunit2 ./charger-current-limiter-test.sh"
+
+shUnit2 is needed in the Yocto build... add "IMAGE_INSTALL_append = " shunit2"" to local.conf
