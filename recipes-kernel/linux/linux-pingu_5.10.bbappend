@@ -11,8 +11,9 @@ SRC_URI_append_ec701 = " \
     file://enable-bq24298-charger.cfg \
     file://enable-bq27xxx-battery.cfg \
     file://enable-bt-module.cfg \
-    file://enable-truly-st7703.cfg \
     file://enable-gnss-ubx-module.cfg \
+    file://enable-mtd-device.cfg \
+    file://enable-truly-st7703.cfg \
     file://enable-weim.cfg \
     file://enable-wlan-wl18-module.cfg \
 "
