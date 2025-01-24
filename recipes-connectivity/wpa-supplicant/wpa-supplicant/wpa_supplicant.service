@@ -1,0 +1,19 @@
+[Unit]
+Description=WPA supplicant
+# The network target is removed since we want a faster boot and to that end
+# we are delaying wpa_supplicant til after flir-basic.target by setting
+# wpa_supplicant to "After=wlanload.service". wlanload is in turn "After=flir-basic.target"
+# This is all done so that we do not setup wlan until flirapp is up and running
+
+#Before=network.target
+Wants=network.target
+After=wlanload.service
+
+[Service]
+Type=dbus
+BusName=fi.w1.wpa_supplicant1
+ExecStart=/usr/sbin/wpa_supplicant -u -iwlan0 -Dnl80211 -c/etc/wpa_supplicant.conf
+
+[Install]
+WantedBy=multi-user.target
+Alias=dbus-fi.w1.wpa_supplicant1.service
