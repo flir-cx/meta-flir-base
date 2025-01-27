@@ -1,0 +1,10 @@
+[Unit]
+Description=FLIR Activity Monitor
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/fsm-server -c K22
+
+[Install]
+WantedBy=multi-user.target
+
