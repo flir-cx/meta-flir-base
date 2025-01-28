@@ -17,6 +17,7 @@ IMAGE_INSTALL_append = "\
     flirbifrost \
     flirfad \
     flirfvdk \
+    flir-state-master \
     gadgetload \
     haproxy \
     iputils-ping \
