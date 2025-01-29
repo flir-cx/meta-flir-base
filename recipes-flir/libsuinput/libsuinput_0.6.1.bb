@@ -15,7 +15,7 @@ SRCREV = "729d5e07fb51e8b21c57e55e92e76b89eb578923"
 S = "${WORKDIR}/git"
 DEPENDS = "udev"
 
-inherit autotools pkgconfig ptest
+inherit autotools pkgconfig
 
 #PACKAGECONFIG_class-target ??= "udev"
 #PACKAGECONFIG[udev] = "--enable-udev,--disable-udev,udev"
@@ -27,14 +27,6 @@ do_install_append() {
 	if [ ! ${D}${libdir} -ef ${D}${base_libdir} ]; then
 		mv ${D}${base_libdir}/pkgconfig ${D}${libdir}
 	fi
-}
-
-do_compile_ptest() {                                                             
-    oe_runmake -C tests stress                                                   
-}                                                                                
-                                                                                 
-do_install_ptest() {                                                             
-    install -m 755 ${B}/tests/.libs/stress ${D}${PTEST_PATH}         
 }
 
 FILES_${PN} += "${base_libdir}/*.so.*"
