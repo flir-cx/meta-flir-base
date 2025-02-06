@@ -24,6 +24,7 @@ IMAGE_INSTALL_append = "\
     libubootenv-bin \
     mmc-utils \
     mmc7mounter \
+    oommon \
     qtbase \
     qtgraphicaleffects \
     php \
@@ -44,6 +45,7 @@ IMAGE_INSTALL_append = "\
     umtp-responder \
     videorender-service \
     wlanload \
+    zram \
     packagegroup-flir-lighttpd \
     packagegroup-flir-gstreamer \
     "

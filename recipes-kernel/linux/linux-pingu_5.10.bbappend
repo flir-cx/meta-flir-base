@@ -65,6 +65,18 @@ SRC_URI_append_ec702 = " \
     file://enable-wlan-wl18-module.cfg \
 "
 
+SRC_URI_append_ec201 = " \
+    file://enable-zram-module.cfg \
+"
+
+SRC_URI_append_ec202 = " \
+    file://enable-zram-module.cfg \
+"
+
+SRC_URI_append_ec302 = " \
+    file://enable-zram-module.cfg \
+"
+
 # This will create /etc/modprobe.d/spi-nor.conf
 # It is needed to make the aoutommatic loading of spi-nor
 # module work since the alias is not default.
