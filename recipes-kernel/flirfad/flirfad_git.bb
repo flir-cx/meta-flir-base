@@ -23,7 +23,7 @@ PROTO = "${@oe.utils.conditional( "FLIR_INTERNAL_GIT", "1", "ssh", "https", d)}"
 #SRCREV = "${AUTOREV}"
 # Note, locked version in source git
 # Please use AUTOREV only locally while developing
-SRCREV = "dc426ad7bb96062b56b30ecd7ad2e51e82373ed9"
+SRCREV = "0bb15a7adab073ea36a0c6cb8b49d93d330e43fb"
 
 SRC_URI = "${FLIR_FLIRFAD_URI};protocol=${PROTO};nobranch=1"
 
