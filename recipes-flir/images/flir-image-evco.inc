@@ -9,6 +9,7 @@ IMAGE_INSTALL_append = "\
     autofs \
     bluez5 \
     btload \
+    chargeapp \
     chargeapp-service \
     chargelogo \
     data-collection-service \
