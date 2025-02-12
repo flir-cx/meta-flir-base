@@ -4,7 +4,6 @@ require flir-image-base.inc
 inherit populate_sdk_qt5
 
 IMAGE_INSTALL_append = "\
-    autofs \
     bluez5 \
     btload \
     chargeapp-service \
