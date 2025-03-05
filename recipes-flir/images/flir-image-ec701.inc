@@ -6,6 +6,7 @@ inherit populate_sdk_qt5
 IMAGE_INSTALL_append = "\
     bluez5 \
     btload \
+    chargeapp \
     chargeapp-service \
     chargelogo \
     data-collection-noupload \

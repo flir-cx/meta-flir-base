@@ -6,11 +6,11 @@ PRIORITY = "optional"
 LICENSE = "CLOSED"
 
 inherit cmake pkgconfig cmake_qt5
-DEPENDS += "qttools-native qtbase qtdeclarative qtdeclarative-native breakpad"
+DEPENDS += "qttools-native qtbase qtdeclarative qtdeclarative-native breakpad glib-2.0"
 
 PV = "0.1.5"
 PR = "r2"
-SRCREV = "5bef17ddd83099318d58c3d33cf5c442da86eff5"
+SRCREV = "566b92eb2febc16fa88e5232054f6095a675d1ce"
 
 SRC_URI += "git://git@bitbucketcommercial.flir.com:7999/CAMOS/chargeapp.git;protocol=ssh;nobranch=1"
 
