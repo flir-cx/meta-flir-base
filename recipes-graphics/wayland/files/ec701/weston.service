@@ -35,17 +35,11 @@ ConditionPathExists=/dev/tty0
 Type=notify
 EnvironmentFile=/etc/default/weston
 
-# Timings for HDMI on fb2. To use hdmi must be enabled in device tree
-#ExecStartPre=/usr/sbin/fbset -fb /dev/fb2 -g 1024 768 1024 768 32 -t 15385 160 24 29 3 136 6
-# Timings for viewfinder on fb0 and fb1
-#ExecStartPre=/usr/sbin/fbset -fb /dev/fb0 -g 1024 768 1024 768 32 -t 19921 8 4 35 3 4 6
-#ExecStartPre=/usr/sbin/fbset -fb /dev/fb1 -g 1024 768 1024 768 32 -t 19921 8 4 35 3 4 6
-
-# Uncomment the next line if you want to clone the IR-image to a connected HDMI display
-#ExecStartPre=/bin/sh -c "/bin/echo 1 2 > /sys/devices/platform/fb@0/graphics/fb0/clone_to"
+# Size of fb1
+ExecStartPre=/usr/sbin/fbset -fb /dev/fb1 -g 640 480 640 480 32
 
 # Blank all framebuffers before starting weston
-ExecStartPre=-/bin/sh -c 'cd /sys/class/graphics ; /bin/echo 0 > fb0/blank ; /bin/echo 0 > fb1/blank ; /bin/echo 0 > fb2/blank'
+ExecStartPre=/bin/sh -c '/bin/echo 0 > /sys/class/graphics/fb0/blank ; /bin/echo 0 > /sys/class/graphics/fb1/blank'
 
 ExecStart=/usr/bin/weston --log=${XDG_RUNTIME_DIR}/weston.log --modules=systemd-notify.so --device=/dev/fb0,/dev/fb1 --local-alpha-device=/dev/fb1
 
