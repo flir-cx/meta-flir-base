@@ -7,11 +7,13 @@ LICENSE = "CLOSED"
 PR = "r2"
 PV = "1"
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+RDEPENDS_${PN} += "bash"
 
 SRC_URI += "file://suid.sh \
             file://camserial.sh \
             file://flir-create-diagnostics.sh \
 	    file://timestamps.sh \
+            file://install_cert.sh \
 "
 
 S = "${WORKDIR}"
@@ -23,6 +25,7 @@ do_install_append() {
     install -m 0755 ${WORKDIR}/camserial.sh ${D}/usr/bin/camserial
     install -m 0755 ${WORKDIR}/flir-create-diagnostics.sh ${D}/usr/bin/flir-create-diagnostics
     install -m 0755 ${WORKDIR}/timestamps.sh ${D}/usr/bin/timestamps    
+    install -m 0755 ${WORKDIR}/install_cert.sh ${D}/usr/bin/install_cert    
 
 }
 
@@ -31,4 +34,5 @@ FILES_${PN} += "\
     /usr/bin/camserial \
     /usr/bin/flir-create-diagnostics \
     /usr/bin/timestamps \
+    /usr/bin/install_cert \
 "
