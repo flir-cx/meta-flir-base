@@ -9,7 +9,7 @@ PV = "1"
 
 SRC_URI += "file://battery_logo.bmp.gz;unpack=0"
 SRC_URI += "file://no_battery.bmp.gz;unpack=0"
-SRC_URI_append_ec702 = "file://hot_battery.bmp.gz;unpack=0"
+SRC_URI_append_ec702 += "file://hot_battery.bmp.gz;unpack=0"
 
 S = "${WORKDIR}"
 
