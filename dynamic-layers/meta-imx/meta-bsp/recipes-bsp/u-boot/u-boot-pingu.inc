@@ -18,7 +18,7 @@ SRC_URI = "${FLIR_UBOOT_URI};protocol=${PROTO};nobranch=1"
 
 SRC_URI_append += "file://git/localversion.std"
 
-SRCREV = "e25faf7e7d4c6d577ed79108bcfc41bccfc55f7a"
+SRCREV = "3b00c1d6182db8549e86927d33a091aee79bd3f7"
 LOCALVERSION = "-${SRCBRANCH}"
 
 # Add --dirty for -std version. Will show up if for local edits/developement
