@@ -9,8 +9,9 @@ IMAGE_INSTALL_append = "\
     chargeapp \
     chargeapp-service \
     chargelogo \
-    data-collection-noupload \
     data-collection-service \
+    data-collection-events-service \
+    data-collection-dumps-service \
     firmware-imx-sdma-imx6q \
     firmware-imx-vpu-imx6d \
     flir-activity-monitor \
